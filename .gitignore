@@ -1,0 +1,47 @@
+# ---- sealed 评测集：物理隔离，永不入库 ----
+eval/sealed/*
+!eval/sealed/.gitkeep
+
+# ---- 运行产物 / 大输出（落盘但不入库）----
+runs/
+logs/
+*.log
+profiles/
+*.nsys-rep
+*.ncu-rep
+*.sqlite
+*.zst
+*.zstd
+harness/replays/**/*.jsonl
+harness/profile/**
+
+# ---- 密钥与凭据：任何时候都不许进来 ----
+.env
+.env.*
+*.key
+*credentials*
+*.pem
+sk-*
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ---- Node ----
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+
+# ---- 编辑器 / 系统 ----
+.DS_Store
+.idea/
+.vscode/
+*.swp
