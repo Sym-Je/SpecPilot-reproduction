@@ -15,6 +15,12 @@ profiles/
 harness/replays/**/*.jsonl
 harness/profile/**
 
+# ---- 运行产物：账本与记忆属于实验记录，不入库（保留 .gitkeep 与模板）----
+ledger/*.jsonl
+ledger/archive/
+memory/entries/*.json
+memory/archive/
+
 # ---- 密钥与凭据：任何时候都不许进来 ----
 .env
 .env.*
