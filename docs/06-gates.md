@@ -26,9 +26,27 @@
 
 结论：非本地配置问题，是网关侧按 SNI 拒绝（或服务未起）。G1 在网关恢复前无法推进。
 
-## G2 断流续跑 — 进行中
+## G2 断流续跑 — 通过（6/6，本地 mock）
 
-本地 mock server 方案，不依赖外网。
+`python3 gates/g2_resilience.py`，mock server 在本地 8899，零外网零 GPU。
+
+| 判据 | 结果 |
+|---|---|
+| D1 注入 500 后确实重试 | 共 4 次请求，第 0 次为 500 |
+| D2 SSE 缺 `[DONE]` 被判定截断 | 客户端抛 Truncated，未当成功 |
+| D3 重试后拿到完整输出 | `Hello from mock` |
+| D4 副作用只执行一次 | idempotency key 出现 1 次 |
+| D5 重试有上限 | 4 次封顶 |
+| D6 指数退避 | 0.2 → 0.4s，总耗时 0.91s |
+
+### 实现要点
+
+1. **截断在 HTTP 层表现为两种异常**：`http.client.IncompleteRead`（chunked 编码未收尾）
+   和自定义的「流结束但未见 `[DONE]`」。两者都必须归为可重试，否则半截响应当成功。
+2. **重试必须配 idempotency key**。没有 key 就无法判断副作用是否已经发生过；
+   SpecPilot 里对应的就是「一次测量只该记一条账」。
+3. **超出范围的**：这验证的是「客户端 + 协议层」的续跑能力，不是 dsh 自身的续跑能力。
+   dsh 在断流下是否自动 retry、checkpoint 是否落盘，仍需 G1 打通后在真实会话里观察。
 
 ## G3 controller 权限边界 — 通过（9/9）
 
