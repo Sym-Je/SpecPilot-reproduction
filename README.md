@@ -36,3 +36,8 @@ Decoding*（arXiv:2611.02501v1）的**架构与方法**，而非逐数字对齐�
 ## 工作约定
 
 见 `AGENTS.md`。
+
+## 接手：先读 HANDOFF.md
+
+新 session / 新维护者从 [`HANDOFF.md`](HANDOFF.md) 开始。它记录当前卡点、环境事实、
+已验证结论和下一步路线，取代任何口头交接。
