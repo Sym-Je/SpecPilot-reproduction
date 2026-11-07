@@ -4,7 +4,7 @@
 Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性能；架构复现与数字复现分开报告。论文原件见
 `docs/` 中的引用；PDF 不在仓库内。
 
-## 当前进度（2026-11-07）
+## 当前进度（2026-11-08）
 
 图例：✅ 已完成 · 🟡 初步完成 · 🔵 正在推进 · ⬜ 待完成。只有完成该阶段验收才标 ✅。
 
@@ -14,7 +14,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 | 2 | 双卡配对测量自动化与远程验收 | ✅ 已完成 | a05 两轮真实换卡，10 pair / 20 臂行，exit=0，GPU 清理通过；26 项回归通过，见[验收记录](docs/experiments/p2-remote-smoke-20261107.md) |
 | 3 | AR vs stock 基线测量 | ✅ 诊断通过 | stock/AR 3.8699×，95% CI [3.5571, 4.2242]；40 pair / 80 臂行、两轮换卡通过，见[验收记录](docs/experiments/p3-ar-stock-2048-20261107.md) |
 | 4 | 验证作者 final 的收益 | ✅ 产物测量完成 | final/AR=8.7347× [8.0235,9.5599]；直接 final/stock=2.2219× [2.1381,2.2988]，见[验收记录](docs/experiments/p3-final-2048-20261107.md) |
-| 5 | 真实正确性、噪声与晋升判据 | 🔵 稳定化仍未过 | [CPU受控复验](docs/experiments/p5-cpu-bound-null-20261107.md)：两会话CI全宽0.0991%/0.2625%，一过一未过；98项回归与执行验收通过，真实forcing未完成 |
+| 5 | 真实正确性、噪声与晋升判据 | 🔵 规则文档已对齐，真实裁判待补齐 | [来源对齐](docs/experiments/p5-acceptance-alignment-20261108.md)：0.2%是工程自检，非论文硬门槛；历史失败保留，controller未切换，真实forcing未完成 |
 | 6 | 建立独立 sealed 验证 | ⬜ 未开始 | 前置验收通过后由 controller 管理，agent 不接触内容 |
 | 7 | 真实 profiling 与成本模型 | ⬜ 待补齐 | 简化骨架已有，真实耗时分析与成本模型待接入 |
 | 8 | agent 自主提案与实现 | ⬜ 待真实自主搜索 | 需独立提出优化并实现为可开关 option，默认保持 stock |
@@ -25,9 +25,9 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 
 **当前边界：**20 请求、2048 上限、自然 EOS 的 dev 子集；平均输出 AR 999.0、stock 1012.5、final 965.075 token。是作者产物验证，不是论文完整 dev/sealed、lossless 或自主发现结论；不能拿本结果宣称 sealed 2.13× 已复现。
 
-**正在做：**第5步稳定化。[完整预热协议](docs/experiments/p5-stable-null-20261107.md)两会话虽精度过但偏移未过；随后[CPU绑定协议](docs/experiments/p5-cpu-bound-null-20261107.md)实际绑定验收过、两会话都覆盖1，但第二会话全宽0.2625%超标，整体仍未过。全部结果已归档，无运行中任务。
+**正在做：**第5步[验收规则对齐](docs/experiments/p5-acceptance-alignment-20261108.md)。论文要求实测噪声进入晋升门槛，没有要求null CI全宽<0.2%或必须覆盖1；研究主线不再为这两个额外自检反复追绿。旧实验判定不改写，当前controller仍保留原诊断字段。
 
-**接下来：**确认可用CPU隔离资源和官方提交方式，再登记残余调度/引擎瞬态诊断；当前Pod无CPU预留，CLI无对应参数，已询问资源信息，不能断言CPU就是根因。不删样本、不放宽<0.2%、不重复追绿；真实forcing仍待补齐，不进入sealed或RSI。
+**接下来：**由维护者确认并接入正式noise/CI/晋升口径，补真实FP32-head scorer、stock mismatch/δ和故障注入；CPU独占不是必需前置。本次不修改controller、不提交GPU，不把文档对齐或旧null测量当作lossless/晋升通过，不进入sealed或RSI。
 
 **已有基础：**三臂真实 server 烟测与 mock 闭环完成，GitHub 私有远端已配置；**尚未独立复现论文数字。**
 

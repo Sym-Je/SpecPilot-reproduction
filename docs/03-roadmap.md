@@ -49,7 +49,7 @@ checkpoint。这是首要卡点。
 ### 2.6 规模
 
 单 agent 基线必须复现（1.34x vs 2.13x）。它比主线便宜得多，建议并行做——
-没有这个对照，"成本模型有用"只是断言。
+没有这个对照，"成本模型有用"只是断言。论文数值是参照，不要求新实验精确相等。
 
 ## 3. 阶段计划
 
@@ -59,9 +59,12 @@ checkpoint。这是首要卡点。
 - 单请求 AR / stock 跑通，拿到 AR 基线 tok/s
 - 实现 exact replay（录 lattice + target 输出，离线重跑选树与验证）
 - 实现 profiler 聚合（按 kernel 类）
-- **通过 `02-acceptance.md` §5 的四条前置自检**
+- 按`02-acceptance.md` §5–6保留校准证据与正确性/执行自检。
 
-退出判据：能在任意 GP 上稳定复现 stock vs stock 的噪声 < 0.2%。
+退出判据：同尺度stock null证据完整，噪声估计口径由维护者固定并进入后续晋升阈值；
+真实正确性及执行完整性自检通过。不要求任意GPU达到固定0.2%噪声或CI宽度。
+2026-11-08来源对齐见[对齐记录](experiments/p5-acceptance-alignment-20261108.md)；
+当前controller未切换，旧诊断布尔不改写。
 
 ### 阶段 1：成本模型（无优化）
 
@@ -94,19 +97,19 @@ checkpoint。这是首要卡点。
 
 ### 阶段 5：记忆与迁移
 
-- 蒸馏条目，验证"applied to stock 复现源系统代码"
+- 蒸馏条目，验证条目连同其依赖作用于stock后准确还原源系统代码。
 - 迁移到 DSpark 或 PRO 6000（若硬件可用）
 
 ## 4. 每个阶段的验收
 
 | 阶段 | 验收命令形态 | 通过条件 |
 |---|---|---|
-| 0 | `controller/calibrate --stock-vs-stock` | 95% 区间宽度 < 0.2% |
+| 0 | `controller/calibrate --stock-vs-stock` | 校准证据完整、估计口径预登记；全宽与偏移单独报告，不设0.2%论文硬门槛 |
 | 0 | `controller/selftest --inject-fault` | 假阳被拒、假阴被放行 |
 | 1 | `costmodel/factors --ref stock` | 三因子与论文起点数量级相符 |
 | 2 | `controller/measure --a stock --b <ref>` | 返回 gain + ci95 + verdict |
 | 3-4 | `controller/sealed --ref <ref>` | sealed 通过且 token forcing 通过 |
-| 5 | `memory/verify --entry <id> --onto stock` | 字节级复现源系统代码 |
+| 5 | `memory/verify --entry <id> --onto stock` | 条目及其依赖字节级复现源系统代码 |
 
 ## 5. 需要你先决定的事
 

@@ -106,6 +106,14 @@ A 阶段通过后，冻结实验计划，按上游每 suite 6 条、2048 tokens 
 
 在任何正式候选晋升或 sealed 数字结论之前完成，由维护者提供 controller 侧实现/验收：
 
+2026-11-08用户要求[对齐验收规则](experiments/p5-acceptance-alignment-20261108.md)，当前文档以
+`docs/02-acceptance.md`的`paper-aligned-v1`为准：0.2%全宽与两会话覆盖1是本地工程诊断，
+不是论文硬门槛；H100噪声<0.1%是论文观测值。取消把这些数值当作研究主线的通用阻塞，
+CPU独占不再是必需前置。此次没有修改controller，旧precision/stable字段及历史失败仍保留；
+正式校准口径和策略接入仍待维护者，真实token forcing尚未完成，不能宣布本阶段通过。
+
+以下是旧规则下的历史审计与测量，不是当前必须重复追绿的执行计划：
+
 2026-11-07 第 5 步完成只读 CPU 前置审计后曾 blocked，随后用户明确授权限定修改 controller。
 [最小反例与维护者交付](experiments/p5-readiness-20261107.md)：空/不完整输入误过、4096-token 数值溢出、
 rate rule 与输出分歧晋升缺口已复现。后续[修复/校准记录](experiments/p5-controller-repair-20261107.md)：
@@ -114,10 +122,12 @@ rate rule 与输出分歧晋升缺口已复现。后续[修复/校准记录](exp
 
 随后[只读噪声诊断](experiments/p5-noise-diagnosis-20261107.md)完成：启动参数/输出/换卡正常，
 server时段仍保留主要偏差；短预热和首请求跨轮显著变化值得验证，但因果根因未确定。
-没有新GPU任务或运行实现变更，后续有监控、全尺度预热的有限复验需先报流程获准；原门槛不变。
+该只读诊断之后已执行完整预热及CPU绑定实验，见本次对齐记录的历史证据索引；
+历史门禁结果不变，但不再把其固定0.2%阈值误称论文规定。
 
 1. 两个独立 stock server、两卡互换的 null calibration；噪声来自真实同尺度会话，不复用 mock 3.11% 或单 URL 自比值。
-2. 明确噪声定义、95% 下界与双侧 CI、输出分歧约 3% 门槛的精确组合。遵守已有要求，不擅自放宽 docs/02 的区间全宽 <0.2%。
+2. 维护者先明确并绑定noise估计量、校准会话选择、偏移/漂移处理、95%下界尾概率与候选同尺度协议；
+   使用实测noise计算`1% + 2×noise`，记录输出分歧约3%的本地保守实现，不另设0.2%论文级硬门槛。
 3. 实现 stock-engine teacher-forced scorer，FP32 LM head，沿候选自身输出上下文评分，保留 argmax 与 margin；重新测本机 stock mismatch，而非硬抄论文 0.72%。
 4. 依据 stock 首次偏离 AR 的 margin 标定 delta；rate rule 和 large-margin event rule 分开，并支持 stock 复现及 prefill 长度敏感性解释。
 5. 真模型故障注入：2048 tokens 之后，每第 7 个 vocab id 加 logit bias=2；在最长 4096 输出的 controller 测试中须被拒。仅改归约次序的近并列差异不能被当作明显造假。
@@ -181,14 +191,16 @@ A1/A2 每对大致按 R×(双 server 启动时间 + 请求数×较慢臂单请�
 30 请求或100 请求按实际耗时重新预算；正确性 scorer、真实 RSI 和 W12 不能套用这一小时估计。
 论文全量是13轮、530 GPU小时量级，不把小规模复现承诺成全量覆盖。
 
-硬停止：忙卡、错 manifest、缺项、未物理换卡、server 失败、身份漂移、forcing 拒绝、噪声不达标、sealed 泄漏或 option 默认不复现 stock。
+硬停止：忙卡、错manifest、缺项、未物理换卡、server失败、身份漂移、forcing拒绝、校准无效或缺失、
+收益下界未超过含实测噪声的晋升门槛、sealed泄漏或option默认不复现stock。
+不以本地null CI全宽0.2%或覆盖1作为论文通用硬停止；额外工程自检仍逐项报告，不能删除失败。
 不自动降级串行、不把失败轮静默续接、不临时改样本/目标、不绕过 controller、不在 image 和任务命令未经确认时提交。
 NorthJob 为后续执行入口：按 skill 查重名、展示完整命令与资源、显式确认 image、提交后验证 code==200 和 job_uuid。任务、失败和产物索引均按全流程管理规范记录；用户已授权大步骤验收后更新首页、提交并推送到私有 GitHub origin。
 
 ## 13. 下一次实际执行
 
-1. 建立实验记录，确认远程 image、代码快照、挂载和资源，按 skill 准备 NorthJob；不再等待本机两卡释放。
-2. 在确认的远程环境重跑已有 CPU 验收、配置和空闲检查，不增加新的研究方向。
-3. 经 NorthJob 运行 A1，报告全部 suite、两轮和总体数字；达标才运行 A2。
-4. 根据 A2 做必要的直接 stock/final 与长度诊断；随后确认 B/C 的正式口径和维护者工作。
-5. 每阶段单独报验收与证据并更新 Git 中的记录；不提前 RSI 或 sealed，不把作业提交成功当作实验成功。
+1. A1/A2/A3诊断已完成，不因本次文档修订重跑；不以旧工程自检失败继续无限压噪声。
+2. 先由维护者交付正式noise/CI/晋升策略，明确区分历史诊断字段与论文规则；agent不绕过controller。
+3. 另行说明并获准后，补真实FP32-head scorer、stock mismatch/δ、故障注入与归约对照。
+4. 新GPU实验先登记请求/轮数/停止规则，沿用已确认资源与镜像，按NorthJob skill提交；本次对齐不提交。
+5. 每阶段报告证据并更新Git；未完成真实裁判前不进入sealed或RSI，不把文档对齐当验收通过。

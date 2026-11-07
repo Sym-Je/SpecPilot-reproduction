@@ -1,13 +1,20 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-07（第5步稳定化及CPU绑定受控复验均完成，后者两会话一过一未过，稳定化仍未过；无运行中任务，待CPU隔离资源/官方提交方式信息，版本状态以git log/status为准）。
+> 最后更新：2026-11-08（Asia/Shanghai；用户要求对齐验收规则。0.2%与覆盖1明确为本地工程自检，不再作为论文级通用阻塞；只改文档，controller未切换，真实forcing仍待补，无运行中任务）。
 
-## 当前接续点：第 5 步真实正确性 / 噪声 / 晋升（基础已修，噪声未过，未完成）
+## 当前接续点：第5步规则文档已对齐，正式裁判策略与真实forcing待维护者
+
+- 本次记录：`docs/experiments/p5-acceptance-alignment-20261108.md`，依据用户PDF的§3.2/3.3/3.4/5.1；文档规则`paper-aligned-v1`见`docs/02-acceptance.md`。用户明确要求“对齐验收规则”，本次仅文档修订，不修改controller/运行代码，不提交GPU、不读sealed、不写ledger。
+- 论文要求收益95%下界超过`1% + 2×实测stock-null噪声`，输出有分歧时约3%；H100 noise<0.1%是论文观测值。论文没有规定null CI全宽<0.2%或两独立会话均覆盖1，也没有规定CPU独占。上述额外自检降为诊断，不再以此阻塞研究主线或继续追绿；校准有效性、真实正确性及晋升下界仍必须验收。
+- 历史precision/centered/stable字段、失败JSON和gate exit=1保持原值；本次不宣称旧实验新通过。controller尚未切换，不能由harness另设裁判绕过。正式noise估计量、跨会话选择、CI尾概率与候选同尺度协议需维护者先确认并接入；真实FP32-head scorer、stock mismatch/δ、故障注入/归约对照仍未完成。
+- 下一步应先报真实裁判交付流程再获准执行；不重跑A1/A2/A3，不把CPU资源配置当唯一前置，不自动sealed/RSI。旧“先把CI压到0.2%/先等独占CPU”的接续计划已由本段替代。架构与论文数字复现仍分开报告。
+
+## 第5步历史实验与权限记录（以下非当前执行计划）
 
 - 最新完成CPU亲和性受控复验：`docs/experiments/p5-cpu-bound-null-20261107.md`，执行pin=`794219b`。UUID=`job-788af093f15c-20261108003647`，node131，16:37:05–17:22:20 UTC，Job=Completed/Pod=Succeeded，容器/脚本exit0、restart0，两会话两卡清理0 MiB/0%。会话1=1.0002672639、CI[0.9998000780,1.0007914498]、全宽0.0991372%，stable=true；会话2=0.9990706080、CI[0.9977318287,1.0003567337]、全宽0.2624905%，stable=false。均覆盖1且CPU绑定验收通过，但整体稳定性门禁exit1；不挑首会话、不合并平均、不再同配置追绿。
 - CPU修正默认关闭，只在stable-null配合`--pin-cpus`；GPU固定scheduler主核2/50、各自8后台核，全部线程监控通过；不改controller/统计/门槛/引擎/时钟，不等于独占CPU。98项回归、独立复算两次JSON一致、历史校验通过。161文件清单`logs/p5-cpu-bound-null-evidence-20261107-a01.sha256`，SHA=`3b76e931a655ea915d97a1fae2e13766c8d1d87e46514a12a155573ac1f23a8d`。
-- 当前接续：真实Pod为Burstable、无CPU request/limit；当前NorthJob CLI无CPU预留/独占参数。第二会话约80.57%分层方差来自HumanEval，服务端也有延迟差；不能断言CPU是根因。一次预登记CPU修正已执行完，下一项先确认可用CPU隔离资源/官方提交方式，并登记主机调度等待与引擎/GPU瞬态诊断；已询问用户资源信息。不得擅自修改集群、升级CLI或手写Volcano提交。不盲重提，不自动forcing/sealed/RSI。
+- 此前资源诊断分支：真实Pod为Burstable、无CPU request/limit；当前NorthJob CLI无CPU预留/独占参数。第二会话约80.57%分层方差来自HumanEval，服务端也有延迟差；不能断言CPU是根因。一次预登记CPU修正已执行完，曾建议确认可用CPU隔离资源再做诊断；2026-11-08已取消其通用前置地位。不得擅自修改集群、升级CLI或手写Volcano提交，不盲重提。
 - GitHub原credential helper指向已清理的`/tmp/handoff-gh/.../gh`；本轮push只在该进程使用`logs/p5-github-credential-helper.py`读取本人现有gh配置，未改全局配置、未把凭据写入Git/对话。后续push应注意此环境限制，不打印token。
 - 稳定化a01已完成：`job-8f1d3b6bafa2-20261107233518`，node131，15:35:54–16:23:17 UTC，Job=Completed/Pod=Succeeded、容器/脚本exit0、无重启，两卡清理0 MiB/0%。会话1比值1.0020415084、CI[1.0011419394,1.0029587541]、全宽0.1816815%；会话2比值1.0018638161、CI[1.0010030732,1.0027354135]、全宽0.1732340%。两次precision=true但centered/stable=false；不平均掩盖，不盲重跑。141文件清单SHA=`7b99fcff66511193a200153c301600ae387a730766717d29db1335287477f1bb`。详见稳定化报告结果段；91项回归及独立复算通过。CPU迁移/亲和性是待受控验证假设，尚无因果结论；若继续本授权需先登记实质修正，不改controller或门槛。
 - 最新用户已批准噪声稳定化大流程，明确流程内自主实现/调试/复验，无需中途请示；上一轮“只读、再复验需批准”是历史限制。高风险/额外权限仍须审批，不放宽门槛、不读取sealed、不设置共享GPU时钟。
