@@ -1,6 +1,8 @@
 # 第5步：受控CPU亲和性null实验
 
-状态：预登记，尚未提交。前序为`p5-stable-null-20261107`，执行基准`1cde11b`。
+状态：预登记的一次实验已执行、验收与归档；两会话一过一未过，稳定化目标未达成。
+后续资源隔离诊断等待可执行的官方资源配置，不追加同配置追绿。前序为`p5-stable-null-20261107`，准备基准`1cde11b`，
+执行pin=`794219b12ef96e9092a60a08ffba662771f5ff3a`。
 用户授权在稳定化大流程内自主调试；不改controller、不放宽门槛、不读取sealed、不改GPU时钟。
 
 ## 假设与固定修正
@@ -55,3 +57,69 @@ NorthJob继续使用原镜像、WeaverDev、qiji namespace/请求queue、实际q
   均重新复算；前序stable-a01逐字段一致，未把历史失败改成通过。
 - CPU绑定只修改本runner拥有的进程/线程mask；不占有CPU、不设置全局亲和性或共享GPU clock。
   实测仍待NorthJob；任务名`specpilot-p5-cpu-null-20261108-a01`初次查重total=0。
+
+- 最终查重仍total=0，2026-11-08 00:36:47 +08:00唯一create code=200/data=None，
+  精确名查询唯一UUID=`job-788af093f15c-20261108003647`，初始Pending；实际queue=proj-31。
+  原镜像/WeaverDev/qiji/原toleration/2 H100/256Gi保持不变，前序任务已结束，未同时占4卡。
+- 原始输出`logs/p5-cpu-bound-null-20261107-a01/`，提交/监控/回归/完整源快照在同前缀prep目录。
+  源tar SHA256=`6558edfaea0377705f30c94e202ee3d91dcb3ddb74f47b98b710c70a9136f3da`。
+
+## 实际结果
+
+`job-788af093f15c-20261108003647`在node131执行，2026-11-07 16:37:05–17:22:20 UTC。
+Job=Completed/Pod=Succeeded，容器/脚本exit=0，restart=0；此exit仅表示生命周期完整。
+两会话各80 pair/160臂行，合计160 pair/320臂行；另176对预热不计入样本，
+每会话仍只有20个不同请求，两会话不合并平均。两会话结束两卡均0 MiB/0%。
+
+| 会话 | stock-b/stock-a 几何均值 | 分层双侧95% CI | CI全宽 | noise | 覆盖1 | 稳定化 |
+|---|---|---|---|---|---|---|
+| 1 | 1.0002672639252694 | [0.9998000779631615, 1.0007914498349078] | 0.0991371872% | 0.0791449835% | 是 | 通过 |
+| 2 | 0.9990706079835362 | [0.9977318286820704, 1.000356733732648] | 0.2624905051% | 0.2268171318% | 是 | **未通过：全宽超过0.2%** |
+
+两会话CPU执行验收均通过、区间均覆盖1，但第二会话精度未过，整体stable_passed=false。
+独立稳定性门禁`logs/p5-cpu-bound-null-prep-20261107-a01/gate.py`明确exit=1，
+`stability-gate.log`/`.exit-status`留存；不能挑首会话或仅看Job成功就称目标完成。
+
+### 已验收的证据
+
+- 源pin及逐文件SHA、原A1请求/模型/采样、stock树与block8匹配；controller相对`1cde11b`零修改。
+- 8轮fresh双server、物理GPU×端口交叉、完整预热、逐请求HTTP时序及CPU/GPU监控通过。
+- 两会话GPU/CPU映射完全相同：`GPU-36e9d0ec-5da3-363f-4540-f0593919394d`主核2/后台3–10；
+  `GPU-cf5af737-ae15-e23b-40ba-4cea449aec4f`主核50/后台51–58。
+  ready与完整预热后两次绑定均有证据；测量期间所有采样的server线程mask均符合固定映射。
+- 所有请求跨臂/卡/轮/会话输出SHA相同，每对verify计数相同；这不是FP32-head forcing或lossless证明。
+- 独立审计调用原controller产生的结果逐字段匹配持久记录，两次重放JSON完全相同。
+  8轮正式测量采样到的SM频率均1980 MHz；实际HTTP发起最大时差为会话1的0.282497ms、
+  会话2的0.259557ms。监控每次平均约0.243–0.265s，开销已包含在本协议环境中。
+- 新旧98/98回归、shell语法、历史A1/A2/A3/null复算、前序stable-a01的141文件清单检查通过。
+
+### 残余问题与停止边界
+
+- 第二会话约80.57%的分层bootstrap方差来自HumanEval（按suite内log值的bootstrap方差分解，
+  不是删样本后的重算）。例如第三轮`humaneval-114`双臂约3.797/3.944s，
+  server e2e约3.794/3.942s，差异不是仅发生在HTTP计时末端；不能删除此请求来缩窄区间。
+- 实际Pod API核对QoS为**Burstable**，CPU request/limit都没有；只有memory=256Gi与GPU=2。
+  所以本实验是亲和性控制，**不是独占CPU实验**。当前CLI的`create --help`没有CPU预留或独占参数。
+  资源快照与方差分解在prep目录`variance-and-resource-diagnosis.json`。
+- 两秒GPU状态采样不能排除更短的瞬态，现有证据也没有逐核调度等待/外部负载；
+  **不能断言共享CPU就是根因，也不能宣布CPU绑定已经解决问题。**
+- 预登记的一次受控修正已用完，不再追加相同配置/修改样本数碰运气。后续需先确认集群支持的
+  CPU隔离资源与官方提交方式，再登记可区分主机调度等待和引擎/GPU瞬态的新诊断。
+  不擅自改共享集群设置、升级CLI或手写Volcano提交；已向用户询问可用隔离资源信息。
+- 本轮没有lossless/晋升/论文数字结论，不读sealed、不进入RSI、不写晋升账本。
+
+## 可重放验收与归档
+
+```bash
+PY=/gpfs/users/jixinpeng/miniconda3/envs/dev/bin/python
+"$PY" -B -m unittest discover -s harness -p 'test_p[235]*.py'  # 98项应通过
+"$PY" -B logs/p5-cpu-bound-null-prep-20261107-a01/gate.py  # 预期exit=1，保留失败
+"$PY" -B logs/p5-cpu-bound-null-prep-20261107-a01/reaudit.py
+sha256sum -c logs/p5-cpu-bound-null-evidence-20261107-a01.sha256
+git diff --exit-code 1cde11b -- controller
+```
+
+161文件/280099512 bytes清单：`logs/p5-cpu-bound-null-evidence-20261107-a01.sha256`。
+清单SHA256=`3b76e931a655ea915d97a1fae2e13766c8d1d87e46514a12a155573ac1f23a8d`。
+完整源tar、提交回执、生成模板、生命周期、原始JSONL/监控、独立复算及失败门禁均在持久共享工作区；
+Git只追踪代码、协议、进度与证据索引，不提交这些大产物或凭据。

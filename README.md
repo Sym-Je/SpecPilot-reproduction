@@ -14,7 +14,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 | 2 | 双卡配对测量自动化与远程验收 | ✅ 已完成 | a05 两轮真实换卡，10 pair / 20 臂行，exit=0，GPU 清理通过；26 项回归通过，见[验收记录](docs/experiments/p2-remote-smoke-20261107.md) |
 | 3 | AR vs stock 基线测量 | ✅ 诊断通过 | stock/AR 3.8699×，95% CI [3.5571, 4.2242]；40 pair / 80 臂行、两轮换卡通过，见[验收记录](docs/experiments/p3-ar-stock-2048-20261107.md) |
 | 4 | 验证作者 final 的收益 | ✅ 产物测量完成 | final/AR=8.7347× [8.0235,9.5599]；直接 final/stock=2.2219× [2.1381,2.2988]，见[验收记录](docs/experiments/p3-final-2048-20261107.md) |
-| 5 | 真实正确性、噪声与晋升判据 | 🔵 基础已修，真实噪声未过 | [修复/校准](docs/experiments/p5-controller-repair-20261107.md)：9反例/79测试通过；[只读噪声诊断](docs/experiments/p5-noise-diagnosis-20261107.md)完成，根因仍待受控验证；真实 forcing 未完成 |
+| 5 | 真实正确性、噪声与晋升判据 | 🔵 稳定化仍未过 | [CPU受控复验](docs/experiments/p5-cpu-bound-null-20261107.md)：两会话CI全宽0.0991%/0.2625%，一过一未过；98项回归与执行验收通过，真实forcing未完成 |
 | 6 | 建立独立 sealed 验证 | ⬜ 未开始 | 前置验收通过后由 controller 管理，agent 不接触内容 |
 | 7 | 真实 profiling 与成本模型 | ⬜ 待补齐 | 简化骨架已有，真实耗时分析与成本模型待接入 |
 | 8 | agent 自主提案与实现 | ⬜ 待真实自主搜索 | 需独立提出优化并实现为可开关 option，默认保持 stock |
@@ -25,9 +25,9 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 
 **当前边界：**20 请求、2048 上限、自然 EOS 的 dev 子集；平均输出 AR 999.0、stock 1012.5、final 965.075 token。是作者产物验证，不是论文完整 dev/sealed、lossless 或自主发现结论；不能拿本结果宣称 sealed 2.13× 已复现。
 
-**正在做：**第5步[稳定化复验](docs/experiments/p5-stable-null-20261107.md)：两会话测量、独立复算及91项回归已完成；CI全宽0.1817%/0.1732%，精度均过，但区间都不覆盖1，稳定化目标未达成。旧失败证据保留，不把exit=0写成稳定性通过。
+**正在做：**第5步稳定化。[完整预热协议](docs/experiments/p5-stable-null-20261107.md)两会话虽精度过但偏移未过；随后[CPU绑定协议](docs/experiments/p5-cpu-bound-null-20261107.md)实际绑定验收过、两会话都覆盖1，但第二会话全宽0.2625%超标，整体仍未过。全部结果已归档，无运行中任务。
 
-**接下来：**在同一授权内验证[CPU亲和性假设](docs/experiments/p5-cpu-bound-null-20261107.md)：只固定本任务server线程CPU，不改controller/门槛；98项回归通过，实测待执行。不删样本/挑会话、不放宽<0.2%要求；真实forcing仍待补齐，不进入sealed或RSI。
+**接下来：**确认可用CPU隔离资源和官方提交方式，再登记残余调度/引擎瞬态诊断；当前Pod无CPU预留，CLI无对应参数，已询问资源信息，不能断言CPU就是根因。不删样本、不放宽<0.2%、不重复追绿；真实forcing仍待补齐，不进入sealed或RSI。
 
 **已有基础：**三臂真实 server 烟测与 mock 闭环完成，GitHub 私有远端已配置；**尚未独立复现论文数字。**
 

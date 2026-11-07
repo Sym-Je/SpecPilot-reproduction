@@ -1,11 +1,14 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-07（第5步稳定化a01已完成，两会话精度均过但区间均不覆盖1，稳定化未过；无运行中任务，版本状态以git log/status为准）。
+> 最后更新：2026-11-07（第5步稳定化及CPU绑定受控复验均完成，后者两会话一过一未过，稳定化仍未过；无运行中任务，待CPU隔离资源/官方提交方式信息，版本状态以git log/status为准）。
 
 ## 当前接续点：第 5 步真实正确性 / 噪声 / 晋升（基础已修，噪声未过，未完成）
 
-- 正在本次稳定化授权内验证CPU亲和性假设，预登记`docs/experiments/p5-cpu-bound-null-20261107.md`。新`--pin-cpus`仅stable-null允许，默认关闭；按GPU固定一个scheduler主线程核+8个后台物理核，ready与full-warm后两次固定施加，并监控所有server线程mask。不改controller/统计/门槛/引擎/时钟，不等于CPU独占。7项新CPU契约、新旧98项测试与历史复算通过。任务名`specpilot-p5-cpu-null-20261108-a01`查重0，尚未提交；CPU阶段执行状态以此与新记录为准。
+- 最新完成CPU亲和性受控复验：`docs/experiments/p5-cpu-bound-null-20261107.md`，执行pin=`794219b`。UUID=`job-788af093f15c-20261108003647`，node131，16:37:05–17:22:20 UTC，Job=Completed/Pod=Succeeded，容器/脚本exit0、restart0，两会话两卡清理0 MiB/0%。会话1=1.0002672639、CI[0.9998000780,1.0007914498]、全宽0.0991372%，stable=true；会话2=0.9990706080、CI[0.9977318287,1.0003567337]、全宽0.2624905%，stable=false。均覆盖1且CPU绑定验收通过，但整体稳定性门禁exit1；不挑首会话、不合并平均、不再同配置追绿。
+- CPU修正默认关闭，只在stable-null配合`--pin-cpus`；GPU固定scheduler主核2/50、各自8后台核，全部线程监控通过；不改controller/统计/门槛/引擎/时钟，不等于独占CPU。98项回归、独立复算两次JSON一致、历史校验通过。161文件清单`logs/p5-cpu-bound-null-evidence-20261107-a01.sha256`，SHA=`3b76e931a655ea915d97a1fae2e13766c8d1d87e46514a12a155573ac1f23a8d`。
+- 当前接续：真实Pod为Burstable、无CPU request/limit；当前NorthJob CLI无CPU预留/独占参数。第二会话约80.57%分层方差来自HumanEval，服务端也有延迟差；不能断言CPU是根因。一次预登记CPU修正已执行完，下一项先确认可用CPU隔离资源/官方提交方式，并登记主机调度等待与引擎/GPU瞬态诊断；已询问用户资源信息。不得擅自修改集群、升级CLI或手写Volcano提交。不盲重提，不自动forcing/sealed/RSI。
+- GitHub原credential helper指向已清理的`/tmp/handoff-gh/.../gh`；本轮push只在该进程使用`logs/p5-github-credential-helper.py`读取本人现有gh配置，未改全局配置、未把凭据写入Git/对话。后续push应注意此环境限制，不打印token。
 - 稳定化a01已完成：`job-8f1d3b6bafa2-20261107233518`，node131，15:35:54–16:23:17 UTC，Job=Completed/Pod=Succeeded、容器/脚本exit0、无重启，两卡清理0 MiB/0%。会话1比值1.0020415084、CI[1.0011419394,1.0029587541]、全宽0.1816815%；会话2比值1.0018638161、CI[1.0010030732,1.0027354135]、全宽0.1732340%。两次precision=true但centered/stable=false；不平均掩盖，不盲重跑。141文件清单SHA=`7b99fcff66511193a200153c301600ae387a730766717d29db1335287477f1bb`。详见稳定化报告结果段；91项回归及独立复算通过。CPU迁移/亲和性是待受控验证假设，尚无因果结论；若继续本授权需先登记实质修正，不改controller或门槛。
 - 最新用户已批准噪声稳定化大流程，明确流程内自主实现/调试/复验，无需中途请示；上一轮“只读、再复验需批准”是历史限制。高风险/额外权限仍须审批，不放宽门槛、不读取sealed、不设置共享GPU时钟。
 - 正在冻结新协议代码：`docs/experiments/p5-stable-null-20261107.md`；固定完整20条/2048cap预热一遍，正式同20条，每会话预先4轮fresh双server/GPU×端口独立交叉，启动/提交顺序平衡并有线程屏障、HTTP实际时序、每2秒GPU/CPU监控。两独立会话均须全宽<0.2%；另加CI覆盖1的工程自检防窄但偏移，不冒充论文新增判据。20请求仍20独立cluster，不把4轮当80独立请求。
