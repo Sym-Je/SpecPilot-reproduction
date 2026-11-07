@@ -87,3 +87,35 @@ hash 定义与上游 `scripts/build_engine.py` 相同（`sha256` of canonical
 可以直接对比。**注意**：树上只有文件；final 的 46 个 `SPECPILOT_*` 开关与 block size
 由 `harness/sglang/serve.sh` 以环境变量注入，改开关不会改 tree sha —— 配对测量时
 必须把注入的环境一起记进测量记录。
+
+## P3 补充：final 臂的 46 个 `SPECPILOT_*` 从哪来
+
+`p3_pair.sh` 不手抄这些变量。`harness/sglang/gen_final_env.py` 读
+`assets/upstream/configs/<setting>/config.json` 的 `final.env` + `final.block_size`
+生成 shell export 文件（默认 `$SPECPILOT_DATA/work/env/<setting>-final.env`，**不进 git**），
+生成后立刻 `--check` 回比，不一致就硬失败。
+
+理由：抄错一个变量名不会被任何东西报错，只会让 final 臂悄悄跑成 stock，然后
+"复现失败"却查不出原因。config.json 是唯一真源，派生文件必须可重生成。
+
+## P3 补充：只跑 turn 0
+
+上游 `bench.py --first-turn-only` 的等价做法。mt-bench 是 20/20 多轮，第 2 轮起的输入
+依赖本臂自己的输出 → 三臂输入不同 → 配对失效。turn 0 的 `input_ids` 在三臂间按构造
+完全相同，`run_arm.py` 落 `input_sha256` 供 `gates/g8_pair_arms.py` 证明这一点。
+
+## P3 补充：AR 臂与 stock 臂的 token 差异不是 bug
+
+烟测 5 条里只有 1 条 AR 与 stock 逐 token 全同（其余在第 3/135/160/237 个 token 分歧）。
+两个原因叠加，都是预期内的：
+
+1. 采样路径不同（AR 每步 1 个 token；spec 是 draft + batched verify），H100 上
+   BF16 GEMM 的 batch 形状不同 → logprob 有 ~1e-3 抖动 → 近似并列的 argmax 会翻转；
+2. 512 万 token 以内没有"标准答案"可比对。
+
+所以 **lossless 不等于 AR 与 stock 逐 token 相同**。论文的口径是"greedy，且每个 token
+由 target 模型判定"（README: *the target model decides every token*），
+上游的对照是 `noop` 实验"必须与 stock token-identical"——即 **同引擎、同采样路径下
+改 proposal 侧** 才要求逐 token 相同。跨采样路径的 lossless 只能靠
+**token forcing**（把 stock 的 token 序列喂回去，检查每一步 target 的 argmax 是否等于该 token）
+来证明，这条在 P4 建。
