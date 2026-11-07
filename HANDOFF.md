@@ -126,9 +126,11 @@ $SP_PY harness/sglang/probe_greedy.py --n 3 --repeats 2 --max-new-tokens 2048
   `specpilot_data/work/engines/<setting>-{stock,final}`。`env.sh` 已改为优先用派生树，
   缓存按 `TREE_SHA[:16]` 分桶。验收：派生 stock 与上游树逐 token 一致（3/3）。
   坑：换 PYTHONPATH 会让 JIT 缓存失效，首次启动 `draft_decode` 图采集 8.7 s → 222.8 s。
-- **P2（1–2 天）**：`controller/measure.py` 的 worker 从 JSONL stdio 换成本地 HTTP
-  （`POST /generate`，body `{input_ids, sampling_params, stream}`），**只换传输不改统计**。
-  验收：同请求两次 output ids 的 sha256 相同。
+- **P2（已完成）**：`controller/http_transport.py` + `gates/g7_http_transport.py`（5/5）。
+  真实引擎的 options 是启动参数，所以配对变成"两个 server 各占一卡"；
+  `HttpPairBench` 复用 `controller.stats`，统计不改。单卡顺序路径
+  `SequentialPairBench` 直接 raise，**不许**冒充配对。验收含同 arm 确定性、
+  噪声地板、`1%+2*noise` 下界判据注入测试。
 - **P3（2 天，NorthJob）**：三臂配对 AR / stock / final，每臂 fresh server，双卡互换。
   目标 stock/AR ≈ 3.95×，final/stock ≈ 2.24×（上游 CI `[2.18, 2.32]`）。
   **这一步检验的是尺子，不是算法。**

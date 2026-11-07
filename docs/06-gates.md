@@ -108,3 +108,35 @@
 覆盖层 `settings/<setting>/files/` 的路径是 `python/sglang/...` 同构的，
 所以 G6 比对时必须把树内路径也统一成带 `python/` 前缀的形式；直接比
 `root/python/` 下的相对路径会让 E4 全部误报"夹带"。
+
+## G7 HTTP 传输层 — 通过（5/5）
+
+`python gates/g7_http_transport.py --url-a http://127.0.0.1:30010`（需要已起好的 server）：
+
+| 判据 | 结果 |
+|---|---|
+| E1 同一 arm 两轮 output 逐 token 相同 | `f3a5f4e2e109`，一致 |
+| E2 calibrate 产出配对比值噪声地板 | 自比 noise=0.146%，n=12 |
+| E3 promoted 用 95% 下界 + `1% + 2×noise` 阈值 | lower=1.02→False，lower=1.20→True，thr=0.110 |
+| E4 `SequentialPairBench` 拒绝产出账本指标 | 2/2 拒绝 |
+| E5 tau 带 `tau_source` 口径标记、保留 `output_ids` | per_verify_step，n=8 |
+
+### 为什么 P2 不能"只是换个传输"
+
+`measure.PairBench` 的 worker 是 JSONL stdio 进程，options 可以逐请求改。真实引擎里
+`--speculative-num-draft-tokens` 和 46 个 `SPECIPILOT_*` 全是**启动参数**，进程起来
+就固定了。所以真实配对必然退化成"两个 server，各占一张卡"。这不是实现细节，
+而是改变了测量协议本身：
+
+- **本机**：A 起 cuda:0、B 起 cuda:1，`run_pair` 的两轮是**交换时序先后**，不是交换物理卡。
+  要让"卡差异"进噪声，标定时必须让两臂都跑过两张卡 —— 见 `docs/02-acceptance.md`。
+- **单卡（NorthJob）**：只能 A→B 顺序，中间隔一次完整冷启动（27B 约 220 s）。
+  `SequentialPairBench` 直接 `raise`，**不许**产出可进账本的指标。这条是硬编码的，
+  不是文档约定 —— 因为"顺序跑冒充配对"是最容易无意间犯的错。
+
+### E3 为什么值得单独测
+
+晋升判据很容易被写成 `median > 1 + threshold`（"看起来快了 11% 就晋升"）。
+论文用的是 **95% 置信下界**：`lower - 1 > 1% + 2×noise`。E3 用构造的假 CI 注入，
+`median=1.30` 但 `lower=1.02` 时必须判 rejected。这条判据一旦写错，
+后面所有 RSI 轮次都会晋升噪声。

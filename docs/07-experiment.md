@@ -175,7 +175,31 @@ deterministic 3/3
 第二次启动会命中缓存（缓存按 `TREE_SHA[:16]` 分桶，见 `harness/sglang/env.sh`）。
 所以 **P3 配对测量必须给每臂留足冷启动预算，或者每臂都复用同一个树 sha 的热缓存**。
 
-## 6. 下一步（P2）
+## 7. 下一步（P3）
 
 `harness/build_engine.py`：按 `settings/*/config.json` 组装 stock/final 两棵派生树，
 打印 content hash（sha256 of canonical `{relpath: file sha256}`），两次构建必须同 hash。
+
+## 6. P2 传输层（HTTP）验收
+
+`gates/g7_http_transport.py`，臂是本地 0.5B 调试 server（`Qwen2.5-0.5B-Instruct`，
+cuda:1，`--mem-fraction-static 0.15`），因为 27B 一条臂就占 78/80 GB，两臂不可能同卡：
+
+```
+[PASS] E1 同一 arm 两轮 output 逐 token 相同: f3a5f4e2e109
+[PASS] E2 calibrate 自比 noise=0.146%  mean=488.1 tok/s  n=12
+[PASS] E3 promoted 用 95% 下界（lower=1.02→False, lower=1.20→True, thr=0.110）
+[PASS] E4 SequentialPairBench 拒绝产出账本指标（2/2）
+[PASS] E5 tau 带 tau_source 口径标记、保留 output_ids
+G7 PASS (5/5)
+```
+
+**这只是传输层正确性，不是 27B 的测量。** 真实配对需要：
+  - 本机：A 起 cuda:0（27B，78 GB）、B 起 cuda:1（27B，78 GB），两卡同时可用；
+  - 或 NorthJob 单卡顺序跑（`SequentialPairBench`，只做 smoke，不进账本）。
+
+已知的协议削弱（必须写进测量记录，不能藏）：
+
+1. 真实 server 换不了卡，`run_pair` 的"互换"退化为**交换谁先发**。
+   卡的个体差异因此**没有**被抵消，只能靠标定把它算进噪声。
+2. 27B 冷启动约 220 s（派生树首启 388 s），配对时不能用 fresh server 每轮重启。
