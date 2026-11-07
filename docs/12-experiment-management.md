@@ -48,7 +48,7 @@ Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果
 | 本机 AR/stock 尝试 | 历史 blocked；未启动测量 server | `logs/p3-local-ar-stock-20261107.log`；不是远程执行前置条件 |
 | NorthJob 远程工具验收 | completed；a05 两轮换卡、10 pair/20 臂行、exit=0 | [最终验收及失败历史](experiments/p2-remote-smoke-20261107.md)；26 项回归、统计复算、33 文件校验与 GPU 清理通过，非论文数字 |
 | A1：AR/stock | completed；点估计诊断通过，源 pin=79fe81a | [基线记录](experiments/p3-ar-stock-2048-20261107.md)；3.8699× [3.5571,4.2242]，40 pair/80 臂行、两轮换卡、39 回归及 38 文件校验通过 |
-| A2/A3：AR/final、stock/final | 待用户批准下一大步骤，未启动 | A1 已通过；同协议，直接验证收益和必要的长度诊断 |
+| A2/A3：AR/final、stock/final | prepared；用户已批准，50 项回归通过 | [本阶段记录](experiments/p3-final-2048-20261107.md)；同 A1 输入身份/协议，先 A2 后 A3，结果分别记录，无 sealed 数值门槛 |
 | B/C：正式 dev、真实正确性与裁判 | 待诊断及维护者工作 | 正式统计、噪声和 forcing 不以 mock 通过代替 |
 | P4、真实 RSI 与最终对照 | 未开始 | 前置条件满足后按计划推进，agent 不接触 sealed |
 

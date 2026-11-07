@@ -11,7 +11,7 @@ def read_rows(path):
     return [json.loads(line) for line in path.read_text().splitlines()]
 
 
-def validate_baseline(directory):
+def validate_paired_run(directory, names, expected_arms=None, reference_requests=None):
     directory = Path(directory)
     if (directory / 'failed.json').exists():
         raise ValueError('runner recorded a failure')
@@ -23,11 +23,15 @@ def validate_baseline(directory):
     if manifest.get('sampling') != {'temperature': 0.0, 'top_k': 1, 'enable_thinking': True}:
         raise ValueError('unexpected sampling protocol')
     arms = manifest['arms']
-    if ([arm['name'] for arm in arms] != ['ar', 'stock'] or
-            [arm['block'] for arm in arms] != [0, 8] or
-            arms[0]['tree_sha'] != arms[1]['tree_sha'] or any(arm.get('env') for arm in arms)):
-        raise ValueError('AR/stock must use the same stock tree without final options')
+    if len(names) != 2 or len(set(names)) != 2 or [arm['name'] for arm in arms] != names:
+        raise ValueError('unexpected comparison arms')
+    if expected_arms is not None and (len(expected_arms) != 2 or any(
+            actual.get(field) != value for actual, expected_arm in zip(arms, expected_arms)
+            for field, value in expected_arm.items())):
+        raise ValueError('arm configuration or tree identity mismatch')
     requests = manifest['requests']
+    if reference_requests is not None and requests != reference_requests:
+        raise ValueError('requests differ from the frozen baseline')
     by_id = {request['id']: request for request in requests}
     if (len(requests) != 20 or len(by_id) != 20 or
             Counter(request['suite'] for request in requests) != Counter({suite: 4 for suite in SUITES})):
@@ -37,7 +41,7 @@ def validate_baseline(directory):
         raise ValueError('invalid request identity')
     all_pairs = []
     assignments = []
-    arm_rows = {'ar': [], 'stock': []}
+    arm_rows = {name: [] for name in names}
     for round_number in (1, 2):
         round_dir = directory / f'round-{round_number:02d}'
         complete = json.loads((round_dir / 'complete.json').read_text())
@@ -76,29 +80,42 @@ def validate_baseline(directory):
                     raise ValueError('invalid throughput')
             arm_rows[name].extend(rows)
         all_pairs.extend(pairs)
-    if assignments[0] != {'ar': assignments[1]['stock'], 'stock': assignments[1]['ar']}:
+    if assignments[0] != {names[0]: assignments[1][names[1]], names[1]: assignments[1][names[0]]}:
         raise ValueError('physical GPUs were not exchanged')
     summary = json.loads((directory / 'summary.json').read_text())
-    if (summary.get('arms') != ['ar', 'stock'] or summary.get('max_new_tokens') != 2048 or
+    if (summary.get('arms') != names or summary.get('max_new_tokens') != 2048 or
             summary.get('per_suite_requested') != 4):
         raise ValueError('unexpected summary protocol')
     recalculated = summarize(all_pairs, requests, 2, summary['bootstrap_iters'])
     if any(summary.get(key) != value for key, value in recalculated.items()):
         raise ValueError('statistics differ from the existing controller implementation')
-    diagnostic_passed = 3.95 * 0.9 <= summary['geomean'] <= 3.95 * 1.1
-    if summary.get('acceptance') != {'target': 3.95, 'relative_tolerance': 0.10,
-                                     'passed': diagnostic_passed}:
-        raise ValueError('diagnostic reference was changed or misreported')
     lengths = {}
     for name, rows in arm_rows.items():
         counts = [row['completion_tokens'] for row in rows]
         lengths[name] = {'min': min(counts), 'max': max(counts),
                          'mean': sum(counts) / len(counts), 'at_cap': counts.count(2048),
                          'finish_reasons': dict(Counter(row['finish_reason'] for row in rows))}
-    return {'protocol_passed': True, 'diagnostic_passed': diagnostic_passed,
+    result = {'protocol_passed': True,
             'requests': 20, 'pairs': 40, 'arm_rows': 80, 'rounds': 2,
             'physical_gpu_swap': True, 'geomean': summary['geomean'],
             'ci95': [summary['lower'], summary['upper']],
-            'reference_interval': [3.95 * 0.9, 3.95 * 1.1], 'actual_lengths': lengths,
+            'actual_lengths': lengths,
             'ledger_eligible': False,
-            'scope': 'A1 dev-scale diagnostic; not sealed, lossless or promotion'}
+            'scope': 'paired dev-scale diagnostic; not sealed, lossless or promotion'}
+    return result, manifest, summary
+
+
+def validate_baseline(directory):
+    result, manifest, summary = validate_paired_run(directory, ['ar', 'stock'])
+    arms = manifest['arms']
+    if ([arm['block'] for arm in arms] != [0, 8] or
+            arms[0]['tree_sha'] != arms[1]['tree_sha'] or any(arm.get('env') for arm in arms)):
+        raise ValueError('AR/stock must use the same stock tree without final options')
+    diagnostic_passed = 3.95 * 0.9 <= summary['geomean'] <= 3.95 * 1.1
+    if summary.get('acceptance') != {'target': 3.95, 'relative_tolerance': 0.10,
+                                     'passed': diagnostic_passed}:
+        raise ValueError('diagnostic reference was changed or misreported')
+    result.update(diagnostic_passed=diagnostic_passed,
+                  reference_interval=[3.95 * 0.9, 3.95 * 1.1],
+                  scope='A1 dev-scale diagnostic; not sealed, lossless or promotion')
+    return result

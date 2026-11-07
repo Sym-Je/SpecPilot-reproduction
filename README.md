@@ -13,7 +13,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 | 1 | 明确复现对象与实验协议 | 🟡 初步完成 | 已区分 dev / sealed 与诊断 / 正式统计，见[协议规划](docs/11-reproduction-plan.md) |
 | 2 | 双卡配对测量自动化与远程验收 | ✅ 已完成 | a05 两轮真实换卡，10 pair / 20 臂行，exit=0，GPU 清理通过；26 项回归通过，见[验收记录](docs/experiments/p2-remote-smoke-20261107.md) |
 | 3 | AR vs stock 基线测量 | ✅ 诊断通过 | stock/AR 3.8699×，95% CI [3.5571, 4.2242]；40 pair / 80 臂行、两轮换卡通过，见[验收记录](docs/experiments/p3-ar-stock-2048-20261107.md) |
-| 4 | 验证作者 final 的收益 | ⬜ 待正式配对测量 | 先 AR/final，再直接 stock/final；[历史烟测](docs/09-p3-harness-validation.md)不算正式结果 |
+| 4 | 验证作者 final 的收益 | 🔵 正在推进 | 用户批准依次 AR/final、直接 stock/final；身份/验收及 50 项回归通过，见[本阶段记录](docs/experiments/p3-final-2048-20261107.md) |
 | 5 | 真实正确性、噪声与晋升判据 | ⬜ 待补齐真实验收 | 有 mock 骨架；真实 forcing、噪声校准与正式 controller 判据待维护者补齐 |
 | 6 | 建立独立 sealed 验证 | ⬜ 未开始 | 前置验收通过后由 controller 管理，agent 不接触内容 |
 | 7 | 真实 profiling 与成本模型 | ⬜ 待补齐 | 简化骨架已有，真实耗时分析与成本模型待接入 |
@@ -25,7 +25,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 
 **当前边界：**本次是 20 请求、2048 上限的 dev 子集诊断，允许自然 EOS；实际平均输出 AR 999.0、stock 1012.5 token。不是论文完整 dev/sealed、lossless 或自主发现结论；controller、sealed、正式账本未改。
 
-**接下来：**第 4 步 AR/final，再做直接 stock/final；先按大步骤说明目标、流程与自检并取得批准，不自动启动。沿用已确认镜像及 WeaverDev；namespace=qiji、请求 queue=qiji、实际 queue=proj-31，toleration 仍为 infra-dev-weaver。
+**正在做：**第 4 步已批准，先 AR/final 再直接 stock/final；同 A1 的原始 20 请求、2048 cap、两轮物理换卡。入口/身份验收和 50 项回归通过，准备提交；不套用 A1 或 sealed 数值门槛，不进入 RSI/sealed。
 
 **已有基础：**三臂真实 server 烟测与 mock 闭环完成，GitHub 私有远端已配置；**尚未独立复现论文数字。**
 
