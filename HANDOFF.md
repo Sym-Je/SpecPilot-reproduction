@@ -5,6 +5,7 @@
 
 ## 当前接续点：第5步规则文档已对齐，正式裁判策略与真实forcing待维护者
 
+- 最新用户已明确批准本阶段修改controller（仅校准与正确性验收），阶段内自主执行，不进入sealed/RSI/正式晋升。新入口记录`docs/experiments/p5-real-controller-20261108.md`。先红后绿的新旧105项CPU测试通过：显式paper-aligned-v1校准/候选readiness判定及native teacher-forced评分传输，legacy默认不变。准备短NorthJob接口探针，真实scorer/δ/注入/等价控制尚未验收；勿将接口测试当真实正确性通过。
 - 本次记录：`docs/experiments/p5-acceptance-alignment-20261108.md`，依据用户PDF的§3.2/3.3/3.4/5.1；文档规则`paper-aligned-v1`见`docs/02-acceptance.md`。用户明确要求“对齐验收规则”，本次仅文档修订，不修改controller/运行代码，不提交GPU、不读sealed、不写ledger。
 - 论文要求收益95%下界超过`1% + 2×实测stock-null噪声`，输出有分歧时约3%；H100 noise<0.1%是论文观测值。论文没有规定null CI全宽<0.2%或两独立会话均覆盖1，也没有规定CPU独占。上述额外自检降为诊断，不再以此阻塞研究主线或继续追绿；校准有效性、真实正确性及晋升下界仍必须验收。
 - 历史precision/centered/stable字段、失败JSON和gate exit=1保持原值；本次不宣称旧实验新通过。controller尚未切换，不能由harness另设裁判绕过。正式noise估计量、跨会话选择、CI尾概率与候选同尺度协议需维护者先确认并接入；真实FP32-head scorer、stock mismatch/δ、故障注入/归约对照仍未完成。
