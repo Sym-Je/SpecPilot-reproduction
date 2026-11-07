@@ -1,10 +1,16 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-07（第 4 步已获批准，final 入口/身份验收及 50 项回归通过，准备顺序 A2/A3；版本状态以 git log/status 为准）。
+> 最后更新：2026-11-07（第 4 步 A2/A3 产物测量完成；直接 final/stock=2.2219× [2.1381,2.2988]；无运行中任务，版本状态以 git log/status 为准）。
 
 ## 当前接续点：第 4 步作者 final 验证（不是 sealed Phase 4）
 
+- 当前第 4 步已完成：A2 final/AR=8.7347197445× [8.0234899904,9.5599189918]；A3 **直接 final/stock=2.2218558884× [2.1380887617,2.2987528227]**，不是两次 AR 对照相除。两项实验均 20 原请求/2048 cap/自然 EOS、两轮 fresh server/物理换卡，各 40 pair/80 臂行、Job=Completed/Pod=Succeeded、容器/脚本 exit=0、GPU 清理 0 MiB/0%、50/50 回归及独立统计复算通过。源 pin=4d67c2f4acfa1b68df24ef3de5a8cf53819e1962，模型/镜像/调度参数未换。
+- A3 唯一 UUID `job-4508734deeb3-20261107190750`，19:07:50 +08:00 code=200，19:08:14 启动、19:16:09 结束，node204，无重启；A2 已结束后才提交，最大同时占 2 GPU。输出 logs/p3-stock-final-2048-20261107-a01，38 文件清单 logs/p3-stock-final-evidence-20261107-a01.sha256，清单 SHA=bd5088cdd15862f2959cf7e327af7a4f8b04fdc76d12c051fbcf37bc6026bff6。A2 的 37 文件清单与 A1 历史清单均再次复核完整。
+- 解释边界：AR/stock/final 平均实际长度为 999.0/1012.5/965.075 token；当前是作者产物 dev 子集验证，不是完整 dev（6 条/suite）/sealed、lossless 或自主发现。W12/tree/GDN 日志表明相关路径运行；缺字面 TLV 日志不等于未启用，但语义/计数仍需审计。长输出收益提高支持固定开销解释，不是同样本短/长输出严格因果证明。下一主线第 5 步真实正确性与噪声/晋升；先报计划获准，controller 仍仅维护者，不自动 sealed/RSI。
+
+### 第 4 步准备与 A2 历史（以上述完成状态为准）
+- A2 已完成：`job-674358f4a1a0-20261107183406`，final/AR=8.7347197445×，95% CI [8.0234899904,9.5599189918]；40 pair/80 臂行、请求绑定/树/46 开关/物理换卡/统计复算通过，Job=Completed、Pod=Succeeded、exit=0，两卡清理 0 MiB/0%。源 pin=4d67c2f4acfa1b68df24ef3de5a8cf53819e1962；输出 logs/p3-ar-final-2048-20261107-a01，37 文件清单 logs/p3-ar-final-evidence-20261107-a01.sha256，清单 SHA=cabf4e5079946bec3ce9e7f18e709c0a930428b63f069b332b919033061cf417。运行日志有 W12/tree/GDN 路径证据，未检出 TLV 字面日志，不宣称已审计 TLV 语义/lossless；其后 A3 已按计划完成，不重复任何 create。
 - 当前完成：用户授权本阶段自主拆分、调试、测试及正常范围内重跑，小步骤不再等待回复；高风险及 skill 的查重/镜像/不明确提交保护仍有效。a04 首轮完成后因端口 TIME_WAIT 误报失败，已保留全部证据；只在探测 socket 增加 SO_REUSEADDR，真实 TCP 回归先红后绿，真实监听仍拒绝。最终 CPU 回归 26/26（17 编排 + 9 挂载/验收）通过；controller、sealed、账本、模型和镜像未改。
 - a05 完成：2026-11-07 16:42:26 +08:00 code=200，唯一 UUID `job-ad27e2790ef7-20261107164226`；16:42:45 启动、16:47:09 结束，Job=Completed / Pod=Succeeded / container exit=0 / script exit=0，无容器重启。源 pin=`0bb2965474bc7b2872d59bc6f311c94ebf6b22b1`；原 5 请求/64 cap/两轮物理换卡全部通过，10 pair/20 臂行、请求哈希一致，两张 GPU 清理后均 0 MiB/0%。结果 `logs/p2-remote-smoke-20261107-a05`；33 个证据文件清单 `logs/p2-evidence-a05-20261107.sha256`，清单 SHA=231d9d7fcc24a526750d925eb2ad5a5321b4893f909789d09aa875fa0ad74e03。统计复算与持久 summary 完全相同，但这是短输出诊断，不是论文/正式性能或 lossless 结论。
 - 当前主线已完成：AR/stock 20 请求、2048 cap、两轮 fresh server/GPU 互换，40 pair/80 臂行完整。stock/AR 几何平均 **3.8698909614×，95% CI [3.5570626359,4.2241726177]**，既有点估计判据 [3.555,4.345] 通过；两轮 3.8768596249× / 3.8629348241×，不能把差值当噪声地板。自然 EOS 保留，每臂 40 行中 30 stop/10 length，AR 平均 999.0、stock 1012.5 token，不能说每条生成满 2048。
@@ -163,15 +169,15 @@ $SP_PY harness/sglang/probe_greedy.py --n 3 --repeats 2 --max-new-tokens 2048
   `HttpPairBench` 复用 `controller.stats`，统计不改。单卡顺序路径
   `SequentialPairBench` 直接 raise，**不许**冒充配对。验收含同 arm 确定性、
   噪声地板、`1%+2*noise` 下界判据注入测试。
-- **P3（链路及远程配对生命周期已完成；下一步 2048-token 正式尺度诊断）**：链路提交 `ed8b571`，编排修复 `0bb2965`，a05 完整烟测通过，不能当正式性能验收。
+- **P3（20 请求/2048-cap 的 A1/A2/A3 诊断已完成；下一步真实正确性与噪声/判据）**：链路提交 `ed8b571`，编排修复 `0bb2965`，A1 源 pin=79fe81a、A2/A3=4d67c2f；不是论文完整 dev/sealed 验收。
   `exp/p3_pair.sh <arm> <gpu> <port> <out.jsonl>` = 单臂执行单元（起 server → run_arm → 停）；
   `harness/sglang/gen_final_env.py` 从 config.json 派生 final 的 46 个 `SPECPILOT_*`（不手抄）；
   `gates/g8_pair_arms.py` = 配对前置条件 8 项，其中 **E2 要求三臂 `input_sha256` 逐条相同**。
   本机烟测（1 条/suite、256 tok、单卡顺序）：AR 43.6 / stock 162.9 / final 245.7 tok/s，
   stock/AR **3.74×**（论文 3.95×），τ 5.02→11.13（论文 4.65→13.08）。
   `final/stock` 只有 1.51×；**256-token 短序列摊不开固定开销**是待验证解释，不能排除覆盖层或配置生效问题。
-  下一步经 NorthJob 申请双卡、每臂 fresh server，`P3_PER_SUITE=4 P3_MAX_NEW=2048`、两轮物理换卡，依次测 AR/stock、AR/final 和直接 stock/final。
-  通过后按正式 dev 协议扩大范围；P4 还需 controller 真实判据就绪。image 与 WeaverDev 项目已验证可提交，远程完整生命周期已通过，正式尺度数据尚未测出。
+  已经 NorthJob 双卡、每臂 fresh server，`P3_PER_SUITE=4 P3_MAX_NEW=2048`、两轮物理换卡，完成 AR/stock、AR/final 和直接 stock/final；实际结果见顶部与实验记录。
+  后续正式 dev 扩围需先登记协议；P4/sealed 仍需 controller 真实判据与正确性/噪声就绪。原 image 与 WeaverDev 已验证，20 请求诊断完成，不得据此宣布正式 dev/sealed 完成。
   详见 `docs/09-p3-harness-validation.md`、`docs/11-reproduction-plan.md` 和 `docs/12-experiment-management.md`；`docs/10-p3-local-pairs.md` 保留执行单元说明，不再要求先跑本机。
 - **P4（2 天，可与 P3 并行设计）**：建 `eval/sealed`（controller 侧抽样，agent 不可见）；
   `patches/` 先放 `noop`（必须 token-identical 到 stock）+ `block_8_16`。
@@ -211,7 +217,7 @@ $SP_PY harness/sglang/probe_greedy.py --n 3 --repeats 2 --max-new-tokens 2048
 - `eval/sealed` 空（`eval/dev` 已由 `assets/upstream/dev` 供给，5 suite × 20 条）；
   `memory/entries/rsi.json` 是 mock 结果
 - `exp/run_e2e.sh` 用 TinyLM，不是真引擎
-- **NorthJob a05 的远程配对生命周期已通过；2048-token 正式测量、真实 forcing/噪声/晋升仍未完成**
+- **NorthJob 的 20 请求/2048-cap A1/A2/A3 已完成；论文完整 dev/sealed、真实 forcing/噪声/晋升仍未完成**
 - `harness/make_traces.py`：自蒸馏语料生成，**WIP，不在主路径上**（DFlash2 已是训练好的 drafter，
   不需要自蒸馏）。保留但不要依赖。
 - `harness/qwen_backend.py` / `qwen_spec.py`：自写前向，与 HF 数值一致（max diff 0.0），

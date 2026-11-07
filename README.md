@@ -13,7 +13,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 | 1 | 明确复现对象与实验协议 | 🟡 初步完成 | 已区分 dev / sealed 与诊断 / 正式统计，见[协议规划](docs/11-reproduction-plan.md) |
 | 2 | 双卡配对测量自动化与远程验收 | ✅ 已完成 | a05 两轮真实换卡，10 pair / 20 臂行，exit=0，GPU 清理通过；26 项回归通过，见[验收记录](docs/experiments/p2-remote-smoke-20261107.md) |
 | 3 | AR vs stock 基线测量 | ✅ 诊断通过 | stock/AR 3.8699×，95% CI [3.5571, 4.2242]；40 pair / 80 臂行、两轮换卡通过，见[验收记录](docs/experiments/p3-ar-stock-2048-20261107.md) |
-| 4 | 验证作者 final 的收益 | 🔵 正在推进 | 用户批准依次 AR/final、直接 stock/final；身份/验收及 50 项回归通过，见[本阶段记录](docs/experiments/p3-final-2048-20261107.md) |
+| 4 | 验证作者 final 的收益 | ✅ 产物测量完成 | final/AR=8.7347× [8.0235,9.5599]；直接 final/stock=2.2219× [2.1381,2.2988]，见[验收记录](docs/experiments/p3-final-2048-20261107.md) |
 | 5 | 真实正确性、噪声与晋升判据 | ⬜ 待补齐真实验收 | 有 mock 骨架；真实 forcing、噪声校准与正式 controller 判据待维护者补齐 |
 | 6 | 建立独立 sealed 验证 | ⬜ 未开始 | 前置验收通过后由 controller 管理，agent 不接触内容 |
 | 7 | 真实 profiling 与成本模型 | ⬜ 待补齐 | 简化骨架已有，真实耗时分析与成本模型待接入 |
@@ -21,11 +21,11 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 | 9 | 多轮真实优化闭环与记忆 | ⬜ 待真实验证 | [mock 闭环](docs/06-gates.md)已跑通，不代表真实引擎闭环完成 |
 | 10 | 对照实验与最终报告 | ⬜ 未开始 | 分析各组件贡献，分别报告架构与数字复现证据 |
 
-**已完成：**远程双卡工具验收及 AR/stock 的 2048-cap 基线诊断。A1 点估计 3.8699× 落在既定 [3.555, 4.345]；Job=Completed / Pod=Succeeded、exit=0、两轮物理换卡及 GPU 清理通过，39 项回归与 38 文件校验通过。
+**已完成：**配对工具、AR/stock 基线及作者 final 的 dev 子集测量。直接 final/stock=2.2219×，95% CI [2.1381,2.2988]；两项 final 实验各 40 pair/80 臂行、两轮换卡、exit=0、GPU 清理通过，50 项回归及证据复核通过。
 
-**当前边界：**本次是 20 请求、2048 上限的 dev 子集诊断，允许自然 EOS；实际平均输出 AR 999.0、stock 1012.5 token。不是论文完整 dev/sealed、lossless 或自主发现结论；controller、sealed、正式账本未改。
+**当前边界：**20 请求、2048 上限、自然 EOS 的 dev 子集；平均输出 AR 999.0、stock 1012.5、final 965.075 token。是作者产物验证，不是论文完整 dev/sealed、lossless 或自主发现结论；不能拿本结果宣称 sealed 2.13× 已复现。
 
-**正在做：**第 4 步已批准，先 AR/final 再直接 stock/final；同 A1 的原始 20 请求、2048 cap、两轮物理换卡。入口/身份验收和 50 项回归通过，准备提交；不套用 A1 或 sealed 数值门槛，不进入 RSI/sealed。
+**接下来：**第 5 步真实正确性、噪声校准与可靠晋升判据；先给主线流程并取得批准，controller 工作仍需维护者授权。当前无实验运行，不自动进入 sealed 或 RSI。
 
 **已有基础：**三臂真实 server 烟测与 mock 闭环完成，GitHub 私有远端已配置；**尚未独立复现论文数字。**
 
