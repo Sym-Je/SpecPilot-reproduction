@@ -1,6 +1,6 @@
 # 第 2 步：远程双卡生命周期烟测
 
-状态：submission-rejected；用户已批准第 2 步并确认镜像，首次提交被项目权限拒绝，远程验收未运行。不是论文性能或 lossless 验收。
+状态：submission-rejected；用户已批准第 2 步并确认镜像，两次提交分别被默认项目权限及指定项目不存在拒绝，远程验收未运行。不是论文性能或 lossless 验收。
 
 ## 目标与固定协议
 
@@ -49,9 +49,46 @@ git diff --check && git diff --exit-code -- controller
 
 以上证据保存在共享工作区，不将完整提交日志或模板上传 GitHub。
 
+## 尝试 a02（用户明确授权重提一次）
+
+- 名称：`specpilot-p2-smoke-20261107-a02`；新建尝试名和输出路径以保留 a01 证据，不覆盖旧模板。
+- 提交前已核对 NorthJob 3.3.11 的 create help 支持全部指定参数；本人 userinfo.conf 的 username/password 非空，不输出凭据值。
+- 项目：`infra-dev-weaver`；namespace/queue：`qiji`；toleration：`key=task-type,operator=Equal,value=infra-dev-weaver,effect=NoSchedule`。三者职责不同，未新增 nodeSelector，不声称只能调度到指定池。
+- 资源及协议不变：普通 bash，1 节点 × 2 H100 = 2 GPU，256Gi；stock/final、5 请求、64 cap、两轮物理换卡。镜像 digest、只读模型挂载及源 pin `d6c49578a140a755cf92e73c9ba5e59442902781` 不变。
+- 提交时仓库 HEAD：`67b9e4b95eac71885b4c667f7c53dd0038f9630b`；已确认 exp/harness/controller 与源 pin 无差异。
+- 提交前查重 total=0，完整回执及退出码保存在 `logs/p2-northjob-submit-20261107-a02.log` / `.exit-status`；只执行一次 create。
+- 服务端响应时间：2026-11-07 15:23:13 +08:00；HTTP 400 / code 40005，`项目 infra-dev-weaver 不存在`；request_id=`ReqID-20261107-152313-2282-3396`；CLI 退出码 1。
+- 提交后查重：`logs/p2-northjob-lookup-after-a02-20261107.log`，data=[]、total=0；无 code=200、无 job_uuid，不能认定提交成功。
+- 生成模板离线核对：project annotation、namespace、queue、toleration 均与用户指定一致；镜像及 2 GPU/256Gi 无变化。不是远程验收通过。
+- 生命周期分别记录：**提交被拒绝；远程进程未启动；GPU 烟测未运行**。运行输出目录 `logs/p2-remote-smoke-20261107-a02/`、旁路 `.log` 和 `.exit-status` 均未生成。
+
+### 最终执行命令
+
+```bash
+/gpfs/users/jixinpeng/miniconda3/envs/dev/bin/python -B exp/p2_northjob.py create \
+  --job-name specpilot-p2-smoke-20261107-a02 \
+  --project infra-dev-weaver \
+  --workspace /gpfs/users/jixinpeng/SpecDec/SpecPilot \
+  --nnodes 1 --nproc-per-node 1 --gpu-per-node 2 --gpu-resource h100 \
+  --mem-per-pod 256 --no-rdma --k8s-no-hostnetwork \
+  --k8s-namespace qiji --k8s-queue qiji \
+  --k8s-toleration key=task-type,operator=Equal,value=infra-dev-weaver,effect=NoSchedule \
+  --k8s-pvc-name jixinpeng-pvc --k8s-pvc-mount-path /gpfs/users/jixinpeng \
+  --k8s-images harbor.local.clusters/bp/oss-sglang@sha256:6e9415fcf90dbe66f14e994a7f7c51cb242db3805b1910ce7bd6d0b8e8db0798 \
+  'P2_EXPECTED_COMMIT=d6c49578a140a755cf92e73c9ba5e59442902781 bash /gpfs/users/jixinpeng/SpecDec/SpecPilot/exp/p2_remote_smoke.sh /gpfs/users/jixinpeng/SpecDec/SpecPilot/logs/p2-remote-smoke-20261107-a02'
+```
+
+### a02 证据 SHA-256
+
+| 路径 | SHA-256 |
+|---|---|
+| `logs/p2-northjob-submit-20261107-a02.log` | `7596f140b43da9af27ba2371222a1e8381176b648808518321465c109632ad47` |
+| `logs/p2-northjob-lookup-after-a02-20261107.log` | `c81b184c54803cd10d7730cbc129c15f5c7ef032cf2ea5291e24814634e052ad` |
+| `RUN/specpilot-p2-smoke-20261107-a02/specpilot-p2-smoke-20261107-a02.yaml` | `c02854034de8b4e26b15c76bcaccbdfe15afd6b04555b3c5750009e3aee723b5` |
+
 ## 决策
 
-暂停：需确认账号可用的 `--project` 并获得重提授权。镜像保持用户确认的 digest，不因项目权限问题更换镜像；本次没有尝试第二次 create。
+暂停：当前后端不识别用户指定的项目。需核实项目名称/后端身份并获得新的重提授权；不猜其他项目、不更换镜像或调度约束。本次授权仅执行一次 a02 create，没有继续重试。
 
 模板、启动或请求失败即停，不静默换镜像、不自动重提、不提前跑第 3 步。
 生命周期验收通过后更新首页；第 3 步仍需用户批准，不能把本烟测区间用作正式晋升或论文数字。
