@@ -1,22 +1,22 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-07（私有 GitHub origin 已配置；执行主线为 NorthJob，image 未确认、零次提交；版本状态以 git log/status 为准）。
+> 最后更新：2026-11-07（第 2 步远程验收进行中；用户已确认镜像；首次任务待提交，版本状态以 git log/status 为准）。
 
 ## 当前接续点：NorthJob 准备与 Git 全流程追踪
 
 - 当前在原十步主线的第 2 步“配对测量远程验收”；镜像、CLI 和挂载是内部准备，不重新拆成研究大步骤。大步骤先报目标、流程与自检并等用户允许，内部小步骤自主安排。
-- 用户已批准开始第 2 步，并要求 agent 调查合适镜像，若无合适镜像再提出自建方案；具体 image 尚未确认，未提交任务。
+- 用户已批准开始第 2 步，并明确同意使用下面固定 digest 的 oss-sglang 镜像，首次任务待提交。运行记录见 `docs/experiments/p2-remote-smoke-20261107.md`。
 - 可用 CLI 已找到：`/gpfs/users/jixinpeng/miniconda3/envs/dev/bin/northjob`（3.3.11，参数与 skill 匹配，get 查询成功）；不再用缺 Kubernetes 依赖的 `/gpfs/envs/miniconda3/bin/northjob`，未升级 CLI。计划名 `specpilot-p2-smoke-20261107` 的查询 total=0；真正提交前重新查重。
 - 已从本人现有任务核对镜像候选：`harbor.local.clusters/bp/oss-sglang@sha256:6e9415fcf90dbe66f14e994a7f7c51cb242db3805b1910ce7bd6d0b8e8db0798`。仅证明在集群已有运行实例，不证明适配本实验；拟优先复用共享 `sp-sglang1520` 环境，不切换为镜像内未知引擎。
-- 挂载是未解前置：当前进程的用户目录来自 `jixinpeng-pvc`，全局 models/envs 来自 `share-readonly` 的 models/envs 子目录。默认 `internal-pvc` 不存在；`qiji-gpfs` 也不能当成整个 `/gpfs` 根。CLI 仅提供一个主 PVC 参数，需要确认额外只读 models 挂载方案；不猜挂载、不复制 52GB 权重、不修改全局 CLI 模板。
-- 本轮 CPU/HTTP 测试复验 15/15：`logs/p2-pre-submit-tests-20261107.log`。拟做 stock/final 的 5 请求、64 token 上限、两轮互换链路烟测（10 pair / 20 臂记录），只验收生命周期与落盘，不设论文收益门槛；具体资源与命令尚待挂载方案确定。
+- 挂载已补最小适配：`exp/p2_northjob.py create ...` 在本进程调用原 CLI，仅在其生成的模板上追加 `share-readonly` / `models` 子路径到 `/gpfs/models` 的只读挂载；主挂载用 `jixinpeng-pvc` → 用户目录。不改已安装 CLI、不复制权重；真实模板离线验收通过。`RUN/` 已忽略，提交回执与日志保留在 `logs/`。
+- 本轮编排测试 15/15、挂载与验收测试 9/9；拟做 stock/final 的 5 请求、64 token 上限、两轮互换链路烟测（10 pair / 20 臂记录）。入口 `exp/p2_remote_smoke.sh`，1 节点 × 2 H100，256Gi，禁 RDMA 和 hostNetwork；只验收生命周期与落盘，不设论文收益门槛。代码 pin 比对 exp/harness/controller，允许后续只更新文档。
 - 私有远端：`https://github.com/Sym-Je/SpecPilot-reproduction.git`（origin）。用户已授权每个大步骤结束后更新 README 进度、交接与相关代码，验收后阶段提交并推送；不上传大产物、凭据或 sealed 数据。
 - 重新对齐论文/公开项目后的详细方案见 `docs/11-reproduction-plan.md`（草案，未授权修改 controller 或已有判据）。其中区分每 suite 4 条诊断、上游默认 6 条 dev 表格和后续 sealed；正式 CI 与真实 forcing 尚有维护者待办。
 - `exp/p3_pair_run.py` 已实现 fresh 双 server、controller 逐请求配对、两轮物理 GPU UUID 互换、每轮一对 JSONL 和几何平均 CI；controller 未改。
 - 验收：`PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s harness -p test_p3_pair_run.py` → 15/15；shell 语法和 `git diff --check` 通过。
 - AR/stock 的 20 请求、2048 token、两轮执行已尝试，但在起 server 前被忙卡保护拒绝：GPU0/1 分别有 PID 59780/59781（各约 518 MiB，当前命名空间查不到进程名）。未杀进程，无实测数字。
-- 用户已将后续执行统一到 NorthJob；不再等待本机两卡释放，也不继续扩建本机调度。先按 northjob-submit skill 准备任务，向用户确认 k8s image，查重名并展示完整命令与资源；获准提交后核对 code==200 且有 job_uuid。当前 image 未指定，不能猜测或直接提交。
+- 用户已将后续执行统一到 NorthJob；不再等待本机两卡释放，也不继续扩建本机调度。按 northjob-submit skill 查重名并展示完整命令与资源，核对 code==200 且有 job_uuid；镜像已由用户确认，不得静默换镜像或重提不明确的提交。
 - 远程按既有配对协议复用编排：先 AR/stock（20 请求、2048 token、两轮物理换卡，诊断区间 [3.555, 4.345]），通过后 AR/final，再直接 stock/final。相同 H100 不自动取消配对规则；远程环境与 GPU 生命周期尚未验证。
 - Git 管理全流程的计划、任务、证据索引和决策，见 `docs/12-experiment-management.md`；每次实验使用 `docs/experiments/TEMPLATE.md` 建记录。原始产物外存并校验，不改 controller、不手写正式账本、不提前 RSI 或 sealed。
 - 本机执行日志：`logs/p3-local-ar-stock-20261107.log`；因预检失败尚未创建对应运行目录。
