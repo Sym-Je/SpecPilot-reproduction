@@ -1,6 +1,6 @@
 # 第 2 步：远程双卡生命周期烟测
 
-状态：startup-preflight-failed；前两次提交被拒，用户授权改为 WeaverDev 的 a03 提交成功并启动，Git 归属预检退出，GPU 烟测未运行。不是论文性能或 lossless 验收。
+状态：a05-prepared；用户已授权当前阶段自主调试重跑。a04 首轮完成但换轮端口探测误报，已新增红绿回归并修复，准备全新完整复测。不是论文性能或 lossless 验收。
 
 ## 目标与固定协议
 
@@ -159,9 +159,31 @@ GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=/gpfs/user
 | `RUN/specpilot-p2-smoke-20261107-a03/specpilot-p2-smoke-20261107-a03.yaml` | `8abfd2ad2a355ac633148c4f2d40e37c496436bf76473319c68d8c70476f6156` |
 | `logs/p2-git-trust-check-20261107.json` | `7aa1ef8300df67366942935d613dec0e7031bd76ee8dbf266b2c5b7a92843627` |
 
+## 尝试 a04：首轮完成，第二轮前端口探测失败
+
+- 用户授权本阶段自主修复与复测，小步骤无需再逐个等待批准；不授权放宽既有验收或替换镜像。
+- 名称 `specpilot-p2-smoke-20261107-a04`；输出 `logs/p2-remote-smoke-20261107-a04`，前次日志及目录均不覆盖。
+- 与 a03 相同的命令、资源和协议，仅输出/任务名后缀改为 a04，并在远程命令前加 `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=/gpfs/users/jixinpeng/SpecDec/SpecPilot`。无全局 Git 配置或源码变更。
+- 提交前 create help、凭据、路径、源 pin 和精确任务名查重均通过；提交时 HEAD=`8054f2e3b21f9e08468e548ae34b6a47196ecc4e`，源 pin 仍为 `d6c49578a140a755cf92e73c9ba5e59442902781`。
+- 2026-11-07 16:21:24 +08:00，code=200/data=None，request_id=`ReqID-20261107-162124-7967-0771`；精确查询唯一解析 UUID **job-854d31a9527b-20261107162124**。只调用一次 create。
+- 请求 namespace/queue=qiji，服务端实际 queue=proj-31；project=WeaverDev。镜像 digest、2×H100/256Gi、原 toleration 未变。
+- 已通过：Git pin、sglang 0.5.20/torch 2.13.0、两张 H100 80GB/CUDA 初始化、46 个 final 环境开关一致性；首轮 server 已启动加载权重。实际 GPU UUID 为 `GPU-95a2c38a-0ba9-2b33-e993-81531edbb36b` / `GPU-e4d48703-8f20-abfa-3ffd-65f4a20c31a3`；第二轮换卡仍待实际记录。
+- CPU 回归已复跑：`logs/p2-adapter-tests-a04-20261107.log` 9/9、`logs/p2-runner-tests-a04-20261107.log` 15/15；shell 语法与 controller 未改检查通过。
+- 最终：首轮 5 个完整 pair 已落盘，两个 server 均收到停止信号，wait_for_idle 返回；换轮 check_ports 报 `OSError(98, Address already in use)`，脚本 exit=1，Job Failed。未运行第二轮、未生成 summary/p2_acceptance，不认定生命周期验收完成。
+- 原始产物及提交/回归证据共 21 文件清单：`logs/p2-evidence-a04-20261107.sha256`，清单 SHA-256=`b7549bd88681dc9f5ade4cd4fe42c80e2835230b427381a5623b4954a2befb58`。失败实验原样保留，不用它拼接下一次成功数据。
+
+## 换轮端口修复及 a05 准备
+
+验收先于实现：新增真实 TCP TIME_WAIT 和 live-listener 两个测试，再运行原编排/挂载测试、shell 语法、git diff --check 和 controller 未改检查。
+
+- 新 TIME_WAIT 测试在原实现失败，准确复现 check_ports 的 EADDRINUSE；日志 `logs/p2-port-regression-red-20261107.log`（17 项，1 error）。
+- 仅在 `exp/p3_pair_run.py` 的探测 socket 上设置 SO_REUSEADDR，使已关闭连接的 TIME_WAIT 不被当作仍在监听；真实监听必须继续拒绝。没有关闭端口保护、没有跳过进程/GPU 清理。
+- 绿色回归：`logs/p2-port-regression-green-20261107.log` 17/17；`logs/p2-adapter-tests-a05-20261107.log` 9/9；shell 语法、diff 空白与 controller 未改检查通过。
+- a05 将使用修复后的新 commit pin，保持原两轮 stock/final、5 请求、64 cap、2×H100/256Gi、镜像和调度约束；进程内 safe.directory 前缀保留。不把本机测试通过当远程完成，不复用 a04 输出。
+
 ## 决策
 
-暂停等待新重提授权：WeaverDev 已通过服务端项目校验并创建 a03，但启动预检未通过。下一次仅为进程树增加精确 safe.directory，不修改全局 Git 配置、镜像、源 pin 或测量协议；获准后再查重并展示完整命令。
+在用户最新自主执行授权下完成 a05 完整复测；遇到已确认的失败可调试修复，重新查重并展示命令后才提交新的独立尝试。不明确的提交先查询，禁止盲目重复；保持原镜像和验收，不进入正式论文测量。
 
 模板、启动或请求失败即停，不静默换镜像、不自动重提、不提前跑第 3 步。
 生命周期验收通过后更新首页；第 3 步仍需用户批准，不能把本烟测区间用作正式晋升或论文数字。

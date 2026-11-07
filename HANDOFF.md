@@ -1,10 +1,11 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-07（第 2 步 a03 已提交并启动，Git 归属预检失败；GPU 烟测未运行；版本状态以 git log/status 为准）。
+> 最后更新：2026-11-07（用户已授权当前阶段自主调试；a04 首轮完成，换轮端口误报已修复并通过 17+9 项测试，准备 a05 完整复测；版本状态以 git log/status 为准）。
 
 ## 当前接续点：NorthJob 准备与 Git 全流程追踪
 
+- 当前执行：用户已授权本阶段自主拆分、调试、测试及正常范围内重跑，不再每个小步骤等待回复；高风险及 skill 的查重/镜像/不明确提交保护仍有效。a04=`job-854d31a9527b-20261107162124` 已通过 Git、依赖及双 H100 80GB 预检并完成首轮 5 pair，换轮前 check_ports 报 EADDRINUSE 后失败，未跑第二轮。完整原始文件/红绿回归清单 `logs/p2-evidence-a04-20261107.sha256`。只给端口探测加 SO_REUSEADDR，真实 TIME_WAIT 回归先红后绿；17/17 编排、9/9 挂载/验收通过，真实监听仍拒绝。准备冻结新源 commit 并全新 a05 复测，不拼接半轮；进程内 Git 信任继续保留，镜像/模型/请求/判据/controller 不改。完整验收仍要求两轮真实换卡、10 pair/20 臂行、清理及 exit=0。
 - 当前在原十步主线的第 2 步“配对测量远程验收”；镜像、CLI 和挂载是内部准备，不重新拆成研究大步骤。大步骤先报目标、流程与自检并等用户允许，内部小步骤自主安排。
 - 用户已批准开始第 2 步，并明确同意使用下面固定 digest 的 oss-sglang 镜像。首次提交于 2026-11-07 06:46:44 UTC 被 HTTP 403 / code 40301 拒绝：账号 jixinpeng 不属于 default 项目。提交后按原名查询 total=0；无 code=200、无 job_uuid，未启动远程测量。需确认可用 `--project` 并获准重提，不要直接再次 create。运行记录见 `docs/experiments/p2-remote-smoke-20261107.md`。
 - 用户随后明确指定 `--project infra-dev-weaver --k8s-namespace qiji --k8s-queue qiji --k8s-toleration key=task-type,operator=Equal,value=infra-dev-weaver,effect=NoSchedule` 并授权重提一次。已核对 CLI help、凭据格式与查重；新尝试名 `specpilot-p2-smoke-20261107-a02`，代码 pin 与镜像不变。2026-11-07 15:23:13 +08:00 返回 HTTP 400 / code 40005：项目 infra-dev-weaver 不存在；无 UUID，提交后 total=0。模板确认四项参数正确、无新增 nodeSelector；项目、namespace/queue、toleration 不能混同，toleration 不保证只调度该池。暂停，核实后端项目身份并取得新授权后才能再次提交。

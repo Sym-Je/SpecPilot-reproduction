@@ -1,6 +1,7 @@
 import copy
 import json
 import math
+import socket
 import tempfile
 import threading
 import unittest
@@ -199,6 +200,38 @@ class PairRunTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 runner.parse_args(['ar', 'stock', '--out-dir', str(self.directory / 'out')]
                                   + arguments)
+
+    def test_port_probe_reuses_closed_server_with_time_wait(self):
+        for attempt in range(20):
+            with socket.socket() as listener, socket.socket() as adjacent:
+                listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                listener.bind(('127.0.0.1', 0))
+                port = listener.getsockname()[1]
+                if port == 65535:
+                    continue
+                try:
+                    adjacent.bind(('127.0.0.1', port + 1))
+                except OSError:
+                    continue
+                listener.listen()
+                with socket.create_connection(listener.getsockname()) as client:
+                    connection, address = listener.accept()
+                    with connection:
+                        connection.shutdown(socket.SHUT_WR)
+                        self.assertEqual(client.recv(1), b'')
+                listener.close()
+                adjacent.close()
+                runner.check_ports([port])
+                return
+        self.fail('could not reserve two adjacent ports')
+
+    def test_port_probe_rejects_live_listener_with_reuseaddr(self):
+        with socket.socket() as listener:
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            listener.bind(('127.0.0.1', 0))
+            listener.listen()
+            with self.assertRaises(OSError):
+                runner.check_ports([listener.getsockname()[1]])
 
     def test_existing_gpu_processes_are_rejected_without_being_killed(self):
         queries = ['0, synthetic-gpu-0, NVIDIA H100, 518, 60\n'

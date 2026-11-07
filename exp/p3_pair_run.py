@@ -169,6 +169,7 @@ def check_ports(ports):
         for port in ports:
             for offset in (0, 1):
                 listener = resources.enter_context(socket.socket())
+                listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 listener.bind(('127.0.0.1', port + offset))
 
 
