@@ -58,32 +58,48 @@ def run_probe(output, reference):
         generated = generator.post('/generate', dict(input_ids=prompt,
             sampling_params={'temperature': 0, 'top_k': 1, 'max_new_tokens': 8}))
         tokens = generated['output_ids']
-        forced = scorer.score(prompt, tokens)
-        prefix = scorer.score(prompt, tokens[:1])
-        write_json(output / 'forced-scores.json', forced)
-        write_json(output / 'prefix-scores.json', prefix)
-        if forced['scores'][0]['token'] != prefix['scores'][0]['token']:
-            raise ValueError('full/prefix forced token alignment differs')
+        errors = []
+        forced = prefix = None
+        try:
+            forced = scorer.score(prompt, tokens)
+            prefix = scorer.score(prompt, tokens[:1])
+            write_json(output / 'forced-scores.json', forced)
+            write_json(output / 'prefix-scores.json', prefix)
+            if forced['scores'][0]['token'] != prefix['scores'][0]['token']:
+                raise ValueError('full/prefix forced token alignment differs')
+        except Exception as error:
+            errors.append(dict(capability='teacher_forced_scores', error=repr(error)))
         desired = (tokens[0] + 1) % 248320
-        biased = generator.post('/generate', dict(input_ids=prompt,
-            sampling_params={'temperature': 0, 'top_k': 1, 'max_new_tokens': 2,
-                             'logit_bias': {str(desired): 100.0}}))
-        if biased['output_ids'][0] != desired:
-            raise ValueError('native logit_bias was not applied')
-        hidden = scorer.post('/generate', dict(input_ids=prompt,
-            sampling_params={'temperature': 0, 'top_k': 1, 'max_new_tokens': 1}, return_hidden_states=True))
-        values = hidden.get('hidden_states', hidden.get('meta_info', {}).get('hidden_states'))
-        if values is None:
-            raise ValueError('enabled hidden-state API returned no evidence')
         shape = []
-        current = values
-        while isinstance(current, list) and current:
-            shape.append(len(current))
-            current = current[0]
+        bias_passed = False
+        try:
+            biased = generator.post('/generate', dict(input_ids=prompt,
+                sampling_params={'temperature': 0, 'top_k': 1, 'max_new_tokens': 2,
+                                 'logit_bias': {str(desired): 100.0}}))
+            if biased['output_ids'][0] != desired:
+                raise ValueError('native logit_bias was not applied')
+            bias_passed = True
+        except Exception as error:
+            errors.append(dict(capability='logit_bias', error=repr(error)))
+        try:
+            hidden = scorer.post('/generate', dict(input_ids=prompt,
+                sampling_params={'temperature': 0, 'top_k': 1, 'max_new_tokens': 1}, return_hidden_states=True))
+            values = hidden.get('hidden_states', hidden.get('meta_info', {}).get('hidden_states'))
+            if values is None:
+                raise ValueError('enabled hidden-state API returned no evidence')
+            current = values
+            while isinstance(current, list) and current:
+                shape.append(len(current))
+                current = current[0]
+        except Exception as error:
+            errors.append(dict(capability='hidden_states', error=repr(error)))
         write_json(output / 'capabilities.json', dict(fp32_head_advertised=True,
-            teacher_forced_input_logprobs=True, forced_tokens=len(tokens), native_logit_bias=True,
-            hidden_state_shape=shape, first_score_full=forced['scores'][0], first_score_prefix=prefix['scores'][0],
+            teacher_forced_input_logprobs=forced is not None and prefix is not None,
+            forced_tokens=len(tokens), native_logit_bias=bias_passed, errors=errors,
+            hidden_state_shape=shape,
             scope='capabilities only; full protocol and numerical head validation remain required'))
+        if errors:
+            raise ValueError(f'capability failures: {errors}')
     check_ports([30120, 30130])
     write_json(output / 'cleanup.json', wait_for_idle([0, 1]))
 
@@ -98,6 +114,11 @@ def main():
         run_probe(args.out_dir, args.reference)
     except BaseException as error:
         write_json(args.out_dir / 'failed.json', {'error': repr(error)})
+        try:
+            check_ports([30120, 30130])
+            write_json(args.out_dir / 'failure-cleanup.json', wait_for_idle([0, 1]))
+        except Exception as cleanup_error:
+            write_json(args.out_dir / 'failure-cleanup-error.json', {'error': repr(cleanup_error)})
         raise
 
 

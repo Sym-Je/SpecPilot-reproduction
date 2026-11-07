@@ -61,6 +61,17 @@ def decode_scores(response, prompt, output):
     return results
 
 
+def server_arguments(info):
+    nested = info.get('server_args')
+    if nested is not None:
+        if not isinstance(nested, dict) or any(info[key] != nested[key] for key in set(info) & set(nested)):
+            raise ValueError('conflicting or invalid server-info parameter schemas')
+        return nested
+    if isinstance(info.get('model_path'), str):
+        return info
+    raise ValueError('server-info response has no recognized parameter schema')
+
+
 class NativeClient:
     def __init__(self, url, raw_dir, timeout=1800):
         self.url, self.raw_dir, self.timeout = url.rstrip('/'), Path(raw_dir), timeout
@@ -97,15 +108,19 @@ class NativeClient:
     def get(self, path):
         return self.request(path)
 
-    def scorer_identity(self, tree_sha):
+    def server_identity(self, tree_sha):
         info = self.get('/get_server_info')
-        arguments = info.get('server_args', {})
-        if arguments.get('enable_fp32_lm_head') is not True:
-            raise ValueError('server does not advertise enabled FP32 LM head')
-        self.identity = dict(tree_sha=tree_sha, server_args={key: arguments.get(key) for key in
+        arguments = server_arguments(info)
+        return dict(tree_sha=tree_sha, server_args={key: arguments.get(key) for key in
             ('model_path', 'dtype', 'enable_fp32_lm_head', 'enable_return_hidden_states',
-             'return_hidden_states_mode', 'chunked_prefill_size', 'speculative_algorithm')},
+             'return_hidden_states_mode', 'chunked_prefill_size', 'speculative_algorithm', 'speculative_num_draft_tokens')},
              evidence=self.last_evidence)
+
+    def scorer_identity(self, tree_sha):
+        identity = self.server_identity(tree_sha)
+        if identity['server_args']['enable_fp32_lm_head'] is not True:
+            raise ValueError('server does not advertise enabled FP32 LM head')
+        self.identity = identity
         return self.identity
 
     def score(self, prompt, output):

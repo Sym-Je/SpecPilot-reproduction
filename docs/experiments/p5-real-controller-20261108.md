@@ -72,3 +72,24 @@ git diff --check
 - 普通公开API构造签名已离线核对，原生SamplingParams支持logit_bias，GenerateReqInput支持
   input logprob/top logprob/hidden states；只说明接口存在，不代表27B真实运行已通过。
 - 短探针任务名`specpilot-p5-score-probe-20261108-a01`，查重、冻结与提交结果后续追加。
+
+### 接口探针a01
+
+- 最终查重total=0，2026-11-08 06:49:03 +08:00唯一create code=200/data=None，
+  随后精确名total=1解析UUID=`job-150fd4f87c99-20261108064903`，初始Pending。
+- 1节点×2 H100/256Gi、原镜像、WeaverDev、namespace/请求queue=qiji、实际queue=proj-31、
+  原toleration和只读模型挂载不变；没有升级CLI或盲目重提。
+- 执行pin=`d212cc4a26d2c4aea0432bf9238f4ef29876f564`，完整源tar在prep目录，
+  SHA256=`c78b0721e61771138d08929247ca08c5ba43a31fa80b1bd160db44ded8390399`。
+  原始输出`logs/p5-score-probe-20261108-a01/`及同前缀`.log`/`.exit-status`；
+  提交与生命周期在`logs/p5-real-controller-prep-20261108-a01/`。
+
+- a01于node204启动（06:49:28 +08:00）；两server完成模型初始化，但server-info适配失败：
+  真实接口返回顶层`enable_fp32_lm_head=true`，而初版解析器只接受嵌套server_args。
+  因此没有开始teacher-forced评分，不是引擎缺少FP32功能。失败与原始响应均保留。
+- 首次主进程失败后，平台又创建了一个同名Pod，06:53:44–06:53:46 +08:00退出1；
+  新Pod的restart_count=0不能当作整个任务从未重试。输出目录保护在模型启动前拒绝重复执行，
+  不把平台重试当用户重复create；原始生命周期和补充Job事件/状态均已保存。
+- 真实响应重放与新增flat/nested冲突测试通过；未改变FP32必须启用或完整logprob对齐要求。
+  新margin-aware分数契约4项先红后绿，新旧最终110项CPU回归通过。
+  a02复验只修适配、补失败清理与多能力错误收集；不是重复原配置追性能数字。

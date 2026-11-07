@@ -53,3 +53,15 @@ class NativeScoringTests(unittest.TestCase):
         from controller.http_transport import sha_ids
         expected = [sha_ids([2, 3] + [4, 5, 6][:number]) for number in range(3)]
         self.assertEqual(prefix_hashes([2, 3], [4, 5, 6]), expected)
+
+    def test_real_server_info_flat_schema_and_conflicts(self):
+        from controller.scoring import NativeClient, server_arguments
+        flat = {'model_path': '/model', 'enable_fp32_lm_head': True}
+        self.assertEqual(server_arguments(flat), flat)
+        self.assertEqual(server_arguments({'server_args': flat}), flat)
+        with self.assertRaises(ValueError):
+            server_arguments(dict(flat, server_args=dict(flat, enable_fp32_lm_head=False)))
+        with tempfile.TemporaryDirectory() as directory:
+            client = NativeClient('http://local', Path(directory))
+            with patch.object(client, 'get', return_value=flat):
+                self.assertTrue(client.scorer_identity('a' * 64)['server_args']['enable_fp32_lm_head'])
