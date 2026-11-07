@@ -6,6 +6,11 @@
 ## 当前接续点：NorthJob 准备与 Git 全流程追踪
 
 - 当前在原十步主线的第 2 步“配对测量远程验收”；镜像、CLI 和挂载是内部准备，不重新拆成研究大步骤。大步骤先报目标、流程与自检并等用户允许，内部小步骤自主安排。
+- 用户已批准开始第 2 步，并要求 agent 调查合适镜像，若无合适镜像再提出自建方案；具体 image 尚未确认，未提交任务。
+- 可用 CLI 已找到：`/gpfs/users/jixinpeng/miniconda3/envs/dev/bin/northjob`（3.3.11，参数与 skill 匹配，get 查询成功）；不再用缺 Kubernetes 依赖的 `/gpfs/envs/miniconda3/bin/northjob`，未升级 CLI。计划名 `specpilot-p2-smoke-20261107` 的查询 total=0；真正提交前重新查重。
+- 已从本人现有任务核对镜像候选：`harbor.local.clusters/bp/oss-sglang@sha256:6e9415fcf90dbe66f14e994a7f7c51cb242db3805b1910ce7bd6d0b8e8db0798`。仅证明在集群已有运行实例，不证明适配本实验；拟优先复用共享 `sp-sglang1520` 环境，不切换为镜像内未知引擎。
+- 挂载是未解前置：当前进程的用户目录来自 `jixinpeng-pvc`，全局 models/envs 来自 `share-readonly` 的 models/envs 子目录。默认 `internal-pvc` 不存在；`qiji-gpfs` 也不能当成整个 `/gpfs` 根。CLI 仅提供一个主 PVC 参数，需要确认额外只读 models 挂载方案；不猜挂载、不复制 52GB 权重、不修改全局 CLI 模板。
+- 本轮 CPU/HTTP 测试复验 15/15：`logs/p2-pre-submit-tests-20261107.log`。拟做 stock/final 的 5 请求、64 token 上限、两轮互换链路烟测（10 pair / 20 臂记录），只验收生命周期与落盘，不设论文收益门槛；具体资源与命令尚待挂载方案确定。
 - 私有远端：`https://github.com/Sym-Je/SpecPilot-reproduction.git`（origin）。用户已授权每个大步骤结束后更新 README 进度、交接与相关代码，验收后阶段提交并推送；不上传大产物、凭据或 sealed 数据。
 - 重新对齐论文/公开项目后的详细方案见 `docs/11-reproduction-plan.md`（草案，未授权修改 controller 或已有判据）。其中区分每 suite 4 条诊断、上游默认 6 条 dev 表格和后续 sealed；正式 CI 与真实 forcing 尚有维护者待办。
 - `exp/p3_pair_run.py` 已实现 fresh 双 server、controller 逐请求配对、两轮物理 GPU UUID 互换、每轮一对 JSONL 和几何平均 CI；controller 未改。
