@@ -34,7 +34,8 @@ if [[ "$ARM" == final ]]; then
   BLOCK=$SPECPILOT_BLOCK_SIZE
 fi
 
-mkdir -p "$(dirname "$OUT")" "$ROOT/logs"
+SERVER_LOG=${P3_SERVER_LOG:-$ROOT/logs/p3-${ARM}-${PORT}.log}
+mkdir -p "$(dirname "$OUT")" "$ROOT/logs" "$(dirname "$SERVER_LOG")"
 echo "[p3] arm=$ARM gpu=$GPU port=$PORT block=$BLOCK tree=$SP_TREE_SHA" >&2
 
 ARGS=(--model-path "$SP_TARGET"
@@ -50,18 +51,24 @@ if [[ "$ARM" != ar ]]; then
 fi
 
 CUDA_VISIBLE_DEVICES=$GPU "$SP_PY" -m sglang.launch_server "${ARGS[@]}" \
-  > "$ROOT/logs/p3-${ARM}-${PORT}.log" 2>&1 &
+  > "$SERVER_LOG" 2>&1 &
 SRV=$!
 trap 'kill -TERM $SRV 2>/dev/null || true; wait $SRV 2>/dev/null || true' EXIT
 
 # 等就绪（27B 冷启动 ~220-400 s，派生树首启更久）
-for i in $(seq 1 300); do
+READY_POLLS=${P3_READY_POLLS:-300}
+for i in $(seq 1 "$READY_POLLS"); do
   if python3 -c "import urllib.request,sys;urllib.request.urlopen('http://127.0.0.1:$PORT/model_info',timeout=3)" 2>/dev/null; then
     echo "[p3] ready after $((i*2))s" >&2; break; fi
   sleep 2
-  kill -0 $SRV 2>/dev/null || { echo "[p3] server died"; tail -40 "$ROOT/logs/p3-${ARM}-${PORT}.log"; exit 1; }
-  [[ $i == 300 ]] && { echo "[p3] timeout"; exit 1; }
+  kill -0 $SRV 2>/dev/null || { echo "[p3] server died"; tail -40 "$SERVER_LOG"; exit 1; }
+  [[ $i == "$READY_POLLS" ]] && { echo "[p3] timeout"; exit 1; }
 done
+
+if [[ ${P3_SERVER_ONLY:-0} == 1 ]]; then
+  wait "$SRV"
+  exit $?
+fi
 
 export P3_URL="http://127.0.0.1:$PORT" P3_ARM="$ARM" P3_BLOCK="$BLOCK" \
        P3_TREE_SHA="$SP_TREE_SHA" P3_OUT="$OUT"

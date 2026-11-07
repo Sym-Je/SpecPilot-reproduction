@@ -47,6 +47,8 @@
 
 ## 下一步（P3 正式测量）
 
-需要 NorthJob：三臂 × 两张卡，每臂 fresh server，`--max-new-tokens 2048`，
-`P3_PER_SUITE=20`，跑 ≥2 轮取 paired CI。判据来自 `controller/stats.py`，
-**不是**本文件里的手算比值。
+优先本机双卡：用 `exp/p3_pair_run.py` 编排 fresh server、逐请求配对和两轮物理换卡。
+先 `P3_PER_SUITE=4 P3_MAX_NEW=2048` 跑 AR/stock，再同协议跑 AR/final；
+stock/AR 几何平均先对照 3.95× ±10%。通过后才扩大到每 suite 20 条或推进 P4。
+统计复用 `controller/stats.py`，**不是**本文件里的手算比值；详见 `docs/10-p3-local-pairs.md`。
+NorthJob 后置到三臂并行或跨机验证，提交前再确认 image。

@@ -1,14 +1,27 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-07（P3 链路验证完成，提交 `ed8b571`）。
+> 最后更新：2026-11-07（私有 GitHub origin 已配置；执行主线为 NorthJob，image 未确认、零次提交；版本状态以 git log/status 为准）。
+
+## 当前接续点：NorthJob 准备与 Git 全流程追踪
+
+- 当前在原十步主线的第 2 步“配对测量远程验收”；镜像、CLI 和挂载是内部准备，不重新拆成研究大步骤。大步骤先报目标、流程与自检并等用户允许，内部小步骤自主安排。
+- 私有远端：`https://github.com/Sym-Je/SpecPilot-reproduction.git`（origin）。用户已授权每个大步骤结束后更新 README 进度、交接与相关代码，验收后阶段提交并推送；不上传大产物、凭据或 sealed 数据。
+- 重新对齐论文/公开项目后的详细方案见 `docs/11-reproduction-plan.md`（草案，未授权修改 controller 或已有判据）。其中区分每 suite 4 条诊断、上游默认 6 条 dev 表格和后续 sealed；正式 CI 与真实 forcing 尚有维护者待办。
+- `exp/p3_pair_run.py` 已实现 fresh 双 server、controller 逐请求配对、两轮物理 GPU UUID 互换、每轮一对 JSONL 和几何平均 CI；controller 未改。
+- 验收：`PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s harness -p test_p3_pair_run.py` → 15/15；shell 语法和 `git diff --check` 通过。
+- AR/stock 的 20 请求、2048 token、两轮执行已尝试，但在起 server 前被忙卡保护拒绝：GPU0/1 分别有 PID 59780/59781（各约 518 MiB，当前命名空间查不到进程名）。未杀进程，无实测数字。
+- 用户已将后续执行统一到 NorthJob；不再等待本机两卡释放，也不继续扩建本机调度。先按 northjob-submit skill 准备任务，向用户确认 k8s image，查重名并展示完整命令与资源；获准提交后核对 code==200 且有 job_uuid。当前 image 未指定，不能猜测或直接提交。
+- 远程按既有配对协议复用编排：先 AR/stock（20 请求、2048 token、两轮物理换卡，诊断区间 [3.555, 4.345]），通过后 AR/final，再直接 stock/final。相同 H100 不自动取消配对规则；远程环境与 GPU 生命周期尚未验证。
+- Git 管理全流程的计划、任务、证据索引和决策，见 `docs/12-experiment-management.md`；每次实验使用 `docs/experiments/TEMPLATE.md` 建记录。原始产物外存并校验，不改 controller、不手写正式账本、不提前 RSI 或 sealed。
+- 本机执行日志：`logs/p3-local-ar-stock-20261107.log`；因预检失败尚未创建对应运行目录。
 
 ## 一句话现状
 
 RSI 的**制度层**在 mock 规模跑通（G2–G5）；**执行层**已打通到"三臂各起一次真 server、
 跑同一请求集、落可审计 JSONL"（P0–P3，G6/G7/G8 全绿）。
-**一次 NorthJob 都没提交过。** 论文数字一个都还没独立测出，但尺子已校准到 5–8% 以内
-（本机 stock/AR 3.74× vs 论文 3.95×）。
+**一次 NorthJob 都没提交过。** 论文数字一个都还没独立测出；本机烟测 stock/AR 3.74×
+只作历史诊断，不代表正式配对尺子已经校准。
 
 ## 接手前必做（5 分钟）
 
@@ -28,7 +41,7 @@ cat docs/09-p3-harness-validation.md   # 三臂烟测实测数字与"为什么�
 
 **永远区分两件事**：
 - **架构复现** = 闭环/测量/判据/账本/记忆是否正确
-- **数字复现** = 能否独立测出 2.24×（final vs stock）
+- **数字复现** = 能否独立测出 config 的 2.13× [2.07, 2.19]（sealed final vs stock）
 
 在拿到实测前，任何"复现了论文"的说法都是错的。
 
@@ -133,16 +146,16 @@ $SP_PY harness/sglang/probe_greedy.py --n 3 --repeats 2 --max-new-tokens 2048
   `HttpPairBench` 复用 `controller.stats`，统计不改。单卡顺序路径
   `SequentialPairBench` 直接 raise，**不许**冒充配对。验收含同 arm 确定性、
   噪声地板、`1%+2*noise` 下界判据注入测试。
-- **P3（链路已完成，正式测量待 NorthJob）**：提交 `ed8b571`。
+- **P3（链路已完成，编排 CPU 验收通过；下一步 NorthJob 环境确认与远程测量）**：链路提交 `ed8b571`，编排版本以当前 Git 历史为准。
   `exp/p3_pair.sh <arm> <gpu> <port> <out.jsonl>` = 单臂执行单元（起 server → run_arm → 停）；
   `harness/sglang/gen_final_env.py` 从 config.json 派生 final 的 46 个 `SPECPILOT_*`（不手抄）；
   `gates/g8_pair_arms.py` = 配对前置条件 8 项，其中 **E2 要求三臂 `input_sha256` 逐条相同**。
   本机烟测（1 条/suite、256 tok、单卡顺序）：AR 43.6 / stock 162.9 / final 245.7 tok/s，
   stock/AR **3.74×**（论文 3.95×），τ 5.02→11.13（论文 4.65→13.08）。
-  `final/stock` 只有 1.51×，是 **256-token 短序列把 final 每步 32 节点的固定开销摊不开**
-  导致的系统性低估，不是算法问题 —— **要正式数字仍必须走 NorthJob**：
-  三臂 × 双卡 × 每臂 fresh server × `P3_PER_SUITE=20 P3_MAX_NEW=2048` × ≥2 轮 paired CI。
-  详见 `docs/09-p3-harness-validation.md`。
+  `final/stock` 只有 1.51×；**256-token 短序列摊不开固定开销**是待验证解释，不能排除覆盖层或配置生效问题。
+  下一步经 NorthJob 申请双卡、每臂 fresh server，`P3_PER_SUITE=4 P3_MAX_NEW=2048`、两轮物理换卡，依次测 AR/stock、AR/final 和直接 stock/final。
+  通过后按正式 dev 协议扩大范围；P4 还需 controller 真实判据就绪。image 未确认前不提交。
+  详见 `docs/09-p3-harness-validation.md`、`docs/11-reproduction-plan.md` 和 `docs/12-experiment-management.md`；`docs/10-p3-local-pairs.md` 保留执行单元说明，不再要求先跑本机。
 - **P4（2 天，可与 P3 并行设计）**：建 `eval/sealed`（controller 侧抽样，agent 不可见）；
   `patches/` 先放 `noop`（必须 token-identical 到 stock）+ `block_8_16`。
   **必须新增门禁**：τ 计数口径一致性 —— final τ=13.08 是 *per exact-weight pass*
@@ -194,8 +207,9 @@ $SP_PY harness/sglang/probe_greedy.py --n 3 --repeats 2 --max-new-tokens 2048
 final/stock **2.13× `[2.07, 2.19]`**，τ 4.65 → 13.08。
 
 > 基准取值只看 `assets/upstream/configs/h100_c1_qwen38-27b_dflash2/config.json` 的 `paper` 段
-> （`sealed_final_vs_stock = 2.13x [2.07, 2.19]`）。上游 README 的表格印的是 2.24×，
-> 与 config 不一致；**以 config 为准**，不要在不同文件之间漂移。
+> （`sealed_final_vs_stock = 2.13x [2.07, 2.19]`）。上游 README 的 2.24× 来自 dev 表格的
+> 8.86/3.95，与 sealed 的 2.13× 是不同请求协议，不应简单称为配置冲突。
+> **sealed 目标以 config 为准**，dev/AR 对照单独报告，不在口径之间漂移。
 
 成本拆解：ceiling 2.57× = τ 1.83 × overhead 1.01 × kernel 1.39。
 单请求 27B：读权重占 23.61 ms 步时的 80%；GEMM 1 行 17.88 ms vs 64 行 18.58 ms（行数几乎免费）。
