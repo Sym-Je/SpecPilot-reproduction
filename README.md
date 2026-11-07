@@ -11,7 +11,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 | 步骤 | 主线任务 | 状态 | 已有进展 / 待完成项 |
 |---|---|---|---|
 | 1 | 明确复现对象与实验协议 | 🟡 初步完成 | 已区分 dev / sealed 与诊断 / 正式统计，见[协议规划](docs/11-reproduction-plan.md) |
-| 2 | 双卡配对测量自动化与远程验收 | 🔵 正在推进 | a04 完成首轮 5 pair，换轮端口误报已用红绿回归修复；17+9 项本地测试通过，待完整复测，见[实验记录](docs/experiments/p2-remote-smoke-20261107.md) |
+| 2 | 双卡配对测量自动化与远程验收 | ✅ 已完成 | a05 两轮真实换卡，10 pair / 20 臂行，exit=0，GPU 清理通过；26 项回归通过，见[验收记录](docs/experiments/p2-remote-smoke-20261107.md) |
 | 3 | AR vs stock 基线测量 | ⬜ 待正式配对测量 | 20 请求、2048 token 上限、两轮换卡；当前无完成的真实配对结果 |
 | 4 | 验证作者 final 的收益 | ⬜ 待正式配对测量 | 先 AR/final，再直接 stock/final；[历史烟测](docs/09-p3-harness-validation.md)不算正式结果 |
 | 5 | 真实正确性、噪声与晋升判据 | ⬜ 待补齐真实验收 | 有 mock 骨架；真实 forcing、噪声校准与正式 controller 判据待维护者补齐 |
@@ -21,11 +21,11 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 | 9 | 多轮真实优化闭环与记忆 | ⬜ 待真实验证 | [mock 闭环](docs/06-gates.md)已跑通，不代表真实引擎闭环完成 |
 | 10 | 对照实验与最终报告 | ⬜ 未开始 | 分析各组件贡献，分别报告架构与数字复现证据 |
 
-**当前状态：**a04 已通过 Git、依赖与双 H100 预检，首轮完成 5 个 pair；第二轮前端口检查受 TIME_WAIT 影响退出。已修复端口探测并新增真实 TCP 回归，不能把首轮成功当两轮换卡验收完成。
+**已完成：**远程双卡配对工具验收通过。a05 的 Job=Completed / Pod=Succeeded，两个 fresh server 各跑两轮、物理 GPU UUID 互换，10 pair / 20 臂行完整，清理后两张 GPU 均为 0 MiB / 0% 利用率；原始证据已校验归档。
 
-**只读诊断：**本人旧任务中的 `infra-dev-weaver` 被后端标记 `project_exists=false`；另一本人任务的 `WeaverDev` 为 `project_exists=true / user_in_project=true`。旧任务注解不等于有效注册项目，不能与节点 toleration 混同。
+**当前边界：**本次是 5 请求、64 token 上限的生命周期烟测，不是 2048-token 正式性能、lossless 或论文数字复现；controller、sealed 和正式账本未改。
 
-**下一动作：**按用户自主执行授权冻结修复版本并运行全新 a05 两轮烟测；不复用 a04 的半轮数据、不换镜像或测量协议。请求 queue=qiji，服务端实际 queue=proj-31，分别记录。
+**接下来：**第 3 步 AR/stock：20 请求、2048 token 上限、fresh server、两轮物理换卡，独立建记录并按诊断协议验收。沿用已确认镜像及 WeaverDev 项目；namespace=qiji，请求 queue=qiji，实际 queue=proj-31，toleration 仍为 infra-dev-weaver，三者不混同。
 
 **已有基础：**三臂真实 server 烟测与 mock 闭环完成，GitHub 私有远端已配置；**尚未独立复现论文数字。**
 

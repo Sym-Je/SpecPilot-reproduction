@@ -1,6 +1,6 @@
 # 第 2 步：远程双卡生命周期烟测
 
-状态：a05-prepared；用户已授权当前阶段自主调试重跑。a04 首轮完成但换轮端口探测误报，已新增红绿回归并修复，准备全新完整复测。不是论文性能或 lossless 验收。
+状态：completed；a05 独立完成两轮物理换卡、10 pair/20 臂行、清理及 exit=0，机器验收通过。前次失败保留；不是论文性能或 lossless 验收。
 
 ## 目标与固定协议
 
@@ -181,9 +181,69 @@ GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=/gpfs/user
 - 绿色回归：`logs/p2-port-regression-green-20261107.log` 17/17；`logs/p2-adapter-tests-a05-20261107.log` 9/9；shell 语法、diff 空白与 controller 未改检查通过。
 - a05 将使用修复后的新 commit pin，保持原两轮 stock/final、5 请求、64 cap、2×H100/256Gi、镜像和调度约束；进程内 safe.directory 前缀保留。不把本机测试通过当远程完成，不复用 a04 输出。
 
+## 尝试 a05：修复版本独立完整复测
+
+- 名称 `specpilot-p2-smoke-20261107-a05`；源 pin=`0bb2965474bc7b2872d59bc6f311c94ebf6b22b1`，已推送 origin 并核对远端 SHA。除端口探测修复外，无 controller 或协议变更。
+- create help、凭据格式与精确名称查重（total=0）通过；资源仍 1×2 H100/256Gi，原镜像 digest、namespace/queue=qiji 和 toleration 不变，保留进程内 Git safe.directory；输出路径后缀为 a05。
+- 提交回执 `logs/p2-northjob-submit-20261107-a05.log`：2026-11-07 16:42:26 +08:00，code=200/data=None，request_id=`ReqID-20261107-164226-8442-7a1c`；只调用一次 create。
+- 精确 user_def_name 唯一解析 UUID **job-ad27e2790ef7-20261107164226**，project=WeaverDev，namespace=qiji，实际 queue=proj-31。
+- 最终完成：Job=Completed，Pod=Succeeded，容器与脚本均 exit=0、容器 restart_count=0；进程 2026-11-07 16:42:45 +08:00 启动，16:47:09 结束。a05 全部数据独立产生，未复用 a04 的 5 pair。
+
+### 最终验收
+
+| 检查 | 结果 |
+|---|---|
+| 固定协议 | stock/final，5 suite 各 1 请求，64 cap，两轮，统一 warmup=1，fresh server |
+| 数据覆盖 | 每轮 5 pair，合计 10 pair / 20 臂行；全部 completion_tokens=64 |
+| 输入与账目 | 同请求哈希、跨轮请求覆盖及 canonical pair/两臂 JSONL 一致；无 failed.json |
+| GPU 互换 | 两轮实际 UUID 部署反转，机器验收 physical_gpu_swap=true |
+| 清理 | 两卡无 compute 进程，均 memory_used=0 MiB、utilization=0%；脚本 exit=0 |
+| 任务生命周期 | code=200 + 唯一 UUID；进程启动与最终 Completed/Succeeded/exit=0 分开核对 |
+| 复验 | 本地重跑 validate_smoke 与持久 p2_acceptance 相同；既有统计函数复算 summary 全字段相同 |
+| 回归 | 最终 26/26（17 编排 + 9 挂载/验收），shell 语法与 controller 未改检查通过 |
+
+| 轮次 | stock UUID | final UUID |
+|---|---|---|
+| 1 | GPU-4e4cd809-4a04-142c-6621-eba7bb73ee55 | GPU-e4d48703-8f20-abfa-3ffd-65f4a20c31a3 |
+| 2 | GPU-e4d48703-8f20-abfa-3ffd-65f4a20c31a3 | GPU-4e4cd809-4a04-142c-6621-eba7bb73ee55 |
+
+引擎树 stock=`e5472c4fbb6e6bf57e2736f898f5e0827b9448cdd34f332d8fb2df93f652e3ff`、final=`d406ba8183917674fffc083c67117a9c5e7b01a51da3620f5419638a7854f90a`，block 分别 8/32；sglang 0.5.20、torch 2.13.0、Qwen3.8-27B + DFlash2、原镜像 digest 均未更换。
+
+仅作原始诊断记录：64-token 烟测 final/stock 吞吐几何平均 **1.356740×，95% CI [1.114984, 1.650915]**，由既有 controller.stats 统计实现计算，复算一致；summary 标记 ledger_eligible=false。这不是 2048-token、正式 dev 或 sealed 协议，不据此判断论文 2.13× 目标、短序列解释、lossless、晋升或自主发现能力；本次不写正式账本。
+
+### 最终执行命令（a05）
+
+```bash
+/gpfs/users/jixinpeng/miniconda3/envs/dev/bin/python -B exp/p2_northjob.py create \
+  --job-name specpilot-p2-smoke-20261107-a05 --project WeaverDev \
+  --workspace /gpfs/users/jixinpeng/SpecDec/SpecPilot \
+  --nnodes 1 --nproc-per-node 1 --gpu-per-node 2 --gpu-resource h100 \
+  --mem-per-pod 256 --no-rdma --k8s-no-hostnetwork \
+  --k8s-namespace qiji --k8s-queue qiji \
+  --k8s-toleration key=task-type,operator=Equal,value=infra-dev-weaver,effect=NoSchedule \
+  --k8s-pvc-name jixinpeng-pvc --k8s-pvc-mount-path /gpfs/users/jixinpeng \
+  --k8s-images harbor.local.clusters/bp/oss-sglang@sha256:6e9415fcf90dbe66f14e994a7f7c51cb242db3805b1910ce7bd6d0b8e8db0798 \
+  'GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=/gpfs/users/jixinpeng/SpecDec/SpecPilot P2_EXPECTED_COMMIT=0bb2965474bc7b2872d59bc6f311c94ebf6b22b1 bash /gpfs/users/jixinpeng/SpecDec/SpecPilot/exp/p2_remote_smoke.sh /gpfs/users/jixinpeng/SpecDec/SpecPilot/logs/p2-remote-smoke-20261107-a05'
+```
+
+### 最终证据归档
+
+- 原始产物目录：`logs/p2-remote-smoke-20261107-a05/`；旁路 `.log/.exit-status`。
+- 33 个原始产物、提交/查询/生命周期回执及测试文件清单：`logs/p2-evidence-a05-20261107.sha256`，SHA-256=`231d9d7fcc24a526750d925eb2ad5a5321b4893f909789d09aa875fa0ad74e03`，逐项复核全部通过。
+- 机器验收 `p2_acceptance.json` SHA-256=`ef8e4dadc378a6ed50779f7dad9f99fd239fcbefadd9811e3ddeef4ddb5e3e47`。
+- 身份 manifest SHA-256=`9cebe2e5d788e1500c890f40a81fb290d766dce08abc9bb534c45edc6dfb49fa`；summary SHA-256=`9c6c9e078ef0ba05a3222fba78257fe2e04f9d3b6385ec5877e64684421bda74`。
+- 最终回归日志 `logs/p2-final-tests-20261107.log`；Job/Pod 状态快照 `logs/p2-northjob-lifecycle-a05-20261107.json`。全部原始文件保存在共享工作区，不上传凭据、sealed、模型或大型运行产物。
+
+复核命令：
+
+```bash
+/gpfs/users/jixinpeng/miniconda3/envs/dev/bin/python -B -c 'from exp.p2_northjob import validate_smoke; print(validate_smoke("logs/p2-remote-smoke-20261107-a05"))'
+sha256sum -c logs/p2-evidence-a05-20261107.sha256
+```
+
 ## 决策
 
-在用户最新自主执行授权下完成 a05 完整复测；遇到已确认的失败可调试修复，重新查重并展示命令后才提交新的独立尝试。不明确的提交先查询，禁止盲目重复；保持原镜像和验收，不进入正式论文测量。
+第 2 步完成，首页可标记已完成。下一主线是 AR/stock 的 20 请求、2048 cap、两轮换卡正式尺度诊断，另建记录，不复用短烟测数据；本次未执行正式性能、RSI 或 sealed。此后的重跑仍需查重、展示命令并验证 code/UUID；不明确的提交先查询，禁止盲目重复。
 
 模板、启动或请求失败即停，不静默换镜像、不自动重提、不提前跑第 3 步。
 生命周期验收通过后更新首页；第 3 步仍需用户批准，不能把本烟测区间用作正式晋升或论文数字。

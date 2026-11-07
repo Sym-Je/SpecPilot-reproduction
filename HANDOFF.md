@@ -1,11 +1,15 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-07（用户已授权当前阶段自主调试；a04 首轮完成，换轮端口误报已修复并通过 17+9 项测试，准备 a05 完整复测；版本状态以 git log/status 为准）。
+> 最后更新：2026-11-07（第 2 步远程双卡生命周期验收完成；a05 两轮真实换卡、10 pair/20 臂行、exit=0；版本状态以 git log/status 为准）。
 
-## 当前接续点：NorthJob 准备与 Git 全流程追踪
+## 当前接续点：第 2 步已完成，下一主线为 AR/stock 正式尺度诊断
 
-- 当前执行：用户已授权本阶段自主拆分、调试、测试及正常范围内重跑，不再每个小步骤等待回复；高风险及 skill 的查重/镜像/不明确提交保护仍有效。a04=`job-854d31a9527b-20261107162124` 已通过 Git、依赖及双 H100 80GB 预检并完成首轮 5 pair，换轮前 check_ports 报 EADDRINUSE 后失败，未跑第二轮。完整原始文件/红绿回归清单 `logs/p2-evidence-a04-20261107.sha256`。只给端口探测加 SO_REUSEADDR，真实 TIME_WAIT 回归先红后绿；17/17 编排、9/9 挂载/验收通过，真实监听仍拒绝。准备冻结新源 commit 并全新 a05 复测，不拼接半轮；进程内 Git 信任继续保留，镜像/模型/请求/判据/controller 不改。完整验收仍要求两轮真实换卡、10 pair/20 臂行、清理及 exit=0。
+- 当前完成：用户授权本阶段自主拆分、调试、测试及正常范围内重跑，小步骤不再等待回复；高风险及 skill 的查重/镜像/不明确提交保护仍有效。a04 首轮完成后因端口 TIME_WAIT 误报失败，已保留全部证据；只在探测 socket 增加 SO_REUSEADDR，真实 TCP 回归先红后绿，真实监听仍拒绝。最终 CPU 回归 26/26（17 编排 + 9 挂载/验收）通过；controller、sealed、账本、模型和镜像未改。
+- a05 完成：2026-11-07 16:42:26 +08:00 code=200，唯一 UUID `job-ad27e2790ef7-20261107164226`；16:42:45 启动、16:47:09 结束，Job=Completed / Pod=Succeeded / container exit=0 / script exit=0，无容器重启。源 pin=`0bb2965474bc7b2872d59bc6f311c94ebf6b22b1`；原 5 请求/64 cap/两轮物理换卡全部通过，10 pair/20 臂行、请求哈希一致，两张 GPU 清理后均 0 MiB/0%。结果 `logs/p2-remote-smoke-20261107-a05`；33 个证据文件清单 `logs/p2-evidence-a05-20261107.sha256`，清单 SHA=231d9d7fcc24a526750d925eb2ad5a5321b4893f909789d09aa875fa0ad74e03。统计复算与持久 summary 完全相同，但这是短输出诊断，不是论文/正式性能或 lossless 结论。
+- 下一主线：AR/stock 20 请求、2048 cap、两轮 fresh server + GPU 互换，另建实验记录，不复用烟测数据；本次尚未运行。远程继续保留进程内精确 safe.directory；WeaverDev 项目、qiji namespace/请求 queue、实际 proj-31 queue、infra-dev-weaver toleration 分别记录。
+
+### 以下为准备及失败历史（当前状态以上述完成记录为准）
 - 当前在原十步主线的第 2 步“配对测量远程验收”；镜像、CLI 和挂载是内部准备，不重新拆成研究大步骤。大步骤先报目标、流程与自检并等用户允许，内部小步骤自主安排。
 - 用户已批准开始第 2 步，并明确同意使用下面固定 digest 的 oss-sglang 镜像。首次提交于 2026-11-07 06:46:44 UTC 被 HTTP 403 / code 40301 拒绝：账号 jixinpeng 不属于 default 项目。提交后按原名查询 total=0；无 code=200、无 job_uuid，未启动远程测量。需确认可用 `--project` 并获准重提，不要直接再次 create。运行记录见 `docs/experiments/p2-remote-smoke-20261107.md`。
 - 用户随后明确指定 `--project infra-dev-weaver --k8s-namespace qiji --k8s-queue qiji --k8s-toleration key=task-type,operator=Equal,value=infra-dev-weaver,effect=NoSchedule` 并授权重提一次。已核对 CLI help、凭据格式与查重；新尝试名 `specpilot-p2-smoke-20261107-a02`，代码 pin 与镜像不变。2026-11-07 15:23:13 +08:00 返回 HTTP 400 / code 40005：项目 infra-dev-weaver 不存在；无 UUID，提交后 total=0。模板确认四项参数正确、无新增 nodeSelector；项目、namespace/queue、toleration 不能混同，toleration 不保证只调度该池。暂停，核实后端项目身份并取得新授权后才能再次提交。
@@ -14,7 +18,7 @@
 - 可用 CLI 已找到：`/gpfs/users/jixinpeng/miniconda3/envs/dev/bin/northjob`（3.3.11，参数与 skill 匹配，get 查询成功）；不再用缺 Kubernetes 依赖的 `/gpfs/envs/miniconda3/bin/northjob`，未升级 CLI。计划名 `specpilot-p2-smoke-20261107` 的查询 total=0；真正提交前重新查重。
 - 已从本人现有任务核对镜像候选：`harbor.local.clusters/bp/oss-sglang@sha256:6e9415fcf90dbe66f14e994a7f7c51cb242db3805b1910ce7bd6d0b8e8db0798`。仅证明在集群已有运行实例，不证明适配本实验；拟优先复用共享 `sp-sglang1520` 环境，不切换为镜像内未知引擎。
 - 挂载已补最小适配：`exp/p2_northjob.py create ...` 在本进程调用原 CLI，仅在其生成的模板上追加 `share-readonly` / `models` 子路径到 `/gpfs/models` 的只读挂载；主挂载用 `jixinpeng-pvc` → 用户目录。不改已安装 CLI、不复制权重；真实模板离线验收通过。`RUN/` 已忽略，提交回执与日志保留在 `logs/`。
-- 本轮编排测试 15/15、挂载与验收测试 9/9；拟做 stock/final 的 5 请求、64 token 上限、两轮互换链路烟测（10 pair / 20 臂记录）。入口 `exp/p2_remote_smoke.sh`，1 节点 × 2 H100，256Gi，禁 RDMA 和 hostNetwork；只验收生命周期与落盘，不设论文收益门槛。代码 pin 比对 exp/harness/controller，允许后续只更新文档。
+- 原编排测试 15/15，新增真实端口回归后 17/17；挂载与验收测试 9/9。stock/final 的 5 请求、64 cap、两轮烟测已在 a05 完成（10 pair / 20 臂行）。入口 `exp/p2_remote_smoke.sh`，1 节点 × 2 H100，256Gi，禁 RDMA 和 hostNetwork；只验收生命周期与落盘，不设论文收益门槛。代码 pin 比对 exp/harness/controller，允许后续只更新文档。
 - 私有远端：`https://github.com/Sym-Je/SpecPilot-reproduction.git`（origin）。用户已授权每个大步骤结束后更新 README 进度、交接与相关代码，验收后阶段提交并推送；不上传大产物、凭据或 sealed 数据。
 - 重新对齐论文/公开项目后的详细方案见 `docs/11-reproduction-plan.md`（草案，未授权修改 controller 或已有判据）。其中区分每 suite 4 条诊断、上游默认 6 条 dev 表格和后续 sealed；正式 CI 与真实 forcing 尚有维护者待办。
 - `exp/p3_pair_run.py` 已实现 fresh 双 server、controller 逐请求配对、两轮物理 GPU UUID 互换、每轮一对 JSONL 和几何平均 CI；controller 未改。
@@ -29,7 +33,7 @@
 
 RSI 的**制度层**在 mock 规模跑通（G2–G5）；**执行层**已打通到"三臂各起一次真 server、
 跑同一请求集、落可审计 JSONL"（P0–P3，G6/G7/G8 全绿）。
-**NorthJob 已尝试提交三次，前两次被拒，a03 成功创建并启动但 Git 预检失败。** 论文数字一个都还没独立测出；本机烟测 stock/AR 3.74×
+**NorthJob 共尝试提交五次：前两次被拒，a03/a04 执行失败，a05 完整远程双卡烟测通过。** 论文正式数字一个都还没独立测出；本机烟测 stock/AR 3.74×
 只作历史诊断，不代表正式配对尺子已经校准。
 
 ## 接手前必做（5 分钟）
@@ -88,7 +92,7 @@ memory、candidate/campaign 管理、sealed 集、`ar` CLI。
 | 数据/缓存 | `/gpfs/users/jixinpeng/specpilot_data`（370 M） |
 | 代理 | `http://10.51.6.1:6890`（外网必设） |
 | git | 已修好：`~/.local/bin/git` → `envs/gitcli`（2.56.0）。备份 `git.bak-20261107` |
-| NorthJob | `/gpfs/envs/miniconda3/bin/northjob`（不在 PATH） |
+| NorthJob | `/gpfs/users/jixinpeng/miniconda3/envs/dev/bin/northjob`（3.3.11；不用旧的 /gpfs/envs 版本） |
 | 备选环境 | `envs/alice-sglang`（torch 2.9.1+cu128）—— 535 驱动上唯一原生可用的 torch，但**不含 sglang 0.5.20 依赖** |
 
 **三个坑**（`harness/sglang/env.sh` 已针对它们写好）
@@ -155,7 +159,7 @@ $SP_PY harness/sglang/probe_greedy.py --n 3 --repeats 2 --max-new-tokens 2048
   `HttpPairBench` 复用 `controller.stats`，统计不改。单卡顺序路径
   `SequentialPairBench` 直接 raise，**不许**冒充配对。验收含同 arm 确定性、
   噪声地板、`1%+2*noise` 下界判据注入测试。
-- **P3（链路已完成，编排 CPU 验收通过；下一步 NorthJob 环境确认与远程测量）**：链路提交 `ed8b571`，编排版本以当前 Git 历史为准。
+- **P3（链路及远程配对生命周期已完成；下一步 2048-token 正式尺度诊断）**：链路提交 `ed8b571`，编排修复 `0bb2965`，a05 完整烟测通过，不能当正式性能验收。
   `exp/p3_pair.sh <arm> <gpu> <port> <out.jsonl>` = 单臂执行单元（起 server → run_arm → 停）；
   `harness/sglang/gen_final_env.py` 从 config.json 派生 final 的 46 个 `SPECPILOT_*`（不手抄）；
   `gates/g8_pair_arms.py` = 配对前置条件 8 项，其中 **E2 要求三臂 `input_sha256` 逐条相同**。
@@ -163,7 +167,7 @@ $SP_PY harness/sglang/probe_greedy.py --n 3 --repeats 2 --max-new-tokens 2048
   stock/AR **3.74×**（论文 3.95×），τ 5.02→11.13（论文 4.65→13.08）。
   `final/stock` 只有 1.51×；**256-token 短序列摊不开固定开销**是待验证解释，不能排除覆盖层或配置生效问题。
   下一步经 NorthJob 申请双卡、每臂 fresh server，`P3_PER_SUITE=4 P3_MAX_NEW=2048`、两轮物理换卡，依次测 AR/stock、AR/final 和直接 stock/final。
-  通过后按正式 dev 协议扩大范围；P4 还需 controller 真实判据就绪。image 已确认，当前先解决 NorthJob 项目权限。
+  通过后按正式 dev 协议扩大范围；P4 还需 controller 真实判据就绪。image 与 WeaverDev 项目已验证可提交，远程完整生命周期已通过，正式尺度数据尚未测出。
   详见 `docs/09-p3-harness-validation.md`、`docs/11-reproduction-plan.md` 和 `docs/12-experiment-management.md`；`docs/10-p3-local-pairs.md` 保留执行单元说明，不再要求先跑本机。
 - **P4（2 天，可与 P3 并行设计）**：建 `eval/sealed`（controller 侧抽样，agent 不可见）；
   `patches/` 先放 `noop`（必须 token-identical 到 stock）+ `block_8_16`。
@@ -203,7 +207,7 @@ $SP_PY harness/sglang/probe_greedy.py --n 3 --repeats 2 --max-new-tokens 2048
 - `eval/sealed` 空（`eval/dev` 已由 `assets/upstream/dev` 供给，5 suite × 20 条）；
   `memory/entries/rsi.json` 是 mock 结果
 - `exp/run_e2e.sh` 用 TinyLM，不是真引擎
-- **NorthJob 前两次项目校验拒绝，a03 在 WeaverDev 创建成功但 Git 预检退出；GPU 烟测及远程配对验收未运行**
+- **NorthJob a05 的远程配对生命周期已通过；2048-token 正式测量、真实 forcing/噪声/晋升仍未完成**
 - `harness/make_traces.py`：自蒸馏语料生成，**WIP，不在主路径上**（DFlash2 已是训练好的 drafter，
   不需要自蒸馏）。保留但不要依赖。
 - `harness/qwen_backend.py` / `qwen_spec.py`：自写前向，与 HF 数值一致（max diff 0.0），
