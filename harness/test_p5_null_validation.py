@@ -45,6 +45,8 @@ class NullValidationTests(unittest.TestCase):
         self.assertTrue(result['precision_passed'])
         self.assertEqual(result['interval_width'], 0)
         self.assertEqual(result['noise'], 0)
+        self.assertEqual(result['ci95'], [result['interval']['lower'], result['interval']['upper']])
+        self.assertIn('suite-stratified', result['ci_method'])
         self.assertFalse(result['ledger_eligible'])
         self.assertEqual(result['width_limit'], .002)
 
@@ -66,7 +68,7 @@ class NullValidationTests(unittest.TestCase):
 
     def test_wide_intervals_are_not_relaxed(self):
         with unittest.mock.patch('controller.null_validation.stratified_geomean_ci',
-                                 return_value={'lower': .99, 'upper': 1.01}):
+                                 return_value={'lower': .99, 'upper': 1.01, 'method': 'synthetic'}):
             result = validate_null(self.root)
         self.assertFalse(result['precision_passed'])
         self.assertAlmostEqual(result['interval_width'], .02)

@@ -1,13 +1,16 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-07（第 5 步已开始；CPU 前置审计复现裁判缺口，等待维护者权限/交付；无运行中任务，版本状态以 git log/status 为准）。
+> 最后更新：2026-11-07（第 5 步基础已修、真实 null 结束但整体精度未过；无运行中任务，版本状态以 git log/status 为准）。
 
-## 当前接续点：第 5 步真实正确性 / 噪声 / 晋升（修复中，未完成）
+## 当前接续点：第 5 步真实正确性 / 噪声 / 晋升（基础已修，噪声未过，未完成）
 
 - 用户在审计之后明确授权“允许修改”：范围为本阶段 controller 正确性/统计修复，不放宽判据，不读取 sealed，不进入 RSI。后续普通 agent 仍须遵守 controller 维护者边界，不能推定永久授权。
 - 修复记录 `docs/experiments/p5-controller-repair-20261107.md`。空/长度/统计溢出/rate rule/输出分歧性能门槛已修；stock stock 显式展开 stock-a/stock-b，底层仍启动 stock。原 9 个合成反例全过，新旧 79 项测试通过，仍没有真实 lossless/晋升结论。
-- 正在准备原镜像/WeaverDev/qiji/原 toleration、2 H100 的真实 null 任务；`exp/p5_remote_null.sh` 一次任务顺序运行两次独立会话，各 20 请求/2048 cap/两轮换卡。controller 单独报告噪声、双侧 95% 分层 CI 及全宽<0.2% 是否通过；不达标不放宽。
+- 真实 null 已结束：`job-3c6565eedef3-20261107210140`，测量源 pin=dbebc6b88e97b893d7a0afd2a326a8ed37fd1bbc，2026-11-07 21:01:40 +08:00 code=200 后按精确名解析唯一 UUID。原镜像/WeaverDev/qiji/原 toleration、2 H100，node233；21:02:04启动、21:18:55结束，Job=Completed/Pod=Succeeded，容器/脚本exit=0、restart=0；两会话各两卡清理0 MiB/0%。输出 `logs/p5-stock-null-2048-20261107-a01/`，总80 pair/160臂行，但仅原20个不同请求。
+- Session 1：比值0.9999525264、分层双侧95% CI [0.9986248088,1.0012594020]，全宽0.2634593%，noise=0.1375191%，precision_passed=false。Session 2：1.0033328725、CI [1.0026846326,1.0039834119]，全宽0.1298779%，noise=0.3983412%，precision_passed=true。整体精度门禁exit=1；两实例/卡位/会话输出一致不等于lossless。不能挑第二会话或跨会话平均掩盖失败，不重提追绿，不进入sealed/RSI。
+- 下一步应先定位预热/稳态与角色时序偏差，登记稳定性协议；真实FP32-head scorer/stock mismatch/delta/注入及归约对照尚未完成。黑盒help已确认有 --enable-fp32-lm-head，但开关存在不是验收通过。权限阻塞已解除，当前是实测精度门禁未过。
+- 78文件清单 `logs/p5-controller-repair-evidence-20261107.sha256`，清单SHA=170479f90a00a324865fe3430f9ab066906e19b213d52cdbef997fc9790f0c4d；完整源码快照在repair-a01/final-source.tar。95组SciPy核验、最后79测试、历史统计复算/清单均过。测量结束后仅澄清null reader CI字段标签，原始数据与判断未变，复验结果见independent-null-reaudit.json。详细报告记录具体路径与SHA。
 - 以下审计条目是修复前历史，当前状态以本段与修复记录为准。
 
 - 用户已批准开始第 5 步，但没有授权修改 `controller/`。先做只读 CPU 审计，无 NorthJob create、无 GPU 进程、无 sealed/作者实现访问、无 ledger 写入。

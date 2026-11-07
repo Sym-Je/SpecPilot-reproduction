@@ -32,7 +32,9 @@ def validate_null(directory):
     interval = stratified_geomean_ci(groups)
     width = interval['upper'] - interval['lower']
     noise = max(abs(interval['upper'] - 1), abs(1 - interval['lower']))
-    result.update(interval=interval, interval_width=width, width_limit=.002,
+    result.update(diagnostic_pooled_ci95=result['ci95'],
+                  ci95=[interval['lower'], interval['upper']], ci_method=interval['method'],
+                  interval=interval, interval_width=width, width_limit=.002,
                   noise=noise, precision_passed=width < .002,
                   output_identical=True, session_directory=str(directory.resolve()),
                   scope='real stock null calibration only; not lossless or promotion',

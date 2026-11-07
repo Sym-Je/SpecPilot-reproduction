@@ -106,9 +106,11 @@ A 阶段通过后，冻结实验计划，按上游每 suite 6 条、2048 tokens 
 
 在任何正式候选晋升或 sealed 数字结论之前完成，由维护者提供 controller 侧实现/验收：
 
-2026-11-07 第 5 步已获批准并完成只读 CPU 前置审计，现为 **blocked**。
+2026-11-07 第 5 步完成只读 CPU 前置审计后曾 blocked，随后用户明确授权限定修改 controller。
 [最小反例与维护者交付](experiments/p5-readiness-20261107.md)：空/不完整输入误过、4096-token 数值溢出、
-rate rule 与输出分歧晋升缺口已复现；没有提交 GPU 或修改 controller，真实 forcing/null 尚未完成。
+rate rule 与输出分歧晋升缺口已复现。后续[修复/校准记录](experiments/p5-controller-repair-20261107.md)：
+原 9 反例已过、新旧 79 测试通过；真实 null 两会话已结束，全宽0.2635%/0.1299%，
+首会话未过<0.2%，整体精度门禁未过；生命周期/清理通过。真实 forcing 仍未完成，不能宣布本阶段通过。
 
 1. 两个独立 stock server、两卡互换的 null calibration；噪声来自真实同尺度会话，不复用 mock 3.11% 或单 URL 自比值。
 2. 明确噪声定义、95% 下界与双侧 CI、输出分歧约 3% 门槛的精确组合。遵守已有要求，不擅自放宽 docs/02 的区间全宽 <0.2%。
