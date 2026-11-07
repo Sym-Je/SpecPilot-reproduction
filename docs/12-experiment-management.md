@@ -49,7 +49,8 @@ Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果
 | NorthJob 远程工具验收 | completed；a05 两轮换卡、10 pair/20 臂行、exit=0 | [最终验收及失败历史](experiments/p2-remote-smoke-20261107.md)；26 项回归、统计复算、33 文件校验与 GPU 清理通过，非论文数字 |
 | A1：AR/stock | completed；点估计诊断通过，源 pin=79fe81a | [基线记录](experiments/p3-ar-stock-2048-20261107.md)；3.8699× [3.5571,4.2242]，40 pair/80 臂行、两轮换卡、39 回归及 38 文件校验通过 |
 | A2/A3：AR/final、stock/final | completed；源 pin=4d67c2f，同 A1 请求身份 | [本阶段记录](experiments/p3-final-2048-20261107.md)；8.7347× [8.0235,9.5599] / 直接 2.2219× [2.1381,2.2988]；各 40 pair/80 行、50 回归及证据复核通过，非 sealed/lossless |
-| B/C：正式 dev、真实正确性与裁判 | 待诊断及维护者工作 | 正式统计、噪声和 forcing 不以 mock 通过代替 |
+| C：第 5 步真实正确性与裁判 | blocked；只读 CPU 前置审计完成 | [审计与维护者清单](experiments/p5-readiness-20261107.md)；9 项检查未过，审计工具 7 测试/旧回归 50 通过；未提交 GPU，未改 controller |
+| B：正式 dev 扩围 | 未开始 | 正式统计、噪声和 forcing 就绪后再登记协议；不以 mock 通过代替 |
 | P4、真实 RSI 与最终对照 | 未开始 | 前置条件满足后按计划推进，agent 不接触 sealed |
 
 上表引用的历史产物尚未在本次变更中补齐校验清单；不能称为已完成全量归档。

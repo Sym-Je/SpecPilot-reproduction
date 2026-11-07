@@ -1,9 +1,18 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-07（第 4 步 A2/A3 产物测量完成；直接 final/stock=2.2219× [2.1381,2.2988]；无运行中任务，版本状态以 git log/status 为准）。
+> 最后更新：2026-11-07（第 5 步已开始；CPU 前置审计复现裁判缺口，等待维护者权限/交付；无运行中任务，版本状态以 git log/status 为准）。
 
-## 当前接续点：第 4 步作者 final 验证（不是 sealed Phase 4）
+## 当前接续点：第 5 步真实正确性 / 噪声 / 晋升（blocked，未完成）
+
+- 用户已批准开始第 5 步，但没有授权修改 `controller/`。先做只读 CPU 审计，无 NorthJob create、无 GPU 进程、无 sealed/作者实现访问、无 ledger 写入。
+- 新入口 `exp/p5_readiness_audit.py --out <新JSON路径>`，只用合成 token / 内存 fixture 调用已有接口；exit=1 是未就绪证据，不是可放宽的正式门禁。
+- 9 项检查全部未过：空请求/空 token 误报 lossless；少尾/多尾/整条缺失仍误过；4096 相同 token 自比 OverflowError；1000/1000 分歧 rate_flagged=False（event 此例仍拒绝）；合成输出不同的 2.5% 增益被 HTTP compare 标 promoted；stock stock 非执行计划被现有 CLI 拒绝。不是 9 个独立根因，也不是 27B 真实注入。
+- scorer/margin/delta/实测 stock mismatch、真实注入及独立双 server null 尚无证据，不能绕过 controller 在 harness 另立正式裁判。审计工具 7 项测试、既有 P2/P3 50 项回归通过；不表示第 5 步通过。
+- 记录与维护者交付清单：`docs/experiments/p5-readiness-20261107.md`；原始 `logs/p5-readiness-20261107-a01/`，复验另用 a02，不覆盖旧证据。继续需用户明确授权限定 controller 改动或维护者交付；不自动进入 sealed / RSI。
+- a02 复验 9 项观察相同、exit=1；最终 57/57 测试通过，P2 a05/A1/A2/A3 历史证据和 controller 未改验证通过。新 12 文件清单 `logs/p5-readiness-evidence-20261107.sha256`，清单 SHA=5dc42cbdc0ba68dba02ccc2c3abfdce6955ea293c6b58a1d0a9af091ab1c3480；含完整审计代码/测试快照。阶段仍 blocked，不把“工具测试通过”写成“真实裁判通过”。
+
+## 前一阶段：第 4 步作者 final 验证（不是 sealed Phase 4）
 
 - 当前第 4 步已完成：A2 final/AR=8.7347197445× [8.0234899904,9.5599189918]；A3 **直接 final/stock=2.2218558884× [2.1380887617,2.2987528227]**，不是两次 AR 对照相除。两项实验均 20 原请求/2048 cap/自然 EOS、两轮 fresh server/物理换卡，各 40 pair/80 臂行、Job=Completed/Pod=Succeeded、容器/脚本 exit=0、GPU 清理 0 MiB/0%、50/50 回归及独立统计复算通过。源 pin=4d67c2f4acfa1b68df24ef3de5a8cf53819e1962，模型/镜像/调度参数未换。
 - A3 唯一 UUID `job-4508734deeb3-20261107190750`，19:07:50 +08:00 code=200，19:08:14 启动、19:16:09 结束，node204，无重启；A2 已结束后才提交，最大同时占 2 GPU。输出 logs/p3-stock-final-2048-20261107-a01，38 文件清单 logs/p3-stock-final-evidence-20261107-a01.sha256，清单 SHA=bd5088cdd15862f2959cf7e327af7a4f8b04fdc76d12c051fbcf37bc6026bff6。A2 的 37 文件清单与 A1 历史清单均再次复核完整。
