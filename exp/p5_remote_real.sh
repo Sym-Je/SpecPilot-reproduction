@@ -22,4 +22,4 @@ if any('H100' not in torch.cuda.get_device_name(index) for index in (0, 1)):
 print(json.dumps(versions), flush=True)
 PY
 timeout --signal=TERM --kill-after=120s 10800 "$SP_PY" -B "$ROOT/exp/p5_real_run.py" \
-    --out-dir "$OUT" --reference "$REFERENCE"
+    --out-dir "$OUT" --reference "$REFERENCE" "${@:3}"

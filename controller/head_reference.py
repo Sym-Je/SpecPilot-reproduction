@@ -26,6 +26,13 @@ def reduce_head(weight, hidden, chunks=1, reverse=False):
     return result
 
 
+def finite_head(weight, isfinite, chunk_rows=4096):
+    if type(chunk_rows) is not int or chunk_rows <= 0:
+        raise ValueError('positive finite-check chunk size required')
+    return all(bool(isfinite(weight[start:start + chunk_rows]).all())
+               for start in range(0, weight.shape[0], chunk_rows))
+
+
 class FP32Head:
     def __init__(self, target, device):
         import torch
@@ -42,10 +49,10 @@ class FP32Head:
             tensor = source.get_tensor('lm_head.weight')
         if tuple(tensor.shape) != (248320, 5120) or tensor.dtype != torch.bfloat16:
             raise ValueError('unexpected target LM head shape or checkpoint dtype')
+        if not finite_head(tensor, torch.isfinite):
+            raise ValueError('nonfinite checkpoint LM head')
         tensor_sha = hashlib.sha256(memoryview(tensor.contiguous().view(torch.uint8).numpy())).hexdigest()
         self.weight = tensor.to(device=device, dtype=torch.float32)
-        if not bool(torch.isfinite(self.weight).all()):
-            raise ValueError('nonfinite checkpoint LM head')
         self.identity = dict(checkpoint=str(target), tensor_sha256=tensor_sha,
             index_sha256=hashlib.sha256(index_path.read_bytes()).hexdigest(),
             config_sha256=hashlib.sha256((target / 'config.json').read_bytes()).hexdigest(),

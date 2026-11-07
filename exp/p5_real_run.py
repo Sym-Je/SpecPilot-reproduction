@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from controller.http_transport import sha_ids
 from controller.scoring import NativeClient
-from controller.scored_forcing import calibrate_delta, calibrate_stock, judge_scored_forcing, load_score_trace, validate_injected_generation
+from controller.scored_forcing import calibrate_delta, calibrate_stock, judge_scored_forcing, load_score_trace, read_reference, validate_injected_generation
 from exp.p3_pair_run import arm_specs, check_ports, clean_environment, gpu_lock, interrupted, wait_for_idle, write_json
 from exp.p5_api_probe import CorrectnessServer
 
@@ -40,8 +40,9 @@ def final_acceptance(verdicts, *, post2048_tokens):
 
 
 class Campaign:
-    def __init__(self, directory, scorer):
+    def __init__(self, directory, scorer, evidence_root=None):
         self.directory, self.scorer = directory, scorer
+        self.evidence_root = evidence_root or directory
 
     def event(self, **value):
         with (self.directory / 'events.jsonl').open('a') as destination:
@@ -57,7 +58,7 @@ class Campaign:
         directory.mkdir(exist_ok=True)
         path = directory / f'{request["id"]}.json'
         write_json(path, trace)
-        load_score_trace(path, evidence_root=self.directory)
+        load_score_trace(path, evidence_root=self.evidence_root)
         self.event(cohort=cohort, request_id=request['id'], tokens=len(output), status='scored')
         return str(path)
 
@@ -76,7 +77,7 @@ class Campaign:
         directory.mkdir()
         audits, examined, total = [], 0, 0
         for path in paths:
-            trace = load_score_trace(path, evidence_root=self.directory)
+            trace = load_score_trace(path, evidence_root=self.evidence_root)
             for score in trace['scores']:
                 if score['token'] == score['argmax'] or score['margin'] <= 2 * delta:
                     continue
@@ -97,6 +98,52 @@ class Campaign:
         return audits
 
 
+def verify_generation_inventory(path, expected_sha256):
+    content = Path(path).read_bytes()
+    if hashlib.sha256(content).hexdigest() != expected_sha256:
+        raise ValueError('continuation inventory differs from its prebound checksum')
+    inventory = json.loads(content)
+    source = Path(inventory['source_directory']).resolve()
+    if not inventory['files']:
+        raise ValueError('empty continuation inventory')
+    for relative, checksum in inventory['files'].items():
+        candidate = (source / relative).resolve()
+        if not candidate.is_relative_to(source) or hashlib.sha256(candidate.read_bytes()).hexdigest() != checksum:
+            raise ValueError('original generation evidence changed or escaped the bound source directory')
+    return inventory
+
+
+def import_generations(campaign, inventory, requests):
+    source = Path(inventory['source_directory'])
+    if json.loads((source / 'manifest.json').read_text())['requests'] != requests:
+        raise ValueError('continuation requests differ from the immutable original campaign')
+    old_ar = {request['id']: load_score_trace(source / 'ar' / f'{request["id"]}.json', evidence_root=source)
+              for request in requests}
+    responses = {request_id: read_reference(trace['generation_segments'][0], source)['response']
+                 for request_id, trace in old_ar.items()}
+    eligible = eligible_requests(requests, responses)
+    if [request['id'] for request in eligible] != json.loads((source / 'injection-selection.json').read_text())['eligible_ids']:
+        raise ValueError('original injection selection changed')
+    write_json(campaign.directory / 'injection-selection.json', dict(eligible_ids=[request['id'] for request in eligible],
+        selection='original frozen AR length selection; no new fault selection', generation_source=str(source)))
+    cohorts = {}
+    for name in ('ar', 'healthy_segmented', 'faulty', 'stock', 'healthy_stock', 'stock_long'):
+        cohort_requests = eligible if name in ('healthy_segmented', 'faulty', 'stock_long') else requests
+        cohorts[name] = []
+        for request in cohort_requests:
+            path = source / name / f'{request["id"]}.json'
+            if str(path.relative_to(source)) not in inventory['files']:
+                raise ValueError('generation trace was not prebound for continuation')
+            trace = load_score_trace(path, evidence_root=source)
+            if (trace['prompt_ids'] != request['input_ids'] or
+                    trace['scorer']['server_args'] != campaign.scorer.identity['server_args'] or
+                    trace['scorer']['tree_sha'] != campaign.scorer.identity['tree_sha']):
+                raise ValueError('generation source and fresh scorer protocols differ')
+            cohorts[name].append(campaign.save_trace(name, request, trace['output_ids'], trace['generator'],
+                                                      trace['generation_segments']))
+    return cohorts
+
+
 def head_process(mode, directory, reference, tree_sha):
     command = [sys.executable, '-B', str(ROOT / 'controller/head_reference.py'), '--mode', mode,
                '--out-dir', str(directory), '--reference', str(reference / 'manifest.json'),
@@ -115,7 +162,7 @@ def launch(arm, role, gpu, directory, environment, resources):
     return server
 
 
-def run(directory, reference):
+def run(directory, reference, generation_inventory=None, generation_inventory_sha256=None):
     environment = clean_environment()
     expected = os.environ['P5_EXPECTED_COMMIT']
     subprocess.run(['git', 'diff', '--exit-code', expected, '--', 'exp', 'harness', 'controller'], cwd=ROOT, check=True)
@@ -123,6 +170,8 @@ def run(directory, reference):
     gpus = wait_for_idle([0, 1])
     check_ports([30120, 30130])
     arms, _ = arm_specs(['ar', 'stock', 'final'], environment)
+    inventory = verify_generation_inventory(generation_inventory, generation_inventory_sha256) if generation_inventory else None
+    evidence_root = (directory, Path(inventory['source_directory'])) if inventory else directory
     reference_manifest = reference / 'manifest.json'
     manifest = json.loads(reference_manifest.read_text())
     requests = manifest['requests']
@@ -141,7 +190,9 @@ def run(directory, reference):
         generation_cap=2048, injection_tail_cap=2048, vocabulary_size=248320,
         injection_bias=2, injection_stride=7, minimum_post2048_tokens=1024,
         head_control='first request per suite, 64 cap, reverse 8-part FP32 reduction',
-        event_audit_limit=200, scope='real dev correctness regression; not paired throughput or promotion'))
+        event_audit_limit=200, generation_inventory=str(generation_inventory) if inventory else None,
+        generation_inventory_sha256=generation_inventory_sha256,
+        scope='real dev correctness regression; not paired throughput or promotion'))
     cohorts = {}
     with ExitStack() as resources:
         for gpu in gpus:
@@ -149,10 +200,56 @@ def run(directory, reference):
         launch(arms[0], 'scorer', gpus[1], directory, environment, resources)
         scorer = NativeClient('http://127.0.0.1:30130', directory / 'scorer-raw')
         scorer.scorer_identity(arms[0]['tree_sha'])
-        campaign = Campaign(directory, scorer)
+        campaign = Campaign(directory, scorer, evidence_root)
         head_process('preflight', directory / 'head-preflight', reference, arms[0]['tree_sha'])
         campaign.event(stage='head_preflight', passed=True)
+        if inventory:
+            cohorts = import_generations(campaign, inventory, requests)
+        else:
+            cohorts = fresh_generations(campaign, directory, arms, gpus, environment, requests)
+        delta = calibrate_delta(cohorts['stock'], cohorts['ar'], evidence_root=evidence_root)
+        write_json(directory / 'delta-calibration.json', delta)
+        baseline = calibrate_stock(cohorts['stock'], delta, evidence_root=evidence_root)
+        long_baseline = calibrate_stock(cohorts['stock_long'], delta, evidence_root=evidence_root)
+        write_json(directory / 'stock-calibration.json', baseline)
+        write_json(directory / 'long-stock-calibration.json', long_baseline)
+        campaign.event(stage='stock_calibration', delta=delta['delta'], stock=baseline['stock_counts'])
+        head = head_process('control', directory / 'head-control', reference, arms[0]['tree_sha'])
+        cohorts['equivalent_head'] = head['traces']
+        selected_ids = {json.loads(Path(path).read_text())['request_id'] for path in cohorts['equivalent_head']}
+        head_baseline = calibrate_stock([path for path in cohorts['stock']
+            if json.loads(Path(path).read_text())['request_id'] in selected_ids], delta, evidence_root=evidence_root)
+        write_json(directory / 'head-stock-calibration.json', head_baseline)
         with ExitStack() as generator_resources:
+            launch(arms[2], 'final', gpus[0], directory, environment, generator_resources)
+            client = NativeClient('http://127.0.0.1:30120', directory / 'final-raw')
+            identity = client.server_identity(arms[2]['tree_sha'])
+            cohorts['author_final'], _, _ = campaign.generate('author_final', requests, client, identity, 2048)
+        check_ports([30120])
+        wait_for_idle([0])
+        cohorts['healthy_ar'] = cohorts['ar']
+        write_json(directory / 'cohorts.json', cohorts)
+        verdicts = {}
+        for name in ('healthy_stock', 'healthy_ar', 'healthy_segmented', 'equivalent_head', 'faulty', 'author_final'):
+            calibration = long_baseline if name in ('healthy_segmented', 'faulty') else head_baseline if name == 'equivalent_head' else baseline
+            audits = campaign.audit(name, cohorts[name], delta['delta'])
+            verdicts[name] = judge_scored_forcing(calibration, cohorts[name], evidence_root=evidence_root, prefill_audits=audits)
+            write_json(directory / f'{name}-verdict.json', verdicts[name])
+            campaign.event(stage='judgment', cohort=name, passed=verdicts[name]['correctness_passed'],
+                           rate=verdicts[name]['rate'], events=verdicts[name]['unexplained_events'])
+        coverage = [validate_injected_generation(path, evidence_root=evidence_root) for path in cohorts['faulty']]
+        write_json(directory / 'injection-coverage.json', coverage)
+        result = final_acceptance(verdicts, post2048_tokens=sum(row['post2048_tokens'] for row in coverage))
+        write_json(directory / 'acceptance.json', result)
+    check_ports([30120, 30130])
+    write_json(directory / 'cleanup.json', wait_for_idle([0, 1]))
+    if not result['judge_ready']:
+        raise ValueError('real correctness judge regression failed; inspect acceptance and cohort verdicts')
+
+
+def fresh_generations(campaign, directory, arms, gpus, environment, requests):
+    cohorts = {}
+    with ExitStack() as generator_resources:
             launch(arms[0], 'ar', gpus[0], directory, environment, generator_resources)
             client = NativeClient('http://127.0.0.1:30120', directory / 'ar-raw')
             identity = client.server_identity(arms[0]['tree_sha'])
@@ -175,65 +272,32 @@ def run(directory, reference):
                     paths.append(campaign.save_trace(cohort, request, prefix + response['output_ids'], identity,
                                                      [segments[request['id']], tail_segment]))
                 cohorts[cohort] = paths
-        check_ports([30120])
-        wait_for_idle([0])
-        with ExitStack() as generator_resources:
+    check_ports([30120])
+    wait_for_idle([0])
+    with ExitStack() as generator_resources:
             launch(arms[1], 'stock', gpus[0], directory, environment, generator_resources)
             client = NativeClient('http://127.0.0.1:30120', directory / 'stock-raw')
             identity = client.server_identity(arms[1]['tree_sha'])
             cohorts['stock'], _, _ = campaign.generate('stock', requests, client, identity, 2048)
             cohorts['healthy_stock'], _, _ = campaign.generate('healthy_stock', requests, client, identity, 2048)
             cohorts['stock_long'], _, _ = campaign.generate('stock_long', eligible, client, identity, 4096)
-        check_ports([30120])
-        wait_for_idle([0])
-        delta = calibrate_delta(cohorts['stock'], cohorts['ar'], evidence_root=directory)
-        write_json(directory / 'delta-calibration.json', delta)
-        baseline = calibrate_stock(cohorts['stock'], delta, evidence_root=directory)
-        long_baseline = calibrate_stock(cohorts['stock_long'], delta, evidence_root=directory)
-        write_json(directory / 'stock-calibration.json', baseline)
-        write_json(directory / 'long-stock-calibration.json', long_baseline)
-        campaign.event(stage='stock_calibration', delta=delta['delta'], stock=baseline['stock_counts'])
-        head = head_process('control', directory / 'head-control', reference, arms[0]['tree_sha'])
-        cohorts['equivalent_head'] = head['traces']
-        selected_ids = {json.loads(Path(path).read_text())['request_id'] for path in cohorts['equivalent_head']}
-        head_baseline = calibrate_stock([path for path in cohorts['stock']
-            if json.loads(Path(path).read_text())['request_id'] in selected_ids], delta, evidence_root=directory)
-        write_json(directory / 'head-stock-calibration.json', head_baseline)
-        with ExitStack() as generator_resources:
-            launch(arms[2], 'final', gpus[0], directory, environment, generator_resources)
-            client = NativeClient('http://127.0.0.1:30120', directory / 'final-raw')
-            identity = client.server_identity(arms[2]['tree_sha'])
-            cohorts['author_final'], _, _ = campaign.generate('author_final', requests, client, identity, 2048)
-        check_ports([30120])
-        wait_for_idle([0])
-        cohorts['healthy_ar'] = cohorts['ar']
-        write_json(directory / 'cohorts.json', cohorts)
-        verdicts = {}
-        for name in ('healthy_stock', 'healthy_ar', 'healthy_segmented', 'equivalent_head', 'faulty', 'author_final'):
-            calibration = long_baseline if name in ('healthy_segmented', 'faulty') else head_baseline if name == 'equivalent_head' else baseline
-            audits = campaign.audit(name, cohorts[name], delta['delta'])
-            verdicts[name] = judge_scored_forcing(calibration, cohorts[name], evidence_root=directory, prefill_audits=audits)
-            write_json(directory / f'{name}-verdict.json', verdicts[name])
-            campaign.event(stage='judgment', cohort=name, passed=verdicts[name]['correctness_passed'],
-                           rate=verdicts[name]['rate'], events=verdicts[name]['unexplained_events'])
-        coverage = [validate_injected_generation(path, evidence_root=directory) for path in cohorts['faulty']]
-        write_json(directory / 'injection-coverage.json', coverage)
-        result = final_acceptance(verdicts, post2048_tokens=sum(row['post2048_tokens'] for row in coverage))
-        write_json(directory / 'acceptance.json', result)
-    check_ports([30120, 30130])
-    write_json(directory / 'cleanup.json', wait_for_idle([0, 1]))
-    if not result['judge_ready']:
-        raise ValueError('real correctness judge regression failed; inspect acceptance and cohort verdicts')
+    check_ports([30120])
+    wait_for_idle([0])
+    return cohorts
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out-dir', type=Path, required=True)
     parser.add_argument('--reference', type=Path, required=True)
+    parser.add_argument('--generation-inventory', type=Path)
+    parser.add_argument('--generation-inventory-sha256')
     args = parser.parse_args()
+    if bool(args.generation_inventory) != bool(args.generation_inventory_sha256):
+        parser.error('continuation requires both inventory path and prebound SHA256')
     args.out_dir.mkdir(parents=True, exist_ok=False)
     try:
-        run(args.out_dir, args.reference)
+        run(args.out_dir, args.reference, args.generation_inventory, args.generation_inventory_sha256)
     except BaseException as error:
         write_json(args.out_dir / 'failed.json', {'error': repr(error)})
         try:

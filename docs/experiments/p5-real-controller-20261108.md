@@ -136,3 +136,35 @@ git diff --check
   不论结果如何本阶段promoted/ledger_eligible均为false，next_stage_allowed不代表自动进入下一阶段。
 - 117项CPU测试、三个shell语法检查和diff检查通过；真实head、δ及故障/健康回归仍待GPU实测。
   首次正式任务名`specpilot-p5-real-forcing-20261108-a01`已查重total=0；提交前再查并记录完整命令。
+
+### 正式任务a01生命周期（执行中）
+
+- 首次命令把内存参数写为`256Gi`，本地argparse exit2，未向服务端提交；随后同名复查total=0。
+  按CLI帮助改为整数`--mem-per-pod 256`（GiB），实际资源没有改变，原失败输出保留。
+- 2026-11-08 07:15:07 +08:00唯一一次到达服务端的create返回code200/data=None；
+  精确名查询total=1，UUID=`job-4b7a12721a34-20261108071507`，实际queue=proj-31。
+- 源pin=`13bf9b5ba5cf5a0f64b33f995f56074f492778f2`；完整Git源快照
+  `logs/p5-real-controller-prep-20261108-a01/real-source.tar`，
+  SHA256=`3a4a674317cbd03262661a96e07ee7269e50f2354d34fbb5f37889e8d75c8c38`。
+- node204容器于07:15:31 +08:00启动，已验证sglang0.5.20/torch2.13.0/transformers5.12.1及2 H100。
+  输出`logs/p5-real-forcing-20261108-a01/`，持久`.log/.exit-status`及prep目录`real-lifecycle.*`。
+  此处仅确认提交和进程启动，不代表head或正确性验收通过；最终状态与平台重试数待追加。
+
+### a01显存失败与有界续接（不是重抽样）
+
+- a01真实AR20/stock20/stock健康重复20、健康长尾5/故障长尾5/stock长基线5均已生成并评分。
+  δ=0.25（实际首分歧标定），stock178/20250=0.879012%；均暂作该次已落盘证据，不代替最终裁判。
+- 长输出评分后scorer保留约69.70GiB显存，外部FP32 head已占5.24GiB，整矩阵`torch.isfinite`
+  又需4.74GiB而仅剩3.55GiB，正式归约控制启动处OOM；不是token错误或门槛失败，final尚未启动。
+  原进程清理两卡0MiB/0%；平台重建Pod后因目录保护退出，最终Job/Pod Failed，Job retryCount=2。
+- 实质修复：在CPU checkpoint张量上按4096行验证有限性，再转FP32/GPU；无完整GPU矩阵临时值，
+  不改变权重、head算式、归约方向、容差或δ/rate/event判据。新增有界内存/证据边界/固定清单反例，
+  120项CPU回归通过。
+- 为避免重新生成已完成的75条真实输出，a02显式`--generation-inventory`续接：先冻结a01全部249文件，
+  清单`logs/p5-real-controller-prep-20261108-a01/continuation-sources.json`，
+  SHA256=`0650bb85af97e79e73ce7cb2a3d428fad25d7758dce3ca0b388951270a5a3793`。
+  提交和执行均验证所有SHA与路径；原文件保持不变，不挑输出或注入样本。
+- a02重新启动同配置scorer，对75条固定生成全部重新评分，重新标定δ/stock，随后执行真实归约控制、
+  fresh作者final及全部审计/判定。记录原生成与新评分的不同任务/GPU/source身份，不伪称单会话。
+  证据读取仅允许a01/a02两个显式根目录，不扩大到整个logs，更不读取sealed；只有显式flag启用续接。
+  历史性能null仍只做重放；本阶段依旧没有正式晋升或论文数字复现。

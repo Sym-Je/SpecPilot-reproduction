@@ -17,8 +17,10 @@ def digest_record(record):
 
 
 def read_bound(path, evidence_root, expected=None):
-    path, root = Path(path).resolve(), Path(evidence_root).resolve()
-    if not path.is_relative_to(root):
+    path = Path(path).resolve()
+    declared = evidence_root if isinstance(evidence_root, (tuple, list)) else (evidence_root,)
+    roots = [Path(root).resolve() for root in declared]
+    if not roots or not any(path.is_relative_to(root) for root in roots):
         raise ValueError('evidence path escapes the declared campaign root')
     content = path.read_bytes()
     checksum = hashlib.sha256(content).hexdigest()

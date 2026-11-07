@@ -4,6 +4,18 @@ import numpy as np
 
 
 class HeadReductionTests(unittest.TestCase):
+    def test_checkpoint_finite_check_never_materializes_a_whole_head_temporary(self):
+        from controller.head_reference import finite_head
+        sizes = []
+        def inspect(block):
+            sizes.append(block.shape[0])
+            return np.isfinite(block)
+        weight = np.ones((100, 8), np.float32)
+        self.assertTrue(finite_head(weight, inspect, chunk_rows=16))
+        self.assertLessEqual(max(sizes), 16)
+        weight[-1, 0] = np.nan
+        self.assertFalse(finite_head(weight, inspect, chunk_rows=16))
+
     def test_same_fp32_weights_and_hidden_state_with_reordered_reduction(self):
         from controller.head_reference import reduce_head
         weight = np.arange(96, dtype=np.float32).reshape(6, 16) / 97
