@@ -1,13 +1,13 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-07（第 2 步远程双卡生命周期验收完成；a05 两轮真实换卡、10 pair/20 臂行、exit=0；版本状态以 git log/status 为准）。
+> 最后更新：2026-11-07（用户已批准第 3 步 AR/stock 2048-token 基线；新入口及 39 项回归通过，准备冻结和提交；版本状态以 git log/status 为准）。
 
-## 当前接续点：第 2 步已完成，下一主线为 AR/stock 正式尺度诊断
+## 当前接续点：第 3 步 AR/stock 2048-token 基线准备完成
 
 - 当前完成：用户授权本阶段自主拆分、调试、测试及正常范围内重跑，小步骤不再等待回复；高风险及 skill 的查重/镜像/不明确提交保护仍有效。a04 首轮完成后因端口 TIME_WAIT 误报失败，已保留全部证据；只在探测 socket 增加 SO_REUSEADDR，真实 TCP 回归先红后绿，真实监听仍拒绝。最终 CPU 回归 26/26（17 编排 + 9 挂载/验收）通过；controller、sealed、账本、模型和镜像未改。
 - a05 完成：2026-11-07 16:42:26 +08:00 code=200，唯一 UUID `job-ad27e2790ef7-20261107164226`；16:42:45 启动、16:47:09 结束，Job=Completed / Pod=Succeeded / container exit=0 / script exit=0，无容器重启。源 pin=`0bb2965474bc7b2872d59bc6f311c94ebf6b22b1`；原 5 请求/64 cap/两轮物理换卡全部通过，10 pair/20 臂行、请求哈希一致，两张 GPU 清理后均 0 MiB/0%。结果 `logs/p2-remote-smoke-20261107-a05`；33 个证据文件清单 `logs/p2-evidence-a05-20261107.sha256`，清单 SHA=231d9d7fcc24a526750d925eb2ad5a5321b4893f909789d09aa875fa0ad74e03。统计复算与持久 summary 完全相同，但这是短输出诊断，不是论文/正式性能或 lossless 结论。
-- 下一主线：AR/stock 20 请求、2048 cap、两轮 fresh server + GPU 互换，另建实验记录，不复用烟测数据；本次尚未运行。远程继续保留进程内精确 safe.directory；WeaverDev 项目、qiji namespace/请求 queue、实际 proj-31 queue、infra-dev-weaver toleration 分别记录。
+- 当前主线：用户已批准执行 AR/stock 20 请求、2048 cap、两轮 fresh server + GPU 互换；新记录 docs/experiments/p3-ar-stock-2048-20261107.md。入口 exp/p3_remote_baseline.sh，runner 限时 7200 秒、warmup=2（每次最多 32 token）、启动上限 900 秒；harness/baseline_validation.py 仅做协议/完整性及既有统计判据一致性复核。新增 13 项验收、新旧合计 39/39 回归通过。准备冻结新源 pin 并提交 specpilot-p3-ar-stock-20261107-a01，输出 logs/p3-ar-stock-2048-20261107-a01。stock/AR 点估计参考 [3.555,4.345]，CI 分开报告；超范围保留负判定，不自动进入 final，不删样本或改阈值。远程继续保留进程内精确 safe.directory、原镜像与调度参数；不复用短烟测数据、不修改 controller/sealed/账本。
 
 ### 以下为准备及失败历史（当前状态以上述完成记录为准）
 - 当前在原十步主线的第 2 步“配对测量远程验收”；镜像、CLI 和挂载是内部准备，不重新拆成研究大步骤。大步骤先报目标、流程与自检并等用户允许，内部小步骤自主安排。

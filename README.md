@@ -12,7 +12,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 |---|---|---|---|
 | 1 | 明确复现对象与实验协议 | 🟡 初步完成 | 已区分 dev / sealed 与诊断 / 正式统计，见[协议规划](docs/11-reproduction-plan.md) |
 | 2 | 双卡配对测量自动化与远程验收 | ✅ 已完成 | a05 两轮真实换卡，10 pair / 20 臂行，exit=0，GPU 清理通过；26 项回归通过，见[验收记录](docs/experiments/p2-remote-smoke-20261107.md) |
-| 3 | AR vs stock 基线测量 | ⬜ 待正式配对测量 | 20 请求、2048 token 上限、两轮换卡；当前无完成的真实配对结果 |
+| 3 | AR vs stock 基线测量 | 🔵 正在推进 | 20 请求、2048 cap、两轮换卡；长输出入口及 39 项回归通过，见[基线记录](docs/experiments/p3-ar-stock-2048-20261107.md) |
 | 4 | 验证作者 final 的收益 | ⬜ 待正式配对测量 | 先 AR/final，再直接 stock/final；[历史烟测](docs/09-p3-harness-validation.md)不算正式结果 |
 | 5 | 真实正确性、噪声与晋升判据 | ⬜ 待补齐真实验收 | 有 mock 骨架；真实 forcing、噪声校准与正式 controller 判据待维护者补齐 |
 | 6 | 建立独立 sealed 验证 | ⬜ 未开始 | 前置验收通过后由 controller 管理，agent 不接触内容 |
@@ -25,7 +25,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 
 **当前边界：**本次是 5 请求、64 token 上限的生命周期烟测，不是 2048-token 正式性能、lossless 或论文数字复现；controller、sealed 和正式账本未改。
 
-**接下来：**第 3 步 AR/stock：20 请求、2048 token 上限、fresh server、两轮物理换卡，独立建记录并按诊断协议验收。沿用已确认镜像及 WeaverDev 项目；namespace=qiji，请求 queue=qiji，实际 queue=proj-31，toleration 仍为 infra-dev-weaver，三者不混同。
+**正在做：**用户已批准第 3 步 AR/stock：20 请求、2048 cap、两轮 fresh server/GPU 换卡；入口和协议验收测试已通过，准备提交。沿用原镜像及 WeaverDev；namespace=qiji、请求 queue=qiji、实际 queue 单独核对，toleration 仍为 infra-dev-weaver。
 
 **已有基础：**三臂真实 server 烟测与 mock 闭环完成，GitHub 私有远端已配置；**尚未独立复现论文数字。**
 
