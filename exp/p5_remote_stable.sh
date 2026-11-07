@@ -11,6 +11,10 @@ trap 'status=$?; printf "%s\n" "$status" > "$OUT.exit-status"; echo "[p5-stable]
 cd "$ROOT"
 export PYTHONDONTWRITEBYTECODE=1
 source "$ROOT/harness/sglang/env.sh"
+EXTRA=()
+if [[ "${P5_PIN_CPUS:-0}" == 1 ]]; then
+    EXTRA+=(--pin-cpus)
+fi
 git cat-file -e "${P5_EXPECTED_COMMIT:?expected source commit required}^{commit}"
 git diff --exit-code "$P5_EXPECTED_COMMIT" -- exp harness controller
 echo "[p5-stable] source=$P5_EXPECTED_COMMIT reference=$REFERENCE"
@@ -52,7 +56,7 @@ if 'error' in sample or len(sample.get('gpus', [])) != 2:
 PY
 for SESSION in 01 02; do
     timeout --signal=TERM --kill-after=120s 5400 "$SP_PY" -B "$ROOT/exp/p3_pair_run.py" stock stock \
-        --stable-null --gpus 0 1 --ports 30100 30110 --rounds 4 --per-suite 4 --max-new 2048 \
+        --stable-null "${EXTRA[@]}" --gpus 0 1 --ports 30100 30110 --rounds 4 --per-suite 4 --max-new 2048 \
         --warmup 2 --startup-timeout 900 --out-dir "$OUT/session-$SESSION" --execute
     "$SP_PY" -B - "$OUT/session-$SESSION" "$REFERENCE" <<'PY'
 import hashlib
@@ -68,6 +72,11 @@ manifest = json.loads((directory / 'manifest.json').read_text())
 if any(manifest[key] != frozen[key] for key in ('model_path', 'declared_models', 'sampling')):
     raise RuntimeError('model or sampling drift from frozen A1')
 result = validate_stable(directory, frozen['requests'])
+if manifest.get('cpu_pinning'):
+    from harness.cpu_affinity import validate_cpu_bound
+    cpu_result = validate_cpu_bound(directory, frozen['requests'])
+    with (directory / 'cpu_acceptance.json').open('x') as destination:
+        json.dump(cpu_result, destination, indent=2)
 result['reference_manifest_sha256'] = hashlib.sha256((reference / 'manifest.json').read_bytes()).hexdigest()
 with (directory / 'stable_acceptance.json').open('x') as destination:
     json.dump(result, destination, indent=2)

@@ -10,12 +10,13 @@ import time
 
 
 class Telemetry:
-    def __init__(self, servers, gpus, path, interval=2.0):
+    def __init__(self, servers, gpus, path, interval=2.0, inspect_threads=False):
         self.servers, self.gpus, self.path = servers, gpus, Path(path)
         self.interval = interval
         self.stopping = threading.Event()
         self.thread = None
         self.output = None
+        self.inspect_threads = inspect_threads
 
     def read_gpus(self):
         fields = ['index', 'uuid', 'clocks.sm', 'clocks.mem', 'temperature.gpu',
@@ -59,7 +60,16 @@ class Telemetry:
             records = []
             for pid in sorted(selected & processes.keys()):
                 try:
-                    records.append(dict(processes[pid], allowed_cpus=sorted(os.sched_getaffinity(pid))))
+                    record = dict(processes[pid], allowed_cpus=sorted(os.sched_getaffinity(pid)))
+                    if self.inspect_threads:
+                        record['thread_affinities'] = []
+                        for task in (Path('/proc') / str(pid) / 'task').iterdir():
+                            try:
+                                record['thread_affinities'].append(dict(tid=int(task.name),
+                                    allowed_cpus=sorted(os.sched_getaffinity(int(task.name)))))
+                            except ProcessLookupError:
+                                continue
+                    records.append(record)
                 except (ProcessLookupError, PermissionError):
                     continue
             arms[server.arm['name']] = records

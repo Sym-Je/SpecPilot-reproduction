@@ -47,6 +47,7 @@ def parse_args(argv=None):
     parser.add_argument('--bootstrap-iters', type=int, default=10000)
     parser.add_argument('--execute', action='store_true')
     parser.add_argument('--stable-null', action='store_true')
+    parser.add_argument('--pin-cpus', action='store_true')
     args = parser.parse_args(argv)
     if args.arms == ['stock', 'stock']:
         args.arms = ['stock-a', 'stock-b']
@@ -66,6 +67,8 @@ def parse_args(argv=None):
     if args.stable_null and (args.arms != ['stock-a', 'stock-b'] or args.rounds != 4
                             or args.per_suite != 4 or args.max_new != 2048 or args.warmup != 2):
         parser.error('stable-null requires stock stock, four rounds, 4 items/suite, 2048 cap and warmup=2')
+    if args.pin_cpus and not args.stable_null:
+        parser.error('pin-cpus is only available in the explicit stable-null protocol')
     return args
 
 
@@ -270,7 +273,7 @@ def result_row(result, request, arm, gpu, round_index, max_new):
 
 def run_round(arms, gpus, ports, round_index, requests, output_dir, environment,
               max_new, warmup, startup_timeout, server_factory=Server, bench_factory=HttpPairBench,
-              stable_null=False):
+              stable_null=False, cpu_plan=None):
     output_dir.mkdir(parents=True, exist_ok=False)
     assigned = gpus if round_index % 2 == 0 else list(reversed(gpus))
     ports = list(reversed(ports)) if stable_null and round_index >= 2 else ports
@@ -291,11 +294,19 @@ def run_round(arms, gpus, ports, round_index, requests, output_dir, environment,
             server.start()
         append_json(events, {'event': 'servers_started', 'time_unix': time.time()})
         if stable_null:
-            resources.enter_context(Telemetry(servers, gpus, output_dir / 'telemetry.jsonl'))
+            resources.enter_context(Telemetry(servers, gpus, output_dir / 'telemetry.jsonl',
+                                             inspect_threads=cpu_plan is not None))
         for server in servers:
             server.wait_ready(startup_timeout)
         if stable_null:
             append_json(events, {'event': 'servers_ready', 'time_unix': time.time()})
+        if cpu_plan is not None:
+            from harness.cpu_affinity import apply_bindings, owned_processes, plan_bindings
+            if not cpu_plan:
+                cpu_plan.update(plan_bindings(servers, owned_processes(servers)))
+                write_json(output_dir.parent / 'cpu-plan.json', cpu_plan)
+            ready_binding = apply_bindings(servers, cpu_plan)
+            write_json(output_dir / 'cpu-binding-ready.json', ready_binding)
         clients = [Arm(arm['name'], f'http://127.0.0.1:{port}',
                        block_size=arm['block'], tree_sha=arm['tree_sha'], env=arm.get('env', {}),
                        trace_timing=stable_null)
@@ -322,6 +333,9 @@ def run_round(arms, gpus, ports, round_index, requests, output_dir, environment,
                             **{key: result_row(measurement['rounds'][0][key], request, arm, gpu, round_index, max_new)
                                for key, arm, gpu in zip(('a', 'b'), arms, assigned)}))
                 print(f'[round {round_index + 1} full-warm {index + 1}/{len(requests)}] {request["id"]}', flush=True)
+        if cpu_plan is not None:
+            measured_binding = apply_bindings(servers, cpu_plan, expected=ready_binding)
+            write_json(output_dir / 'cpu-binding-measured.json', measured_binding)
         append_json(events, {'event': 'warmup_complete', 'time_unix': time.time()})
         for item_index, request in enumerate(requests):
             pair_id = f'round-{round_index + 1}|{request["id"]}'
@@ -398,6 +412,8 @@ def main(argv=None):
                                 for index in range(args.rounds)]}
     if args.stable_null:
         plan['stable_null'] = True
+    if args.pin_cpus:
+        plan['cpu_pinning'] = True
     print(json.dumps(plan, indent=2), flush=True)
     if not args.execute:
         return 0
@@ -421,6 +437,8 @@ def main(argv=None):
         sources = ['exp/p3_pair.sh', 'exp/p3_pair_run.py', 'controller/http_transport.py', 'controller/stats.py']
         if args.stable_null:
             sources += ['harness/telemetry.py', 'controller/stability_validation.py']
+        if args.pin_cpus:
+            sources += ['harness/cpu_affinity.py']
         source_hashes = {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in sources}
         output_dir.mkdir(parents=True, exist_ok=False)
         write_json(output_dir / 'manifest.json', dict(plan, arms=arms, gpus=gpus,
@@ -429,13 +447,15 @@ def main(argv=None):
                    sampling={'temperature': 0.0, 'top_k': 1, 'enable_thinking': True},
                    started_unix=time.time()))
         pairs = []
+        cpu_plan = {} if args.pin_cpus else None
         try:
             for round_index in range(args.rounds):
                 if round_index:
                     check_ports(args.ports)
                 pairs.extend(run_round(arms, gpus, args.ports, round_index, requests,
                              output_dir / f'round-{round_index + 1:02d}', environment,
-                             args.max_new, args.warmup, args.startup_timeout, stable_null=args.stable_null))
+                             args.max_new, args.warmup, args.startup_timeout,
+                             stable_null=args.stable_null, cpu_plan=cpu_plan))
                 wait_for_idle(args.gpus)
             summary = summarize(pairs, requests, args.rounds, args.bootstrap_iters)
             summary.update(arms=args.arms, max_new_tokens=args.max_new,
