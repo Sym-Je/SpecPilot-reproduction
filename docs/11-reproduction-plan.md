@@ -109,8 +109,12 @@ A 阶段通过后，冻结实验计划，按上游每 suite 6 条、2048 tokens 
 2026-11-08用户要求[对齐验收规则](experiments/p5-acceptance-alignment-20261108.md)，当前文档以
 `docs/02-acceptance.md`的`paper-aligned-v1`为准：0.2%全宽与两会话覆盖1是本地工程诊断，
 不是论文硬门槛；H100噪声<0.1%是论文观测值。取消把这些数值当作研究主线的通用阻塞，
-CPU独占不再是必需前置。此次没有修改controller，旧precision/stable字段及历史失败仍保留；
-正式校准口径和策略接入仍待维护者，真实token forcing尚未完成，不能宣布本阶段通过。
+CPU独占不再是必需前置。最初文档对齐没有修改controller，旧precision/stable字段及历史失败仍保留。
+随后用户授权本阶段controller改动，[真实裁判回归](experiments/p5-real-controller-20261108.md)已通过：
+121项测试、真实FP32-head/δ、四组健康控制、故障event拒绝、作者final正确性及两次重放一致。
+OOM后按冻结原始证据清单复用全部75条生成并fresh重评分，属于显式正确性续接，不是性能半轮续跑。
+新readiness策略显式启用，不直接晋升；正式活动匹配null/候选联动仍须另行登记，不进入sealed/RSI。
+stock路径事件解释尚未实现，当前仅prefill解释；归约控制限5×64，不能称完整Fig4或数学lossless证明。
 
 以下是旧规则下的历史审计与测量，不是当前必须重复追绿的执行计划：
 
@@ -133,7 +137,8 @@ server时段仍保留主要偏差；短预热和首请求跨轮显著变化值�
 5. 真模型故障注入：2048 tokens 之后，每第 7 个 vocab id 加 logit bias=2；在最长 4096 输出的 controller 测试中须被拒。仅改归约次序的近并列差异不能被当作明显造假。
 6. 长度不一致、缺 token、空样本、非有限速率、identity 变化、半对、请求缺项必须拒绝；G8 PASS 不能替代完整 run 验收。
 
-agent 不改 controller，不给 controller 伪造 promoted；诊断阶段不调用现有 compare() 来作真实晋升，不写 ledger。
+controller改动须维护者或用户明确限定授权，本阶段授权不推定永久有效；不伪造promoted，
+不调用诊断compare()来作正式晋升，不写ledger。
 
 ## 8. 阶段 D：P4 sealed
 
@@ -199,8 +204,8 @@ NorthJob 为后续执行入口：按 skill 查重名、展示完整命令与资�
 
 ## 13. 下一次实际执行
 
-1. A1/A2/A3诊断已完成，不因本次文档修订重跑；不以旧工程自检失败继续无限压噪声。
-2. 先由维护者交付正式noise/CI/晋升策略，明确区分历史诊断字段与论文规则；agent不绕过controller。
-3. 另行说明并获准后，补真实FP32-head scorer、stock mismatch/δ、故障注入与归约对照。
-4. 新GPU实验先登记请求/轮数/停止规则，沿用已确认资源与镜像，按NorthJob skill提交；本次对齐不提交。
-5. 每阶段报告证据并更新Git；未完成真实裁判前不进入sealed或RSI，不把文档对齐当验收通过。
+1. A1/A2/A3诊断和本阶段有限dev真实裁判已完成，不重跑追旧0.2%自检或论文点估计。
+2. 先向用户说明正式dev扩围/当前活动校准的目标与流程，获准后冻结请求、null与候选协议及预算。
+3. 将显式paper-aligned策略与真实正确性、配对性能联动；历史null只作重放，不能充当前活动noise。
+4. 新GPU任务按NorthJob skill沿用已确认资源与镜像，先查重并记录code200/UUID；当前不追加提交。
+5. 阶段验收后更新首页/交接并提交推送；不把有限dev裁判通过当作sealed、RSI或论文数字复现。

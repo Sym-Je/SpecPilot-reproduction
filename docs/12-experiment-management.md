@@ -49,7 +49,7 @@ Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果
 | NorthJob 远程工具验收 | completed；a05 两轮换卡、10 pair/20 臂行、exit=0 | [最终验收及失败历史](experiments/p2-remote-smoke-20261107.md)；26 项回归、统计复算、33 文件校验与 GPU 清理通过，非论文数字 |
 | A1：AR/stock | completed；点估计诊断通过，源 pin=79fe81a | [基线记录](experiments/p3-ar-stock-2048-20261107.md)；3.8699× [3.5571,4.2242]，40 pair/80 臂行、两轮换卡、39 回归及 38 文件校验通过 |
 | A2/A3：AR/final、stock/final | completed；源 pin=4d67c2f，同 A1 请求身份 | [本阶段记录](experiments/p3-final-2048-20261107.md)；8.7347× [8.0235,9.5599] / 直接 2.2219× [2.1381,2.2988]；各 40 pair/80 行、50 回归及证据复核通过，非 sealed/lossless |
-| C：第5步真实正确性与裁判 | 规则文档已对齐；正式校准/forcing待维护者 | [来源对齐](experiments/p5-acceptance-alignment-20261108.md)：0.2%/覆盖1为额外工程诊断，非论文硬门槛；历史结果不改写，controller未切换，不再以CPU隔离作为通用前置；真实forcing未完成 |
+| C：第5步真实正确性与裁判 | 本次真实回归完成；正式活动待登记 | [真实回归](experiments/p5-real-controller-20261108.md)：121项CPU测试、真实FP32/δ、四组健康控制和作者final通过；故障rate/event拒绝；UUID=job-93e052b78439-20261108074348已完成、两次重放一致；历史noise仅重放，不晋升 |
 | B：正式 dev 扩围 | 未开始 | 正式统计、噪声和 forcing 就绪后再登记协议；不以 mock 通过代替 |
 | P4、真实 RSI 与最终对照 | 未开始 | 前置条件满足后按计划推进，agent 不接触 sealed |
 

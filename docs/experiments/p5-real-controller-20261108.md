@@ -1,6 +1,6 @@
 # 第5步：真实校准与token-forcing裁判
 
-日期：2026-11-08（Asia/Shanghai）。状态：执行前登记。
+日期：2026-11-08（Asia/Shanghai）。状态：本阶段dev真实裁判回归通过，已独立重放；不等于正式晋升或sealed验收。
 基准`e6e55a6f4c3535c8f0515ee0654e95fb2d684b4f`。用户明确允许本阶段修改controller，
 授权仅限校准与正确性验收；阶段内部自主调试，不自动sealed/RSI/正式晋升，不放宽正确性要求。
 
@@ -168,3 +168,97 @@ git diff --check
   fresh作者final及全部审计/判定。记录原生成与新评分的不同任务/GPU/source身份，不伪称单会话。
   证据读取仅允许a01/a02两个显式根目录，不扩大到整个logs，更不读取sealed；只有显式flag启用续接。
   历史性能null仍只做重放；本阶段依旧没有正式晋升或论文数字复现。
+
+## 最终验收：a02真实裁判回归通过
+
+### 任务、版本和清理
+
+- 任务`specpilot-p5-real-forcing-20261108-a02`查重total=0后唯一create，
+  2026-11-08 07:43:48 +08:00返回code200/data=None，精确名唯一UUID：
+  `job-93e052b78439-20261108074348`。提交回执/YAML路径见prep目录`real-a02-submit.txt`。
+- 1节点×2 H100、256Gi、已确认固定digest镜像、WeaverDev、namespace/请求queue=qiji、
+  实际queue=proj-31、原toleration/只读模型挂载不变。
+- node135，07:44:08–07:51:40 +08:00；Job=Completed，Pod=Succeeded，容器/脚本exit0。
+  全监控只见一个Pod UID，Created/Started事件各1、容器restart_count=0；Job retryCount字段未设置，
+  不把单容器计数冒充平台重试计数。a01的retryCount=2及失败证据完整保留。
+- 执行pin=`bfb5d6c39fc5cf435557f886e5eda99f7d4b3bdb`；源码tar在prep目录
+  `real-a02-source.tar`，SHA256=`a60b3a2e75e80d2726dc9517165e2e436e4f9baf4ffaa0d26ba1a391604075e9`。
+- a01生成75条输出不变，a02全部fresh FP32 scorer重新评分、重标定；作者final为a02新server生成。
+  新旧任务物理GPU不同，身份均保留；这是跨执行的生成证据续接与重评分，不是性能配对实验。
+- 两卡清理均0MiB/0%，30120/30130及各自NCCL端口释放。完整输出
+  `logs/p5-real-forcing-20261108-a02/`，生命周期在prep目录`real-a02-lifecycle.*`与`real-a02-final-platform.json`。
+
+### 实测结果（controller输出，不是逐token全部一致）
+
+本轮14/20请求出现stock/AR首次分歧，实测δ=0.25，因此大margin事件阈值为>0.5 log-prob。
+stock校准为178/20250=0.879012%，不是抄论文0.72%。固定原20个dev请求、greedy、自然EOS。
+
+| cohort | 评分token | mismatch | mismatch率 | 未解释大margin事件 | rate/event判定 |
+|---|---:|---:|---:|---:|---|
+| 健康stock重复 | 20250 | 178 | 0.879012% | 0 | 均不触发，通过 |
+| 健康AR | 19980 | 152 | 0.760761% | 0 | 均不触发，通过 |
+| 健康2048分段续写 | 17467 | 118 | 0.675560% | 0 | 均不触发，通过 |
+| 等价FP32逆序归约 | 320 | 0 | 0% | 0 | 均不触发，通过 |
+| 故障注入 | 18512 | 475 | 2.565903% | 298 | rate与event均触发，拒绝 |
+| 作者final | 19295 | 145 | 0.751490% | 0 | 均不触发，通过 |
+
+- 故障请求固定为math500-25/math500-21/mbpp-31/mt-bench-61/mt-bench-66；
+  实际post2048 token分别169/2048/2048/2048/1959，共8272，超过预登记1024覆盖下限。
+  第一段2048+length、第二段原生每7词表项+2偏置及自然EOS均通过原始HTTP重放验证，未编辑token。
+- 故障298个大margin事件中按预定顺序审计前200个，prefill审计解释0；其余98个未审计，
+  依预定规则仍记未解释。不能说298个都已人工/逐事件审计，也不是复现论文192/191具体计数。
+  stock长基线157/15875、零大margin事件，其有限样本事件率上界0.0002323434；
+  故障event p在双精度计算中下溢为0（不是数学概率恰为零），显著低于0.025。
+  rate超额保守下界0.01192576，即1.192576个百分点，超过0.5个百分点。
+- 等价控制用真实checkpoint LM head，tensor SHA256=
+  `d922b751f014ee1139488cb94c0e164a1eb3da5c14048070ed1b784e00f92723`；
+  每suite首条×64，共5请求/320 token。整段/逆序head最大logit差7.6293945e-6，
+  与native logprob最大误差2.1696091e-5，均在预定1e-3接口预检容差内；实际选择差异0。
+  说明实际改变了浮点归约且本控制未被误拒，不等于验证了所有数值重排或不同输出的等价实现。
+- `acceptance.json`：judge_ready=true、健康通过、故障event拒绝、作者final通过；
+  promoted=false、ledger_eligible=false。next_stage_allowed仅代表该裁判前置通过，不是自动授权下一阶段。
+
+### 独立复核与测试
+
+- 复核时另发现“同request_id换prompt”缺少显式拒绝；先红后绿补齐，未改判据。
+  最终修复pin=`58f37d16f7f432ae1f2e50b34f8ec4dbdda63852`，源码tar
+  `final-controller-source.tar`，SHA256=`f686c7a499bed77f84ac61a1e077ebfdeb0f3f38e65e82d36fabf4768f35c3ff`。
+  两次离线重放（修复前/后）逐字段与原始裁判结果一致，所有真实请求prompt均原样匹配。
+- 新旧121项P2/P3/P5 unittest通过，三个shell语法及diff检查通过。
+  不限文件名的discover额外导入旧独立GPU脚本`test_kv_alignment.py`，因dev环境无torch失败；
+  该文件在import时加载另一8B模型，不是本阶段unittest，未修改或擅自占用本机GPU重跑。
+  原始失败保留在`full-regression-06.log`，正式121项结果在`regression-07.log`。
+- `replay_real.py`验证执行源码与tar、a01全部249文件SHA、完整生成segments/FP32分数、
+  各cohort请求ID和prompt、δ/校准/六组判定、真实注入覆盖、归约数值与清理。
+  `independent-replay-01.json`与`02.json`字节一致，原裁判JSON没有重写。
+- A1/A2/A3、controller-repair、stable-null和CPU-bound-null六份历史SHA清单重验通过，
+  不追溯改写旧失败。历史null显式paper-policy重放noise=0.0022681713，
+  historical_replay=true/current_campaign_usable=false，不充当当前活动正式noise或追溯晋升。
+- 本阶段1347文件、182359355字节的持久证据清单：
+  `logs/p5-real-controller-evidence-20261108-a01.sha256`，SHA256=
+  `050794539a3104f4fce85a56ba88704513a31438bf301e680847cd77df61c815`；
+  包含两次接口失败、a01 OOM、a02成功、生成与评分原始HTTP、源码tar、提交/监控/测试及重放证据。
+  原始证据留在持久logs中，不上传GitHub；Git只跟踪实现、协议、结果和校验索引，不替代controller账本。
+
+### 可执行复核入口
+
+```bash
+PY=/gpfs/users/jixinpeng/miniconda3/envs/dev/bin/python
+"$PY" -B -m unittest discover -s harness -p 'test_p[235]*.py'
+bash -n exp/p5_serve.sh exp/p5_remote_probe.sh exp/p5_remote_real.sh
+sha256sum -c logs/p5-real-controller-evidence-20261108-a01.sha256
+"$PY" -B logs/p5-real-controller-prep-20261108-a01/replay_real.py \
+  logs/p5-real-forcing-20261108-a02 \
+  logs/p5-real-controller-prep-20261108-a01/real-a02-source.tar \
+  /tmp/p5-independent-replay-NEW.json
+git diff --check
+```
+
+复核输出必须用新路径；脚本以x模式拒绝覆盖已有证据。原始文件和清单保持追加式归档。
+
+### 结论和边界
+
+本阶段证明真实27B scorer/标定/有限dev健康与故障回归可执行、可重放，作者final符合本次统计判据。
+未做任务精度区间对照，不宣称完整Fig4数值复现、数学lossless证明或sealed通过；等价控制限5×64。
+正式性能活动仍须预登记匹配的当前null、候选协议与正确性/性能联动，readiness API没有写晋升账本。
+下一阶段先报正式dev扩围/活动校准的目标和流程，获准后执行；当前无运行GPU任务，不自动sealed/RSI。

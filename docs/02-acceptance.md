@@ -7,7 +7,9 @@
 §5.1（第10页）；逐项核对与证据见[本次对齐记录](experiments/p5-acceptance-alignment-20261108.md)。
 
 必须区分：论文明确规则、论文报告的观测值、本地统计实现和额外工程自检。
-本次只对齐文档与研究计划，**没有修改controller或切换运行策略**；正式裁判仍仅维护者可写。
+最初的规则对齐只修改文档，未修改controller。随后用户明确授权本阶段controller校准与正确性改动，
+[真实裁判回归](experiments/p5-real-controller-20261108.md)已通过；旧默认保留，新策略必须显式启用。
+此授权不扩展到未来任意controller变更、sealed或正式晋升。
 历史记录保留当时规则及失败判定，不能因为文档修订就翻为通过或产生晋升。
 
 ## 1. 五级闸门
@@ -100,8 +102,8 @@ request-cluster分层bootstrap、迭代数、随机种子及精确CI尾概率是
 更高的有效实测噪声应进入更保守的晋升阈值，不应通过缩小noise、删请求或后验改协议掩盖。
 
 历史字段`precision_passed`（全宽<0.002）、`centered`（覆盖1）、`stable_passed`（两者同时满足）
-及既有独立门禁仍保持原含义与返回值；当前controller尚未切换策略，这些字段不能冒充
-paper-aligned-v1的完整验收结果，也不能在harness另设正式裁判绕过controller。
+及既有独立门禁仍保持原含义与返回值；新`controller/paper_policy.py`提供显式paper-aligned readiness，
+不替换legacy默认，也不直接写晋升账本。这些旧字段不能冒充新策略的完整验收，也不能绕过controller。
 
 ## 6. 必保留的正确性与执行自检
 
@@ -113,5 +115,6 @@ paper-aligned-v1的完整验收结果，也不能在harness另设正式裁判绕
 
 真实正确性与正式晋升前必须具备对应证据；mock、同臂输出一致或吞吐提高都不能代替。
 CPU独占不是论文规定的前置条件，只有出现可检验的资源干扰假设时才作为诊断选项。
-下一步是维护者确认并接入上述正式校准/判定口径，补真实scorer/δ/故障注入；
-本次文档修订本身不授权修改controller、候选晋升、sealed或RSI。
+真实scorer/δ/健康与故障回归已在有限dev通过，详见本阶段记录及其覆盖限制。
+下一步需另行登记正式活动的匹配当前null及正确性/性能联动；历史校准重放不能产生晋升。
+不因本次dev裁判通过而自动授权候选晋升、sealed或RSI。

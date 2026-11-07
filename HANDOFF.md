@@ -1,9 +1,35 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-08（Asia/Shanghai；用户要求对齐验收规则。0.2%与覆盖1明确为本地工程自检，不再作为论文级通用阻塞；只改文档，controller未切换，真实forcing仍待补，无运行中任务）。
+> 最后更新：2026-11-08（Asia/Shanghai；第5步真实dev裁判回归通过，121项测试/两次独立重放一致，无运行GPU任务。以下旧“待维护者/执行中”均为历史记录）。
 
-## 当前接续点：第5步规则文档已对齐，正式裁判策略与真实forcing待维护者
+## 当前接续点：第5步真实裁判回归通过，正式活动待登记
+
+- 唯一新实验入口`docs/experiments/p5-real-controller-20261108.md`。用户授权本阶段controller改动，
+  显式paper-aligned策略、真实FP32 scorer、δ与rate/event规则、runner/证据重放已交付；旧默认不变。
+- 成功任务`job-93e052b78439-20261108074348`，node135，07:44:08–07:51:40 +08:00，
+  Job=Completed/Pod=Succeeded，容器与脚本exit0；观测单Pod UID、Created/Started各1、容器restart0，
+  Job retryCount字段未设置。2 H100/原镜像/WeaverDev/qiji/实际queue=proj-31，两卡清理0MiB/0%。
+- 执行pin=`bfb5d6c39fc5cf435557f886e5eda99f7d4b3bdb`；输出`logs/p5-real-forcing-20261108-a02/`，
+  源快照/提交/生命周期/独立重放脚本和结果在`logs/p5-real-controller-prep-20261108-a01/`。
+  最终controller身份补强pin=`58f37d16f7f432ae1f2e50b34f8ec4dbdda63852`，两次离线重放JSON字节相同。
+- 原20请求dev：14对首分歧标定δ=0.25；stock178/20250=0.879012%。健康stock、AR、分段续写、
+  等价head均通过；故障475/18512、298大margin事件、rate/event双拒绝；作者final145/19295通过。
+  故障实际post2048共8272 token；前200事件prefill审计解释0，另98未审计且按预定规则保留未解释。
+- 等价控制5suite×64=320 token，真实checkpoint/FP32逆序8块；logit差最大7.629e-6，选择差异0。
+  121项P2/P3/P5 unittest及shell/diff检查通过。全文件discover误导入旧8B独立GPU脚本因无torch失败，
+  原失败保留，未修改或擅自运行该旧脚本。无完整Fig4任务精度区间、sealed或数学lossless结论。
+- a01完整生成75条后，在head有限值整矩阵临时分配处OOM，原校准/输出不改；CPU分块验证修复后，
+  a02按冻结249文件SHA清单复用全部真实生成并用fresh scorer全部重评分，明确不是单会话/性能配对。
+  a01最终Failed/retryCount2和两次接口探针失败均保留，不把最终Pod restart0当全任务无重试。
+- 新结果judge_ready=true，promoted=false/ledger_eligible=false；历史null重放noise=0.0022681713，
+  current_campaign_usable=false，不能充当前正式校准。不自动进入sealed/RSI/写ledger。
+- 1347文件证据清单`logs/p5-real-controller-evidence-20261108-a01.sha256`，SHA256=
+  `050794539a3104f4fce85a56ba88704513a31438bf301e680847cd77df61c815`，包括所有失败和成功执行及源码快照。
+- 下一步先向用户报正式dev扩围/当前null与候选联动的目标和主要流程，批准后再执行；
+  不重跑已经完成的作者性能基线，不再为0.2%或覆盖1额外工程自检追绿。阶段验收后按授权推送私有origin。
+
+### 以下为本阶段早期及上一阶段历史记录
 
 - 最新用户已明确批准本阶段修改controller（仅校准与正确性验收），阶段内自主执行，不进入sealed/RSI/正式晋升。新入口记录`docs/experiments/p5-real-controller-20261108.md`。先红后绿的新旧105项CPU测试通过：显式paper-aligned-v1校准/候选readiness判定及native teacher-forced评分传输，legacy默认不变。准备短NorthJob接口探针，真实scorer/δ/注入/等价控制尚未验收；勿将接口测试当真实正确性通过。
 - 本次记录：`docs/experiments/p5-acceptance-alignment-20261108.md`，依据用户PDF的§3.2/3.3/3.4/5.1；文档规则`paper-aligned-v1`见`docs/02-acceptance.md`。用户明确要求“对齐验收规则”，本次仅文档修订，不修改controller/运行代码，不提交GPU、不读sealed、不写ledger。
