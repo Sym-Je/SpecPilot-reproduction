@@ -86,9 +86,36 @@ git diff --check && git diff --exit-code -- controller
 | `logs/p2-northjob-lookup-after-a02-20261107.log` | `c81b184c54803cd10d7730cbc129c15f5c7ef032cf2ea5291e24814634e052ad` |
 | `RUN/specpilot-p2-smoke-20261107-a02/specpilot-p2-smoke-20261107-a02.yaml` | `c02854034de8b4e26b15c76bcaccbdfe15afd6b04555b3c5750009e3aee723b5` |
 
+## 只读诊断：项目登记与旧任务注解不同
+
+用户要求排查原因，本轮未执行 create/update/delete，也未修改 CLI 或凭据。
+
+- CLI 3.3.11 直接将 `--project` 同时传入 YAML 注解及提交 HTTP JSON；未发现适配入口把项目重写成其他值。
+- 使用本人 `~/.config/northjob/userinfo.conf`，账号 jixinpeng；当前后端 `10.1.2.7:31000`，无 `K8S_SERVER_HOST` 覆盖。认证和任务列表查询均成功，不能把本次错误归因于密码缺失。
+- `northjob get --creator jixinpeng --group qiji --page-size 30` 的响应已落盘。该查询也返回了其他 creator 的记录，因此诊断只采用下表两条 `job_creator=jixinpeng` 的记录，不能仅凭查询过滤器认定归属。
+
+| 本人任务 UUID | project | project_exists | user_in_project | 状态 |
+|---|---|---|---|---|
+| `job-069b464a3083-20261107001603` | infra-dev-weaver | false | false | Completed |
+| `job-d512d77f776a-20261106113534` | WeaverDev | true | true | Running |
+
+这两条任务均通过 Kubernetes 只读 GET 交叉核对：project 注解与 API 一致，namespace/queue 均为 qiji，creator 均为 jixinpeng。旧 infra-dev-weaver 任务确实保留了同名项目注解及 `task-type=infra-dev-weaver:NoSchedule` toleration，但服务端不把这个注解值识别为当前有效注册项目。无法据此确定它原来经过哪条创建路径，或项目登记是否后来改变。
+
+结论：a02 在服务端项目登记校验处被拒绝，尚未进入镜像、进程或 GPU 测试阶段。当前有证据支持的项目名为 **WeaverDev**，而 **infra-dev-weaver 仍保留为用户指定的 toleration 值**；项目名称、namespace/queue 和节点准入条件必须分开设置。
+
+建议下一次只改 `--project WeaverDev`，其余镜像、资源、请求协议、qiji namespace/queue 和 toleration 不变；须获得新的重提授权。此诊断不证明新提交一定成功，不证明 GPU 项目配额、节点调度或引擎兼容性通过。
+
+### 诊断证据 SHA-256
+
+| 路径 | SHA-256 |
+|---|---|
+| `logs/p2-project-diagnosis-20261107.json` | `cd8e138883ab6985833fb1f46ecb901b8797ee93e22a6fcdca63df836567e466` |
+| `logs/p2-project-diagnosis-myjobs-20261107.log` | `e014a565c7eebc7a1b4b548dd9873b7905f4720d64271d50584d095971c55dec` |
+| `logs/p2-project-diagnosis-k8s-20261107.json` | `4cf06fc65e70358080a6f1b568ec819d8c16a8fb540b6d33e2c2cd78777e4bf5` |
+
 ## 决策
 
-暂停：当前后端不识别用户指定的项目。需核实项目名称/后端身份并获得新的重提授权；不猜其他项目、不更换镜像或调度约束。本次授权仅执行一次 a02 create，没有继续重试。
+暂停等待新重提授权：只读证据已定位 WeaverDev 为有效项目，尚未提交验证；不更换镜像或调度约束。此前授权仅执行一次 a02 create，诊断阶段没有继续重试。
 
 模板、启动或请求失败即停，不静默换镜像、不自动重提、不提前跑第 3 步。
 生命周期验收通过后更新首页；第 3 步仍需用户批准，不能把本烟测区间用作正式晋升或论文数字。

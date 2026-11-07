@@ -1,13 +1,14 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-07（第 2 步远程验收项目识别受阻；第二次提交返回 infra-dev-weaver 不存在；版本状态以 git log/status 为准）。
+> 最后更新：2026-11-07（第 2 步项目身份已定位为 WeaverDev，待新重提授权；成功任务仍为零；版本状态以 git log/status 为准）。
 
 ## 当前接续点：NorthJob 准备与 Git 全流程追踪
 
 - 当前在原十步主线的第 2 步“配对测量远程验收”；镜像、CLI 和挂载是内部准备，不重新拆成研究大步骤。大步骤先报目标、流程与自检并等用户允许，内部小步骤自主安排。
 - 用户已批准开始第 2 步，并明确同意使用下面固定 digest 的 oss-sglang 镜像。首次提交于 2026-11-07 06:46:44 UTC 被 HTTP 403 / code 40301 拒绝：账号 jixinpeng 不属于 default 项目。提交后按原名查询 total=0；无 code=200、无 job_uuid，未启动远程测量。需确认可用 `--project` 并获准重提，不要直接再次 create。运行记录见 `docs/experiments/p2-remote-smoke-20261107.md`。
 - 用户随后明确指定 `--project infra-dev-weaver --k8s-namespace qiji --k8s-queue qiji --k8s-toleration key=task-type,operator=Equal,value=infra-dev-weaver,effect=NoSchedule` 并授权重提一次。已核对 CLI help、凭据格式与查重；新尝试名 `specpilot-p2-smoke-20261107-a02`，代码 pin 与镜像不变。2026-11-07 15:23:13 +08:00 返回 HTTP 400 / code 40005：项目 infra-dev-weaver 不存在；无 UUID，提交后 total=0。模板确认四项参数正确、无新增 nodeSelector；项目、namespace/queue、toleration 不能混同，toleration 不保证只调度该池。暂停，核实后端项目身份并取得新授权后才能再次提交。
+- 用户要求只读排查后，已交叉核对 CLI/API 与两条本人 Kubernetes 任务：当前账号 jixinpeng、CLI 3.3.11、后端 10.1.2.7:31000 均无身份/环境覆盖异常。旧 infra-dev-weaver 任务在服务端为 project_exists=false / user_in_project=false；本人 WeaverDev 任务为 true / true，且现场注解、namespace/queue 与 API 一致。建议下一次仅改 `--project WeaverDev`，保留 qiji namespace/queue 和 infra-dev-weaver toleration，待用户授权再提交。只读诊断证据 `logs/p2-project-diagnosis-20261107.json`；不能据此称 GPU 配额、调度或镜像兼容通过，也不知道旧任务的创建路径或项目历史变更。本轮没有 create/update/delete。
 - 可用 CLI 已找到：`/gpfs/users/jixinpeng/miniconda3/envs/dev/bin/northjob`（3.3.11，参数与 skill 匹配，get 查询成功）；不再用缺 Kubernetes 依赖的 `/gpfs/envs/miniconda3/bin/northjob`，未升级 CLI。计划名 `specpilot-p2-smoke-20261107` 的查询 total=0；真正提交前重新查重。
 - 已从本人现有任务核对镜像候选：`harbor.local.clusters/bp/oss-sglang@sha256:6e9415fcf90dbe66f14e994a7f7c51cb242db3805b1910ce7bd6d0b8e8db0798`。仅证明在集群已有运行实例，不证明适配本实验；拟优先复用共享 `sp-sglang1520` 环境，不切换为镜像内未知引擎。
 - 挂载已补最小适配：`exp/p2_northjob.py create ...` 在本进程调用原 CLI，仅在其生成的模板上追加 `share-readonly` / `models` 子路径到 `/gpfs/models` 的只读挂载；主挂载用 `jixinpeng-pvc` → 用户目录。不改已安装 CLI、不复制权重；真实模板离线验收通过。`RUN/` 已忽略，提交回执与日志保留在 `logs/`。

@@ -11,7 +11,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 | 步骤 | 主线任务 | 状态 | 已有进展 / 待完成项 |
 |---|---|---|---|
 | 1 | 明确复现对象与实验协议 | 🟡 初步完成 | 已区分 dev / sealed 与诊断 / 正式统计，见[协议规划](docs/11-reproduction-plan.md) |
-| 2 | 双卡配对测量自动化与远程验收 | 🔵 正在推进（项目识别受阻） | 本地测试 15/15 + 9/9 通过；两次提交均被拒绝，指定项目返回不存在，见[远程烟测记录](docs/experiments/p2-remote-smoke-20261107.md) |
+| 2 | 双卡配对测量自动化与远程验收 | 🔵 正在推进（待重提授权） | 本地测试 15/15 + 9/9 通过；已定位有效项目 WeaverDev，远程烟测未运行，见[实验及诊断记录](docs/experiments/p2-remote-smoke-20261107.md) |
 | 3 | AR vs stock 基线测量 | ⬜ 待正式配对测量 | 20 请求、2048 token 上限、两轮换卡；当前无完成的真实配对结果 |
 | 4 | 验证作者 final 的收益 | ⬜ 待正式配对测量 | 先 AR/final，再直接 stock/final；[历史烟测](docs/09-p3-harness-validation.md)不算正式结果 |
 | 5 | 真实正确性、噪声与晋升判据 | ⬜ 待补齐真实验收 | 有 mock 骨架；真实 forcing、噪声校准与正式 controller 判据待维护者补齐 |
@@ -23,7 +23,9 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 
 **当前状态：**按用户指定的 `infra-dev-weaver` 项目、`qiji` namespace/queue 和 toleration 重提一次，服务端返回 HTTP 400 / code 40005：项目不存在。两次尝试均被拒绝，提交后查重为空；未启动远程进程、未通过 GPU 验收。
 
-**下一动作：**核实当前 NorthJob 后端可识别的项目名及账号归属，获得新的重提授权；保持已确认镜像、双卡协议和调度参数，不猜项目、不提前正式测量。
+**只读诊断：**本人旧任务中的 `infra-dev-weaver` 被后端标记 `project_exists=false`；另一本人任务的 `WeaverDev` 为 `project_exists=true / user_in_project=true`。旧任务注解不等于有效注册项目，不能与节点 toleration 混同。
+
+**下一动作：**获准后仅把项目改为 `WeaverDev`，重新查重、展示命令并提交一次；保留 `qiji` namespace/queue、原 `infra-dev-weaver` toleration、镜像和双卡协议。项目/GPU 配额及远程烟测仍未验证。
 
 **已有基础：**三臂真实 server 烟测与 mock 闭环完成，GitHub 私有远端已配置；**尚未独立复现论文数字。**
 
