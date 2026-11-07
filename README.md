@@ -12,7 +12,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 |---|---|---|---|
 | 1 | 明确复现对象与实验协议 | 🟡 初步完成 | 已区分 dev / sealed 与诊断 / 正式统计，见[协议规划](docs/11-reproduction-plan.md) |
 | 2 | 双卡配对测量自动化与远程验收 | ✅ 已完成 | a05 两轮真实换卡，10 pair / 20 臂行，exit=0，GPU 清理通过；26 项回归通过，见[验收记录](docs/experiments/p2-remote-smoke-20261107.md) |
-| 3 | AR vs stock 基线测量 | 🔵 正在推进 | 20 请求、2048 cap、两轮换卡；长输出入口及 39 项回归通过，见[基线记录](docs/experiments/p3-ar-stock-2048-20261107.md) |
+| 3 | AR vs stock 基线测量 | ✅ 诊断通过 | stock/AR 3.8699×，95% CI [3.5571, 4.2242]；40 pair / 80 臂行、两轮换卡通过，见[验收记录](docs/experiments/p3-ar-stock-2048-20261107.md) |
 | 4 | 验证作者 final 的收益 | ⬜ 待正式配对测量 | 先 AR/final，再直接 stock/final；[历史烟测](docs/09-p3-harness-validation.md)不算正式结果 |
 | 5 | 真实正确性、噪声与晋升判据 | ⬜ 待补齐真实验收 | 有 mock 骨架；真实 forcing、噪声校准与正式 controller 判据待维护者补齐 |
 | 6 | 建立独立 sealed 验证 | ⬜ 未开始 | 前置验收通过后由 controller 管理，agent 不接触内容 |
@@ -21,11 +21,11 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 | 9 | 多轮真实优化闭环与记忆 | ⬜ 待真实验证 | [mock 闭环](docs/06-gates.md)已跑通，不代表真实引擎闭环完成 |
 | 10 | 对照实验与最终报告 | ⬜ 未开始 | 分析各组件贡献，分别报告架构与数字复现证据 |
 
-**已完成：**远程双卡配对工具验收通过。a05 的 Job=Completed / Pod=Succeeded，两个 fresh server 各跑两轮、物理 GPU UUID 互换，10 pair / 20 臂行完整，清理后两张 GPU 均为 0 MiB / 0% 利用率；原始证据已校验归档。
+**已完成：**远程双卡工具验收及 AR/stock 的 2048-cap 基线诊断。A1 点估计 3.8699× 落在既定 [3.555, 4.345]；Job=Completed / Pod=Succeeded、exit=0、两轮物理换卡及 GPU 清理通过，39 项回归与 38 文件校验通过。
 
-**当前边界：**本次是 5 请求、64 token 上限的生命周期烟测，不是 2048-token 正式性能、lossless 或论文数字复现；controller、sealed 和正式账本未改。
+**当前边界：**本次是 20 请求、2048 上限的 dev 子集诊断，允许自然 EOS；实际平均输出 AR 999.0、stock 1012.5 token。不是论文完整 dev/sealed、lossless 或自主发现结论；controller、sealed、正式账本未改。
 
-**正在做：**用户已批准第 3 步 AR/stock：20 请求、2048 cap、两轮 fresh server/GPU 换卡；入口和协议验收测试已通过，准备提交。沿用原镜像及 WeaverDev；namespace=qiji、请求 queue=qiji、实际 queue 单独核对，toleration 仍为 infra-dev-weaver。
+**接下来：**第 4 步 AR/final，再做直接 stock/final；先按大步骤说明目标、流程与自检并取得批准，不自动启动。沿用已确认镜像及 WeaverDev；namespace=qiji、请求 queue=qiji、实际 queue=proj-31，toleration 仍为 infra-dev-weaver。
 
 **已有基础：**三臂真实 server 烟测与 mock 闭环完成，GitHub 私有远端已配置；**尚未独立复现论文数字。**
 
