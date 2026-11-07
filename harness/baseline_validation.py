@@ -11,12 +11,14 @@ def read_rows(path):
     return [json.loads(line) for line in path.read_text().splitlines()]
 
 
-def validate_paired_run(directory, names, expected_arms=None, reference_requests=None):
+def validate_paired_run(directory, names, expected_arms=None, reference_requests=None, rounds=2):
     directory = Path(directory)
     if (directory / 'failed.json').exists():
         raise ValueError('runner recorded a failure')
     manifest = json.loads((directory / 'manifest.json').read_text())
-    expected = {'rounds': 2, 'per_suite': 4, 'max_new_tokens': 2048,
+    if type(rounds) is not int or rounds < 2 or rounds % 2:
+        raise ValueError('expected physical rounds must be positive and even')
+    expected = {'rounds': rounds, 'per_suite': 4, 'max_new_tokens': 2048,
                 'warmup': 2, 'suites': SUITES}
     if any(manifest.get(key) != value for key, value in expected.items()):
         raise ValueError('unexpected baseline protocol')
@@ -42,7 +44,7 @@ def validate_paired_run(directory, names, expected_arms=None, reference_requests
     all_pairs = []
     assignments = []
     arm_rows = {name: [] for name in names}
-    for round_number in (1, 2):
+    for round_number in range(1, rounds + 1):
         round_dir = directory / f'round-{round_number:02d}'
         complete = json.loads((round_dir / 'complete.json').read_text())
         if complete != {'round': round_number, 'pairs': 20}:
@@ -80,13 +82,16 @@ def validate_paired_run(directory, names, expected_arms=None, reference_requests
                     raise ValueError('invalid throughput')
             arm_rows[name].extend(rows)
         all_pairs.extend(pairs)
-    if assignments[0] != {names[0]: assignments[1][names[1]], names[1]: assignments[1][names[0]]}:
-        raise ValueError('physical GPUs were not exchanged')
+    for index, assignment in enumerate(assignments):
+        expected_mapping = assignments[0] if index % 2 == 0 else {
+            names[0]: assignments[0][names[1]], names[1]: assignments[0][names[0]]}
+        if assignment != expected_mapping:
+            raise ValueError('physical GPUs were not exchanged')
     summary = json.loads((directory / 'summary.json').read_text())
     if (summary.get('arms') != names or summary.get('max_new_tokens') != 2048 or
             summary.get('per_suite_requested') != 4):
         raise ValueError('unexpected summary protocol')
-    recalculated = summarize(all_pairs, requests, 2, summary['bootstrap_iters'])
+    recalculated = summarize(all_pairs, requests, rounds, summary['bootstrap_iters'])
     if any(summary.get(key) != value for key, value in recalculated.items()):
         raise ValueError('statistics differ from the existing controller implementation')
     lengths = {}
@@ -96,7 +101,7 @@ def validate_paired_run(directory, names, expected_arms=None, reference_requests
                          'mean': sum(counts) / len(counts), 'at_cap': counts.count(2048),
                          'finish_reasons': dict(Counter(row['finish_reason'] for row in rows))}
     result = {'protocol_passed': True,
-            'requests': 20, 'pairs': 40, 'arm_rows': 80, 'rounds': 2,
+            'requests': 20, 'pairs': 20 * rounds, 'arm_rows': 40 * rounds, 'rounds': rounds,
             'physical_gpu_swap': True, 'geomean': summary['geomean'],
             'ci95': [summary['lower'], summary['upper']],
             'actual_lengths': lengths,

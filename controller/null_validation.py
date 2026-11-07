@@ -8,13 +8,13 @@ from exp.p3_pair_run import arm_specs, clean_environment
 from harness.baseline_validation import read_rows, validate_paired_run
 
 
-def validate_null(directory):
+def validate_null(directory, rounds=2):
     directory = Path(directory)
     names = ['stock-a', 'stock-b']
     expected_arms, _ = arm_specs(names, clean_environment())
-    result, manifest, summary = validate_paired_run(directory, names, expected_arms)
+    result, manifest, summary = validate_paired_run(directory, names, expected_arms, rounds=rounds)
     first_outputs = {}
-    for round_number in (1, 2):
+    for round_number in range(1, rounds + 1):
         round_dir = directory / f'round-{round_number:02d}'
         deployment = json.loads((round_dir / 'deployment.json').read_text())
         if [entry['arm'] for entry in deployment['assignments']] != manifest['arms']:

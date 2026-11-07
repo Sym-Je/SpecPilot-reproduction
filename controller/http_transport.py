@@ -33,12 +33,17 @@ from dataclasses import dataclass, field
 from .stats import paired_ci
 
 
-def _post(url, body, timeout=3600):
+def _post(url, body, timeout=3600, timing=None):
     req = urllib.request.Request(url, data=json.dumps(body).encode(),
                                  headers={"Content-Type": "application/json"})
     try:
+        if timing is not None:
+            timing.update(http_open_start_ns=time.perf_counter_ns(), url=url)
         with urllib.request.urlopen(req, timeout=timeout) as r:
-            return json.loads(r.read())
+            payload = r.read()
+            if timing is not None:
+                timing['body_complete_ns'] = time.perf_counter_ns()
+            return json.loads(payload)
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"HTTP {e.code} {url}: {e.read()[:400]!r}")
 
@@ -56,6 +61,7 @@ class Arm:
     tree_sha: str | None = None
     env: dict = field(default_factory=dict)
     sampling: dict = field(default_factory=lambda: {"temperature": 0.0, "top_k": 1})
+    trace_timing: bool = False
 
     def health(self, timeout=5.0) -> bool:
         try:
@@ -79,16 +85,19 @@ class Arm:
             _post(self.url + "/generate",
                   {"input_ids": input_ids, "sampling_params": sampling,
                    "rid": f"{(rid or 'w')}|warmup"})
+        timing = {'step_start_ns': time.perf_counter_ns(), 'started_unix': time.time()} if self.trace_timing else None
         t0 = time.perf_counter()
         j = _post(self.url + "/generate",
                   {"input_ids": input_ids, "sampling_params": sampling,
-                   "rid": f"{(rid or 'r')}|measure"})
+                   "rid": f"{(rid or 'r')}|measure"}, timing=timing)
         dt = time.perf_counter() - t0
+        if timing is not None:
+            timing['step_end_ns'] = time.perf_counter_ns()
         m = j["meta_info"]
         out = j["output_ids"]
         n_out = m["completion_tokens"]
         verify = m.get("spec_verify_ct") or 0
-        return {
+        result = {
             "tokens_per_s": n_out / dt,
             "latency_ms": dt * 1000.0,
             "tokens": n_out,
@@ -102,13 +111,33 @@ class Arm:
             # 口径标记：stock 的 tau 是 per verify step，final 的 TLV 不是，必须写进记录
             "tau_source": "per_verify_step",
         }
+        if timing is not None:
+            result['client_timing'] = timing
+        return result
 
 
 class HttpPairBench:
     """两根 arm 的配对测量。方法签名与 measure.PairBench 保持一致。"""
 
-    def __init__(self, arm_a: Arm, arm_b: Arm):
+    def __init__(self, arm_a: Arm, arm_b: Arm, synchronized_start: bool = False,
+                 reverse_submission: bool = False):
         self.a, self.b = arm_a, arm_b
+        if synchronized_start:
+            self._simultaneous = lambda first, second: self._synchronized(first, second, reverse_submission)
+
+    @staticmethod
+    def _synchronized(fa, fb, reverse=False):
+        from threading import Barrier
+        barrier = Barrier(2)
+
+        def ready(function):
+            barrier.wait(timeout=30)
+            return function()
+
+        if reverse:
+            result_b, result_a = HttpPairBench._simultaneous(lambda: ready(fb), lambda: ready(fa))
+            return result_a, result_b
+        return HttpPairBench._simultaneous(lambda: ready(fa), lambda: ready(fb))
 
     @staticmethod
     def _simultaneous(fa, fb):

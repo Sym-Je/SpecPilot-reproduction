@@ -30,6 +30,7 @@ sys.path.insert(0, str(ROOT))
 
 from controller.http_transport import Arm, HttpPairBench, sha_ids
 from controller.stats import bootstrap_ci
+from harness.telemetry import Telemetry
 
 
 def parse_args(argv=None):
@@ -45,6 +46,7 @@ def parse_args(argv=None):
     parser.add_argument('--startup-timeout', type=float, default=1200)
     parser.add_argument('--bootstrap-iters', type=int, default=10000)
     parser.add_argument('--execute', action='store_true')
+    parser.add_argument('--stable-null', action='store_true')
     args = parser.parse_args(argv)
     if args.arms == ['stock', 'stock']:
         args.arms = ['stock-a', 'stock-b']
@@ -61,6 +63,9 @@ def parse_args(argv=None):
         parser.error('sample counts, max-new, warmup and bootstrap-iters must be positive')
     if not math.isfinite(args.startup_timeout) or args.startup_timeout <= 0:
         parser.error('startup-timeout must be finite and positive')
+    if args.stable_null and (args.arms != ['stock-a', 'stock-b'] or args.rounds != 4
+                            or args.per_suite != 4 or args.max_new != 2048 or args.warmup != 2):
+        parser.error('stable-null requires stock stock, four rounds, 4 items/suite, 2048 cap and warmup=2')
     return args
 
 
@@ -264,9 +269,11 @@ def result_row(result, request, arm, gpu, round_index, max_new):
 
 
 def run_round(arms, gpus, ports, round_index, requests, output_dir, environment,
-              max_new, warmup, startup_timeout, server_factory=Server, bench_factory=HttpPairBench):
+              max_new, warmup, startup_timeout, server_factory=Server, bench_factory=HttpPairBench,
+              stable_null=False):
     output_dir.mkdir(parents=True, exist_ok=False)
     assigned = gpus if round_index % 2 == 0 else list(reversed(gpus))
+    ports = list(reversed(ports)) if stable_null and round_index >= 2 else ports
     write_json(output_dir / 'deployment.json', {'round': round_index + 1,
                'assignments': [dict(arm=arm, gpu=gpu, port=port)
                                for arm, gpu, port in zip(arms, assigned, ports)]})
@@ -278,22 +285,43 @@ def run_round(arms, gpus, ports, round_index, requests, output_dir, environment,
                      for arm in arms]
         servers = [server_factory(arm, gpu, port, output_dir, environment)
                    for arm, gpu, port in zip(arms, assigned, ports)]
-        for server in servers:
+        launch = list(reversed(servers)) if stable_null and round_index in (1, 2) else servers
+        for server in launch:
             resources.callback(server.stop)
             server.start()
         append_json(events, {'event': 'servers_started', 'time_unix': time.time()})
+        if stable_null:
+            resources.enter_context(Telemetry(servers, gpus, output_dir / 'telemetry.jsonl'))
         for server in servers:
             server.wait_ready(startup_timeout)
+        if stable_null:
+            append_json(events, {'event': 'servers_ready', 'time_unix': time.time()})
         clients = [Arm(arm['name'], f'http://127.0.0.1:{port}',
-                       block_size=arm['block'], tree_sha=arm['tree_sha'], env=arm.get('env', {}))
+                       block_size=arm['block'], tree_sha=arm['tree_sha'], env=arm.get('env', {}),
+                       trace_timing=stable_null)
                    for arm, port in zip(arms, ports)]
         for client in clients:
             client.begin_session()
-        bench = bench_factory(*clients)
+        bench = (bench_factory(*clients, synchronized_start=True, reverse_submission=round_index in (1, 2))
+                 if stable_null else bench_factory(*clients))
+        warm_file = resources.enter_context((output_dir / 'warmup.jsonl').open('x')) if stable_null else None
         for warm_index in range(warmup):
             request = requests[warm_index % len(requests)]
-            bench.run_pair(request['input_ids'], min(32, max_new), warmup=0, swap=False,
-                           rid=f'round-{round_index + 1}|warm-{warm_index}')
+            measurement = bench.run_pair(request['input_ids'], min(32, max_new), warmup=0, swap=False,
+                                         rid=f'round-{round_index + 1}|warm-{warm_index}')
+            if stable_null:
+                append_json(warm_file, dict(phase='short', id=request['id'], suite=request['suite'],
+                            **{key: result_row(measurement['rounds'][0][key], request, arm, gpu,
+                                               round_index, min(32, max_new))
+                               for key, arm, gpu in zip(('a', 'b'), arms, assigned)}))
+        if stable_null:
+            for index, request in enumerate(requests):
+                measurement = bench.run_pair(request['input_ids'], max_new, warmup=0, swap=False,
+                                             rid=f'round-{round_index + 1}|full-warm-{index}')
+                append_json(warm_file, dict(phase='full', id=request['id'], suite=request['suite'],
+                            **{key: result_row(measurement['rounds'][0][key], request, arm, gpu, round_index, max_new)
+                               for key, arm, gpu in zip(('a', 'b'), arms, assigned)}))
+                print(f'[round {round_index + 1} full-warm {index + 1}/{len(requests)}] {request["id"]}', flush=True)
         append_json(events, {'event': 'warmup_complete', 'time_unix': time.time()})
         for item_index, request in enumerate(requests):
             pair_id = f'round-{round_index + 1}|{request["id"]}'
@@ -368,6 +396,8 @@ def main(argv=None):
             'suites': SUITES, 'execute': args.execute,
             'gpu_assignments': [args.gpus if index % 2 == 0 else list(reversed(args.gpus))
                                 for index in range(args.rounds)]}
+    if args.stable_null:
+        plan['stable_null'] = True
     print(json.dumps(plan, indent=2), flush=True)
     if not args.execute:
         return 0
@@ -389,6 +419,8 @@ def main(argv=None):
         requests = load_requests(args.per_suite, SUITES, tokenizer)
         head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
         sources = ['exp/p3_pair.sh', 'exp/p3_pair_run.py', 'controller/http_transport.py', 'controller/stats.py']
+        if args.stable_null:
+            sources += ['harness/telemetry.py', 'controller/stability_validation.py']
         source_hashes = {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in sources}
         output_dir.mkdir(parents=True, exist_ok=False)
         write_json(output_dir / 'manifest.json', dict(plan, arms=arms, gpus=gpus,
@@ -403,7 +435,7 @@ def main(argv=None):
                     check_ports(args.ports)
                 pairs.extend(run_round(arms, gpus, args.ports, round_index, requests,
                              output_dir / f'round-{round_index + 1:02d}', environment,
-                             args.max_new, args.warmup, args.startup_timeout))
+                             args.max_new, args.warmup, args.startup_timeout, stable_null=args.stable_null))
                 wait_for_idle(args.gpus)
             summary = summarize(pairs, requests, args.rounds, args.bootstrap_iters)
             summary.update(arms=args.arms, max_new_tokens=args.max_new,
