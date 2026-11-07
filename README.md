@@ -14,7 +14,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 | 2 | 双卡配对测量自动化与远程验收 | ✅ 已完成 | a05 两轮真实换卡，10 pair / 20 臂行，exit=0，GPU 清理通过；26 项回归通过，见[验收记录](docs/experiments/p2-remote-smoke-20261107.md) |
 | 3 | AR vs stock 基线测量 | ✅ 诊断通过 | stock/AR 3.8699×，95% CI [3.5571, 4.2242]；40 pair / 80 臂行、两轮换卡通过，见[验收记录](docs/experiments/p3-ar-stock-2048-20261107.md) |
 | 4 | 验证作者 final 的收益 | ✅ 产物测量完成 | final/AR=8.7347× [8.0235,9.5599]；直接 final/stock=2.2219× [2.1381,2.2988]，见[验收记录](docs/experiments/p3-final-2048-20261107.md) |
-| 5 | 真实正确性、噪声与晋升判据 | 🔵 已开始，裁判前置阻塞 | [只读审计](docs/experiments/p5-readiness-20261107.md)复现空/截断误过、长序列溢出等；待维护者修 controller，再做真实 forcing/null |
+| 5 | 真实正确性、噪声与晋升判据 | 🔵 正在修复与真实校准 | [授权修复](docs/experiments/p5-controller-repair-20261107.md)：9 个合成反例已过、新旧 79 测试通过；真实 forcing/null 尚待验证 |
 | 6 | 建立独立 sealed 验证 | ⬜ 未开始 | 前置验收通过后由 controller 管理，agent 不接触内容 |
 | 7 | 真实 profiling 与成本模型 | ⬜ 待补齐 | 简化骨架已有，真实耗时分析与成本模型待接入 |
 | 8 | agent 自主提案与实现 | ⬜ 待真实自主搜索 | 需独立提出优化并实现为可开关 option，默认保持 stock |
@@ -25,9 +25,9 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 
 **当前边界：**20 请求、2048 上限、自然 EOS 的 dev 子集；平均输出 AR 999.0、stock 1012.5、final 965.075 token。是作者产物验证，不是论文完整 dev/sealed、lossless 或自主发现结论；不能拿本结果宣称 sealed 2.13× 已复现。
 
-**正在做：**第 5 步已获批准并完成 CPU 前置审计，9 项检查未通过；审计工具 7 项测试及既有 50 项回归通过，不等于裁判已修复。
+**正在做：**第 5 步已获 controller 限定修改授权，基础修复后原 9 个合成反例全部通过、新旧 79 项测试通过；准备真实 stock/stock 噪声校准。真实 FP32-head forcing 与故障注入仍未完成。
 
-**接下来：**需维护者修复/明确授权修改 controller，补真实 scorer 和正式统计判据，之后运行真实故障注入与 stock/stock 噪声校准。当前无 GPU 任务，不进入 sealed 或 RSI。
+**接下来：**补齐真实噪声与 scorer/故障注入证据；任何真实门禁不通过则停止推进，不放宽判据，不进入 sealed 或 RSI。
 
 **已有基础：**三臂真实 server 烟测与 mock 闭环完成，GitHub 私有远端已配置；**尚未独立复现论文数字。**
 

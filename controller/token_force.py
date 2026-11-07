@@ -38,6 +38,8 @@ class ForceResult:
             "rate_ci_low": self.rate_ci_low, "rate_flagged": self.rate_flagged,
             "events": self.events, "event_p": self.event_p,
             "event_flagged": self.event_flagged, "lossless": self.lossless,
+            "scope": "token-list diagnostic; not teacher-forced scoring",
+            "ledger_eligible": False,
         }
 
 
@@ -53,20 +55,31 @@ def _wilson_low(k: int, n: int, z: float = 1.96) -> float:
 
 def judge_forcing(base_tokens: list[list[int]], cand_tokens: list[list[int]],
                   base_rate: float = 0.0072, delta: float = 0.02) -> ForceResult:
-    """逐 token 比对。base_rate 是 stock 自身的已知 mismatch（论文 0.72%）。"""
-    if len(base_tokens) != len(cand_tokens):
-        raise ValueError("两侧样本数必须一致")
-    n = total = 0
+    """Legacy token-list diagnostic, not margin-aware real-model forcing.
+
+    The default base_rate is a mock compatibility value, not measured stock data.
+    delta cannot classify events without logits; use scored evidence for that.
+    """
+    if not base_tokens or len(base_tokens) != len(cand_tokens):
+        raise ValueError("两侧样本数必须一致且非空")
+    if not math.isfinite(base_rate) or not 0 <= base_rate <= 1:
+        raise ValueError('invalid baseline mismatch rate')
+    if not math.isfinite(delta) or delta < 0:
+        raise ValueError('invalid numerical tolerance')
+    n = 0
     events = 0
     for a, b in zip(base_tokens, cand_tokens):
+        if not a or len(a) != len(b):
+            raise ValueError('token sequences must be nonempty and complete')
+        if any(type(token) is not int or token < 0 for token in list(a) + list(b)):
+            raise ValueError('tokens must be nonnegative integers')
         for ta, tb in zip(a, b):
-            total += 1
             n += 1
             if ta != tb:
                 events += 1
     rate = events / n if n else 0.0
     low = _wilson_low(events, n)
-    flagged = (rate - base_rate) - low > 0.005
+    flagged = low - base_rate > 0.005
     # event rule：分歧是否显著多于 stock 水平
     p = binom_one_sided(events, n, base_rate) if n else 1.0
     return ForceResult(

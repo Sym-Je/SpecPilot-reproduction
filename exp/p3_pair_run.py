@@ -46,7 +46,9 @@ def parse_args(argv=None):
     parser.add_argument('--bootstrap-iters', type=int, default=10000)
     parser.add_argument('--execute', action='store_true')
     args = parser.parse_args(argv)
-    if args.arms[0] == args.arms[1]:
+    if args.arms == ['stock', 'stock']:
+        args.arms = ['stock-a', 'stock-b']
+    elif args.arms[0] == args.arms[1]:
         parser.error('two distinct arm names are required')
     if args.rounds < 2 or args.rounds % 2:
         parser.error('rounds must be even and >= 2 for physical GPU swaps')
@@ -125,6 +127,8 @@ def arm_specs(names, environment):
         arms.append({'name': name, 'block': 0 if name == 'ar' else config[kind]['block_size'],
                      'tree_sha': tree_sha, 'engine': str(engine),
                      'env': config['final']['env'] if name == 'final' else {}})
+        if name in ('stock-a', 'stock-b'):
+            arms[-1]['launch_arm'] = 'stock'
     return arms, config
 
 
@@ -194,7 +198,7 @@ class Server:
     def launch_spec(self):
         environment = dict(self.environment, SP_ENGINE=self.arm['engine'],
                            P3_SERVER_ONLY='1', P3_SERVER_LOG=str(self.output_dir / f'{self.arm["name"]}.server.log'))
-        command = ['bash', str(ROOT / 'exp/p3_pair.sh'), self.arm['name'],
+        command = ['bash', str(ROOT / 'exp/p3_pair.sh'), self.arm.get('launch_arm', self.arm['name']),
                    self.gpu['uuid'], str(self.port),
                    str(self.output_dir / f'{self.arm["name"]}.unused.jsonl')]
         return command, environment

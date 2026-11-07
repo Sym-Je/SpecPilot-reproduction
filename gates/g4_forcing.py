@@ -57,9 +57,13 @@ def main() -> int:
 
     bad2 = inject_fault(a, every=3, vocab=opts.vocab, mode="accept")
     tb2 = replay_tokens(bad2)
-    r3 = judge_forcing([ta] * 8, [tb2] * 8)
-    record_res("E5 长度型故障", r3.event_flagged and len(tb2) != len(ta),
-               f"长度 {len(ta)}→{len(tb2)}，event_p={r3.event_p:.2e}")
+    try:
+        judge_forcing([ta] * 8, [tb2] * 8)
+        rejected = False
+    except ValueError:
+        rejected = True
+    record_res("E5 长度型故障", rejected and len(tb2) != len(ta),
+               f"长度 {len(ta)}→{len(tb2)}，完整性检查拒绝={rejected}")
 
     failed = [c for c, ok, _ in results if not ok]
     print(f"\nG4 {'PASS' if not failed else 'FAIL'} ({len(results) - len(failed)}/{len(results)})")

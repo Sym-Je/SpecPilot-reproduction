@@ -37,7 +37,7 @@ class ReadinessAuditTests(unittest.TestCase):
             result = audit.divergence_probe()
         self.assertEqual(result['observed']['ci']['lower'], 1.025)
         self.assertFalse(result['observed']['output_identical'])
-        self.assertFalse(result['passed'])
+        self.assertTrue(result['passed'])
 
     def test_null_probe_only_requests_a_nonexecuting_plan(self):
         with patch.object(audit, 'pair_args', return_value=SimpleNamespace(

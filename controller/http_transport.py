@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import time
 import urllib.error
 import urllib.request
@@ -161,6 +162,8 @@ class HttpPairBench:
                 "arm": self.a.name}
 
     def compare(self, input_ids, max_new: int, noise: float, reps: int = 2) -> dict:
+        if not math.isfinite(noise) or noise < 0 or type(reps) is not int or reps < 1:
+            raise ValueError('invalid noise or comparison repetitions')
         a, b, shas = [], [], []
         for i in range(reps):
             r = self.run_pair(input_ids, max_new, warmup=1, swap=bool(i % 2), rid=f"cmp|{i}")
@@ -168,13 +171,15 @@ class HttpPairBench:
             for x in r["rounds"]:
                 shas.append({"a": x["a"]["output_sha256"], "b": x["b"]["output_sha256"]})
         ci = paired_ci(a, b)
-        threshold = 0.01 + 2 * noise
+        output_identical = all(item['a'] == item['b'] for item in shas)
+        threshold = max(0.01 + 2 * noise, 0.03 if not output_identical else 0.0)
         return {"base_tps": a, "cand_tps": b, "ci": ci, "noise": noise,
                 "threshold": threshold,
                 "promoted": (ci["lower"] - 1.0) > threshold,
                 "gain": ci["median"] - 1.0, "lower_gain": ci["lower"] - 1.0,
-                # 逐 token 等价性（lossless 的机器判据，不是文本比对）
-                "output_identical": all(s["a"] == s["b"] for s in shas),
+                "scope": "HTTP performance diagnostic; requires calibrated correctness and null evidence",
+                "ledger_eligible": False,
+                "output_identical": output_identical,
                 "output_sha256": shas}
 
 

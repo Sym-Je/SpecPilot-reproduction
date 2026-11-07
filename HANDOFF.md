@@ -3,7 +3,12 @@
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
 > 最后更新：2026-11-07（第 5 步已开始；CPU 前置审计复现裁判缺口，等待维护者权限/交付；无运行中任务，版本状态以 git log/status 为准）。
 
-## 当前接续点：第 5 步真实正确性 / 噪声 / 晋升（blocked，未完成）
+## 当前接续点：第 5 步真实正确性 / 噪声 / 晋升（修复中，未完成）
+
+- 用户在审计之后明确授权“允许修改”：范围为本阶段 controller 正确性/统计修复，不放宽判据，不读取 sealed，不进入 RSI。后续普通 agent 仍须遵守 controller 维护者边界，不能推定永久授权。
+- 修复记录 `docs/experiments/p5-controller-repair-20261107.md`。空/长度/统计溢出/rate rule/输出分歧性能门槛已修；stock stock 显式展开 stock-a/stock-b，底层仍启动 stock。原 9 个合成反例全过，新旧 79 项测试通过，仍没有真实 lossless/晋升结论。
+- 正在准备原镜像/WeaverDev/qiji/原 toleration、2 H100 的真实 null 任务；`exp/p5_remote_null.sh` 一次任务顺序运行两次独立会话，各 20 请求/2048 cap/两轮换卡。controller 单独报告噪声、双侧 95% 分层 CI 及全宽<0.2% 是否通过；不达标不放宽。
+- 以下审计条目是修复前历史，当前状态以本段与修复记录为准。
 
 - 用户已批准开始第 5 步，但没有授权修改 `controller/`。先做只读 CPU 审计，无 NorthJob create、无 GPU 进程、无 sealed/作者实现访问、无 ledger 写入。
 - 新入口 `exp/p5_readiness_audit.py --out <新JSON路径>`，只用合成 token / 内存 fixture 调用已有接口；exit=1 是未就绪证据，不是可放宽的正式门禁。
