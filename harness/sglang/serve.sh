@@ -6,6 +6,8 @@
 #   --attention-backend fa3 --mem-fraction-static 0.90 --max-running-requests 4
 #   --cuda-graph-max-bs-decode 4 --chunked-prefill-size 8192 --disable-radix-cache
 #   --speculative-algorithm DFLASH --speculative-num-draft-tokens 8  (= stock block_size 8)
+#   --random-seed 0 --served-model-name <target basename>
+#   后两项来自上游 research/scripts/launch.sh，serve.sh 里若不传就会落到随机 seed / 全路径名。
 #
 # 用法: bash harness/sglang/serve.sh [额外参数...]
 #   PORT=30000 bash harness/sglang/serve.sh
@@ -33,5 +35,7 @@ exec "$SP_PY" -m sglang.launch_server \
   --cuda-graph-max-bs-decode 4 \
   --chunked-prefill-size 8192 \
   --disable-radix-cache \
+  --random-seed 0 \
+  --served-model-name "$(basename "$SP_TARGET")" \
   --host "$HOST" --port "$PORT" --nccl-port "$NCCL_PORT" \
   "$@"

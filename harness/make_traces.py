@@ -1,4 +1,7 @@
-"""用 target 生成蒸馏轨迹，但走**批处理**而不是逐 token 自回归。
+"""**WIP / 不在主路径**：DFlash2 是已训练好的 drafter，RSI 闭环不需要自蒸馏语料。
+保留是为了以后要做 draft 域适配（换 target 或换领域）时有个起点。未在真实模型上验证过。
+
+用 target 生成蒸馏轨迹，但走**批处理**而不是逐 token 自回归。
 
 逐 token 是 15 tok/s，32 条 × 512 token ≈ 18 分钟，纯浪费。
 这里每条 prompt 一次前向（prompt 一次 + 一个 chunk 一次），配合 KV cache 分块推进，

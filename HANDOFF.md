@@ -74,35 +74,53 @@ memory、candidate/campaign 管理、sealed 集、`ar` CLI。
 3. 容器内 supervisord(PID 1) 会 reap 后台进程（exit 255）。长任务**前台跑**或走 NorthJob。
    `/tmp` 会被清空。
 
-## 5. 卡点：一个几乎成功但没起来的 server
+## 5. 卡点已解除：stock server 在真实权重上跑通（2026-11-07）
 
-`logs/stock-serve.log`：**模型全部加载成功**
+`logs/serve2.log`（stock 臂，block 8）：
 ```
-Load weight end. elapsed=69.74s, type=Qwen3_5ForConditionalGeneration, avail mem=26.87GB
-Load weight end. elapsed=5.13s,  type=DFlash2DraftModel, avail mem=23.10GB
+Load weight end. elapsed=72.92s, type=Qwen3_5ForConditionalGeneration
+Load weight end. elapsed=4.90s,  type=DFlash2DraftModel
 Initialized DFLASH draft runner. attention_backend=fa3, block_size=8
+KV Cache allocated: #tokens 108029
+scheduler_e2e=219.34s  cuda_graph={prefill=39.73, target_verify=1.45, draft_decode=8.68}
+The server is fired up and ready to roll!
 ```
-→ **DFlash 在 0.5.20 上可用，stock 的 block_size=8 口径成立**（这是重要结论）。
 
-崩溃点：`memory_pool.py:2114 _init_kv_copy_and_warmup` → triton JIT → 缺 C 编译器。
+此前崩在 `memory_pool.py:2114 _init_kv_copy_and_warmup` → triton JIT → 缺 C 编译器，
+已由 `harness/sglang/env.sh` 的三件修补解决（conda gcc 14.4.0 / cuda-compat libcuda / CUDA_HOME）。
 
-## 6. 立刻做（按顺序）
+**第一条真实 greedy 请求已跑通**（`harness/sglang/probe_greedy.py`）：
 
-1. 验证 `harness/sglang/env.sh` 里的三件修补是否真的生效：
-   ```bash
-   source harness/sglang/env.sh
-   $CC --version                    # 应有 gcc 13.x
-   $SP_PY -c "import torch;print(torch.cuda.is_available())"   # 应为 True
-   ```
-   任一不满足就修它，**不要再换环境、不要 pip 升级**。
-2. 前台起 server：`bash harness/sglang/serve.sh 2>&1 | tee logs/serve2.log`
-   验收：`curl -s localhost:30000/health_generate` 返回 200。
-3. 打一次 `/generate`（greedy，block 8），确认能出 token、记录 output ids。
+```
+[gsm8k-1182] 425 tok 2.70s 157.6 tok/s verify=81 tau=5.25
+[gsm8k-211 ] 309 tok 1.54s 201.1 tok/s verify=46 tau=6.72
+[gsm8k-877 ] 505 tok 2.50s 202.0 tok/s verify=79 tau=6.39
+deterministic 3/3          → ACCEPT
+```
+
+- greedy 两次 output_ids 的 sha256 完全相同 → 逐 token 判据可以接到真引擎。
+- τ 均值 6.12（论文 stock 4.65，不同请求集，不可直接比）。
+- **这是烟测，不是测量**：单臂、无预热标定、无配对、无 GPU 互换。
+  详见 `docs/07-experiment.md` 第二部分。
+
+## 6. 起 server / 打请求
+
+```bash
+# 前台起（长任务必须前台，supervisord 会 reap 后台进程）
+bash harness/sglang/serve.sh 2>&1 | tee logs/serve.log
+
+# 另一终端：greedy 探针，自带确定性验收
+source harness/sglang/env.sh
+$SP_PY harness/sglang/probe_greedy.py --n 3 --repeats 2 --max-new-tokens 2048
+```
+
+`serve.sh` 已对齐上游 `research/scripts/launch.sh`：`--random-seed 0`、`--served-model-name`。
 
 ## 7. 之后的路线
 
-- **P0（30 min）**：把上游来源 pin 进 `docs/08-upstream-pin.md`（无 .git，要记 tarball 哈希）；
-  决定 `harness/make_traces.py` 提交或丢弃；`scratch/`（399 M，含 sglang 0.5.20 wheel 与解包树）归档。
+- **P0（已完成）**：`docs/08-upstream-pin.md` — tarball sha256 `25e68b1b…602dd4`，
+  规范化清单 `assets/upstream/MANIFEST.sha256`（3097 文件）sha256 `4bca3c10…81563f`；
+  已核对 tarball 解包树与现有树逐字节一致（差异仅 .pyc）。
 - **P1（1 天）**：`harness/build_engine.py` —— 按 `settings/*/config.json` 组装 stock/final 两棵树，
   打印 content hash（sha256 of canonical {relpath: file sha256}），两次构建 hash 必须相同。
 - **P2（1–2 天）**：`controller/measure.py` 的 worker 从 JSONL stdio 换成本地 HTTP
@@ -121,7 +139,8 @@ Initialized DFLASH draft runner. attention_backend=fa3, block_size=8
 
 ## 8. 仓库现状
 
-`git log`: fd64fe9 → a251ee5 → 87256e8 → cd0ac1d → d497a7f
+`git log`: fd64fe9 → a251ee5 → 87256e8 → cd0ac1d → d497a7f → 4555da3 → e87db70 → 5a46dca
+（本轮之后还会有 pin 与烟测记录的提交，以 `git log --oneline` 为准）
 
 **已通过验收（mock/TinyLM 规模）**
 - `controller/measure.py` 双卡配对 + 互换 GPU + bootstrap CI
@@ -134,6 +153,8 @@ Initialized DFLASH draft runner. attention_backend=fa3, block_size=8
 - `eval/dev`、`eval/sealed` 都空；`memory/entries/rsi.json` 是 mock 结果
 - `exp/run_e2e.sh` 用 TinyLM，不是真引擎
 - **零次 NorthJob**
+- `harness/make_traces.py`：自蒸馏语料生成，**WIP，不在主路径上**（DFlash2 已是训练好的 drafter，
+  不需要自蒸馏）。保留但不要依赖。
 - `harness/qwen_backend.py` / `qwen_spec.py`：自写前向，与 HF 数值一致（max diff 0.0），
   修好了 `is_causal` 在 `S>T` 时左上对齐的坑。**但不作为主引擎**（AR 35 tok/s，launch-bound
   会污染成本结构：让"加大 block"被高估、"省字节"显示零收益）。

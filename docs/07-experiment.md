@@ -90,3 +90,71 @@ hash chain: OK
 | 184 → 416 tok/s | 128 → 144 tok/s | 不构成复现声明 |
 
 下一步若要逼近论文，必须先解决权重问题（本机无 checkpoint，NorthGate 不可达）。
+
+---
+
+# 第二部分：真实引擎烟测（2026-11-07，stock SGLang v0.5.20）
+
+> **声明**：这是**烟测（smoke test）**，不是测量。3 条请求、无预热标定、无配对、
+> 无 GPU 互换、单臂。它的唯一目的是证明"真实 27B + DFlash2 这条路能跑通，
+> 且 greedy 输出确定"。**任何加速比结论都还不能从这里得出。**
+
+## 1. 环境（真实）
+
+| 项 | 值 |
+|---|---|
+| GPU | 1 × H100 80GB HBM3，驱动 535.154.05（CUDA 12.2），forward-compat 到 13.0 |
+| 引擎 | SGLang v0.5.20，`PYTHONPATH` 指向上游 `python/`（不 pip 安装） |
+| target | `/gpfs/models/huggingface.co/Qwen/Qwen3.8-27B`（BF16） |
+| drafter | `/gpfs/users/jixinpeng/models/z-lab/Qwen3.8-27B-DFlash2` |
+| Python | `/gpfs/users/jixinpeng/miniconda3/envs/sp-sglang1520`（torch 2.13.0+cu130，py3.12.16） |
+| 启动 | `bash harness/sglang/serve.sh`，`--speculative-num-draft-tokens 8`（= stock block 8） |
+| 请求 | 单请求，`temperature 0`、`top_k 1`、`max_new_tokens 2048`，chat template（thinking 开） |
+
+启动耗时（`logs/serve2.log`）：权重 72.9 s，KV 0.95 s，scheduler e2e 219.3 s，
+CUDA graph prefill 39.7 s / target_verify 1.45 s / draft_decode 8.68 s。
+KV 池 108,029 tokens（K/V 各 3.30 GB）。
+
+## 2. 结果
+
+```
+[gsm8k-1182] 425 tok  2.70s  157.6 tok/s  verify=81  tau=5.25  sha 2f310702dffd
+[gsm8k-211 ] 309 tok  1.54s  201.1 tok/s  verify=46  tau=6.72  sha 569b0f5f1158
+[gsm8k-877 ] 505 tok  2.50s  202.0 tok/s  verify=79  tau=6.39  sha 7a5bd8b0cd50
+deterministic 3/3
+```
+
+| 指标 | 观测 | 论文 stock | 说明 |
+|---|---|---|---|
+| 确定性 | 每条的两次 output_ids sha256 相同 | — | greedy 路径可信，可做逐 token 判据 |
+| τ (accept_len) | 5.25 / 6.72 / 6.39，均值 **6.12** | 4.65 | 不同请求集，不可直接比；同量级 |
+| decode 速率 | 157–205 tok/s | — | 非配对测量，单臂、无预热标定 |
+
+## 3. 回归：旧验收仍然通过（同日，real server 占卡时）
+
+```
+node: bash exp/run_e2e.sh (KEEP=1)
+G4 5/5  ·  RSI 3 轮  ·  ledger records=10 hash chain: OK
+[calib] noise=7.77% mean=123.9 tok/s
+```
+
+**噪声从 3.11% 涨到 7.77%**，原因明确：本次标定时 stock server 正占着 GPU（`gpu_util` 竞争），
+不是代码回归。这条记录的价值在于给后面的 P3 立规矩 —— **配对测量必须在独占卡上做，
+标定噪声时也一样**；否则阈值会被噪声撑大，机制全被拒。
+
+## 4. 结论与已知偏差
+
+- ✅ **解除硬卡点**：`_init_kv_copy_and_warmup` → triton JIT → 缺 C 编译器的问题已解决
+  （conda-forge gcc 14.4.0 + cuda-compat libcuda），stock server 首次在真实权重上起飞。
+- ✅ greedy 确定性成立 → `controller/token_force.py` 的逐 token 判据可以接到真引擎上。
+- ⚠️ **本次运行的 server 未传 `--random-seed 0`**（`server_args.random_seed = 774826012`）。
+  greedy 下无影响，但已把 `--random-seed 0` 与 `--served-model-name` 补进 `serve.sh`，
+  下次启动即为上游口径（`research/scripts/launch.sh`）。
+- ⚠️ `spec_verify_ct` 的口径是 **per verify step**（stock），与 final 的
+  *per exact-weight pass* 不同源 —— 见 HANDOFF §七 P4 的 G6 门禁要求。
+- ⚠️ 3 条样本、无 AR 臂 → **不能**推出 stock/AR ≈ 3.95×。
+
+## 5. 下一步（P1）
+
+`harness/build_engine.py`：按 `settings/*/config.json` 组装 stock/final 两棵派生树，
+打印 content hash（sha256 of canonical `{relpath: file sha256}`），两次构建必须同 hash。
