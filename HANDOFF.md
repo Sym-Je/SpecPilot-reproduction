@@ -1,13 +1,14 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-07。维护者：上一轮 session。
+> 最后更新：2026-11-07（P3 链路验证完成，提交 `ed8b571`）。
 
 ## 一句话现状
 
-RSI 的**制度层**已经在 mock 规模跑通并有验收证据（G2–G5）；**执行层**卡在最后一步环境修补：
-SGLang server 能加载 52 G 的 Qwen3.8-27B + DFlash2 draft，但在 KV 内存池预热时因缺 C 编译器崩溃。
-**一次 NorthJob 都没提交过。** 论文数字一个都还没独立测出。
+RSI 的**制度层**在 mock 规模跑通（G2–G5）；**执行层**已打通到"三臂各起一次真 server、
+跑同一请求集、落可审计 JSONL"（P0–P3，G6/G7/G8 全绿）。
+**一次 NorthJob 都没提交过。** 论文数字一个都还没独立测出，但尺子已校准到 5–8% 以内
+（本机 stock/AR 3.74× vs 论文 3.95×）。
 
 ## 接手前必做（5 分钟）
 
@@ -18,6 +19,7 @@ cat AGENTS.md              # 铁律，不可协商
 cat docs/06-gates.md       # 已通过的闸门与实际数字
 cat docs/07-experiment.md  # 短期实验记录 + 5 个踩过的坑（必读）
 ls harness/sglang/         # 启停脚本，环境约定全在 env.sh
+cat docs/09-p3-harness-validation.md   # 三臂烟测实测数字与"为什么不能引用"
 ```
 
 ## 1. 任务边界
@@ -131,21 +133,38 @@ $SP_PY harness/sglang/probe_greedy.py --n 3 --repeats 2 --max-new-tokens 2048
   `HttpPairBench` 复用 `controller.stats`，统计不改。单卡顺序路径
   `SequentialPairBench` 直接 raise，**不许**冒充配对。验收含同 arm 确定性、
   噪声地板、`1%+2*noise` 下界判据注入测试。
-- **P3（2 天，NorthJob）**：三臂配对 AR / stock / final，每臂 fresh server，双卡互换。
-  目标 stock/AR ≈ 3.95×，final/stock ≈ 2.24×（上游 CI `[2.18, 2.32]`）。
-  **这一步检验的是尺子，不是算法。**
+- **P3（链路已完成，正式测量待 NorthJob）**：提交 `ed8b571`。
+  `exp/p3_pair.sh <arm> <gpu> <port> <out.jsonl>` = 单臂执行单元（起 server → run_arm → 停）；
+  `harness/sglang/gen_final_env.py` 从 config.json 派生 final 的 46 个 `SPECPILOT_*`（不手抄）；
+  `gates/g8_pair_arms.py` = 配对前置条件 8 项，其中 **E2 要求三臂 `input_sha256` 逐条相同**。
+  本机烟测（1 条/suite、256 tok、单卡顺序）：AR 43.6 / stock 162.9 / final 245.7 tok/s，
+  stock/AR **3.74×**（论文 3.95×），τ 5.02→11.13（论文 4.65→13.08）。
+  `final/stock` 只有 1.51×，是 **256-token 短序列把 final 每步 32 节点的固定开销摊不开**
+  导致的系统性低估，不是算法问题 —— **要正式数字仍必须走 NorthJob**：
+  三臂 × 双卡 × 每臂 fresh server × `P3_PER_SUITE=20 P3_MAX_NEW=2048` × ≥2 轮 paired CI。
+  详见 `docs/09-p3-harness-validation.md`。
 - **P4（2 天，可与 P3 并行设计）**：建 `eval/sealed`（controller 侧抽样，agent 不可见）；
   `patches/` 先放 `noop`（必须 token-identical 到 stock）+ `block_8_16`。
-  **必须新增 G6 门禁**：τ 计数口径一致性 —— final τ=13.08 是 *per exact-weight pass*
+  **必须新增门禁**：τ 计数口径一致性 —— final τ=13.08 是 *per exact-weight pass*
   （TLV 下可超 16 token draft block），stock τ=4.65 是 per verify step，**两个 τ 不同源**。
-  用 τ 做奖励会把"换计数口径"当成"机制有效"。
+  用 τ 做奖励会把"换计数口径"当成"机制有效"。`run_arm.py` 已落 `tau_source` 字段
+  （`per_verify_step` / `ar_no_verify`），final 的 TLV 口径仍是待办的第三个值。
+  **lossless 判据**：paper 的 lossless 指"greedy 且每个 token 由 target 判定"，**不是**
+  AR 与 stock 逐 token 相同（烟测仅 1/5 相同，第 3 个 token 就分叉，原因是采样路径不同 →
+  BF16 GEMM 形状不同 → argmax 在近似并列处翻转）。跨路径的 lossless 只能靠
+  **token forcing**（把 stock 的 token 序列喂回去，逐位检查 target argmax）来证明。
 - **P5（长期）**：真 RSI。**不要追 W12**（69 KB CUDA kernel，短期做不到）。
   从简单机制族起：block size、tree shape、accept 阈值、attention backend、mem-fraction。
 
 ## 8. 仓库现状
 
-`git log`: fd64fe9 → a251ee5 → 87256e8 → cd0ac1d → d497a7f → 4555da3 → e87db70 → 5a46dca
-（本轮之后还会有 pin 与烟测记录的提交，以 `git log --oneline` 为准）
+`git log`: … e87db70 → 5a46dca → 3d14168(P0) → 76b642d(P1) → 39edfcb(P2) → ed8b571(P3)
+（以 `git log --oneline` 为准）
+
+**新门禁**：G6 引擎树可重现 6/6 · G7 传输层 5/5 · G8 配对前置 8/8
+**派生树**：stock `e5472c4f…652e3ff` / final `d406ba81…54f90a`
+**final env**：`/gpfs/users/jixinpeng/specpilot_data/work/env/h100_c1_qwen38-27b_dflash2-final.env`
+（派生，勿手改；`gen_final_env.py --check` 可验）
 
 **已通过验收（mock/TinyLM 规模）**
 - `controller/measure.py` 双卡配对 + 互换 GPU + bootstrap CI
@@ -154,8 +173,13 @@ $SP_PY harness/sglang/probe_greedy.py --n 3 --repeats 2 --max-new-tokens 2048
 - `orchestrator/loop.py` G5 6/6；G2 故障续跑 6/6
 - 噪声标定 3.11%，晋升阈值 = 1% + 2×噪声 = 7.21%
 
+**已通过验收（真实 27B + DFlash2，本机 2×H100）**
+- P0 stock server 跑通；P1 派生树 stock 与上游树逐 token 一致
+- P3 三臂各起一次真 server 并跑完同一请求集（`docs/09`）
+
 **空壳 / 未做**
-- `eval/dev`、`eval/sealed` 都空；`memory/entries/rsi.json` 是 mock 结果
+- `eval/sealed` 空（`eval/dev` 已由 `assets/upstream/dev` 供给，5 suite × 20 条）；
+  `memory/entries/rsi.json` 是 mock 结果
 - `exp/run_e2e.sh` 用 TinyLM，不是真引擎
 - **零次 NorthJob**
 - `harness/make_traces.py`：自蒸馏语料生成，**WIP，不在主路径上**（DFlash2 已是训练好的 drafter，
