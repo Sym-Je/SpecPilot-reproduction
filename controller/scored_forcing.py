@@ -184,8 +184,10 @@ def binomial_upper(count, total, alpha=.025):
 
 
 def judge_scored_forcing(calibration, candidate_paths, *, evidence_root, prefill_audits=()):
+    baseline_prompts = {}
     for source in calibration['stock_sources']:
-        read_reference(source, evidence_root)
+        original = read_reference(source, evidence_root)
+        baseline_prompts[original['request_id']] = original['prompt_sha256']
     recalculated = calibrate_stock([source['path'] for source in calibration['stock_sources']],
                                   calibration['delta_calibration'], evidence_root=evidence_root)
     if recalculated != calibration:
@@ -193,6 +195,8 @@ def judge_scored_forcing(calibration, candidate_paths, *, evidence_root, prefill
     traces = load_set(candidate_paths, evidence_root)
     if set(traces) != set(calibration['request_ids']):
         raise ValueError('candidate request coverage differs from the declared baseline cohort')
+    if any(trace['prompt_sha256'] != baseline_prompts[request_id] for request_id, trace in traces.items()):
+        raise ValueError('candidate prompt differs from the calibrated request with the same ID')
     if any(trace['scorer_fingerprint'] != calibration['scorer_fingerprint'] for trace in traces.values()):
         raise ValueError('candidate is not scored with the calibrated reference')
     audits = [load_score_trace(path, evidence_root=evidence_root, require_generation=False) for path in prefill_audits]

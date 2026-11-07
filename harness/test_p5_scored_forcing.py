@@ -22,9 +22,9 @@ class ScoredForcingTests(unittest.TestCase):
         path.write_text(json.dumps(value))
         return {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
 
-    def trace(self, output, mismatches=None, role='stock', request_id='one'):
+    def trace(self, output, mismatches=None, role='stock', request_id='one', prompt=None):
         mismatches = mismatches or {}
-        prompt = [2, 3]
+        prompt = prompt or [2, 3]
         args = dict(model_path='/model', dtype='bfloat16', enable_fp32_lm_head=True,
                     speculative_algorithm=None, chunked_prefill_size=8192,
                     enable_return_hidden_states=True, return_hidden_states_mode='last')
@@ -101,3 +101,10 @@ class ScoredForcingTests(unittest.TestCase):
         calibration = self.calibration(32)
         other = self.trace([4] * 32, request_id='different')
         with self.assertRaises(ValueError): judge_scored_forcing(calibration, [other], evidence_root=self.root)
+
+    def test_same_request_id_cannot_hide_a_different_prompt(self):
+        from controller.scored_forcing import judge_scored_forcing
+        calibration = self.calibration(32)
+        other = self.trace([4] * 32, prompt=[2, 9])
+        with self.assertRaises(ValueError):
+            judge_scored_forcing(calibration, [other], evidence_root=self.root)
