@@ -190,8 +190,13 @@ $SP_PY harness/sglang/probe_greedy.py --n 3 --repeats 2 --max-new-tokens 2048
 
 ## 9. 论文关键数字（用于对齐，不是结论）
 
-`h100_c1_qwen38-27b_dflash2`：stock/AR 3.95×，final/AR 8.86×，final/stock 2.24×
-（独立复现 2.25× `[2.18, 2.32]`），τ 4.65 → 13.08。
+`h100_c1_qwen38-27b_dflash2`：stock/AR 3.95×，final/AR 8.86×，
+final/stock **2.13× `[2.07, 2.19]`**，τ 4.65 → 13.08。
+
+> 基准取值只看 `assets/upstream/configs/h100_c1_qwen38-27b_dflash2/config.json` 的 `paper` 段
+> （`sealed_final_vs_stock = 2.13x [2.07, 2.19]`）。上游 README 的表格印的是 2.24×，
+> 与 config 不一致；**以 config 为准**，不要在不同文件之间漂移。
+
 成本拆解：ceiling 2.57× = τ 1.83 × overhead 1.01 × kernel 1.39。
 单请求 27B：读权重占 23.61 ms 步时的 80%；GEMM 1 行 17.88 ms vs 64 行 18.58 ms（行数几乎免费）。
 
