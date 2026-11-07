@@ -93,3 +93,46 @@ git diff --check
 - 真实响应重放与新增flat/nested冲突测试通过；未改变FP32必须启用或完整logprob对齐要求。
   新margin-aware分数契约4项先红后绿，新旧最终110项CPU回归通过。
   a02复验只修适配、补失败清理与多能力错误收集；不是重复原配置追性能数字。
+
+### a02与正式运行前协议补充
+
+- a02一次create code200，UUID=`job-bbce4ab81d16-20261108065758`，source=`3e6056a`。
+  06:58:19 +08:00 node204启动，真实FP32-head标识、8 token完整teacher forcing及单token前缀对齐、
+  原生logit_bias均通过。hidden states请求bool=true被解释成full模式，超过server的last上限而HTTP400。
+  公开构造签名与实例确认`return_hidden_states='last'`合法，下一次只修请求模式。
+  失败清理证据两卡均0 MiB，GPU0采样util=1%，不伪称两卡0%利用率。
+- 平台默认会重试失败Pod，a01 Job retryCount实为2；不能把最终Pod的restart_count=0当整个任务无重试。
+  目录防覆盖保护阻止重试再次加载模型。a02起监控加入pod_uid/job_retry_count。
+- 正式运行前先执行last-mode hidden state与独立FP32-head数值预检，失败则不进行长生成。
+  权重只从本机checkpoint的lm_head读取，以同一FP32权重/hidden比较整段与8分块逆序累加；
+  禁用本进程TF32，记录张量SHA、源码SHA和实际差值。native/独立head log-prob及选择margin容差预定1e-3。
+  这不是允许candidate改变logits的容差，也不修改δ/rate/event阈值。
+- 完整dev协议预定：原A1全部20请求、greedy、自然EOS、2048 cap；fresh AR与stock8各生成一遍，
+  stock再独立请求一遍作健康控制，20对首分歧标定δ。作者final32/46开关另作产物正确性对照，
+  不算独立发现，结果不预设通过。
+- 故障覆盖范围在看故障结果之前固定：本轮AR生成恰达2048且finish_reason=length的全部请求。
+  在同一AR prefix后各生成健康/每7词表项+2的尾段，尾段cap2048；另生成同请求stock8的4096-cap基线。
+  仅实际覆盖注入的输出计数；若无符合长度请求或post-2048总token不足1024，覆盖失败，不修改EOS。
+- 等价归约控制固定每suite第1条、每条64 cap；controller按8分块逆序FP32 head实际选token，
+  同时记录native与整段FP32参考。为保持可重放的原生生成证明，控制要求逆序选择与native选择一致；
+  若遇不一致，报告接口/证明覆盖不足，不静默改回native或称该差异为错误。明确报告实际不同token数。
+- 对大margin事件按请求manifest顺序/位置顺序，最多前200个做相同prefix、不同prefill长度评分审计；
+  超过上限保持unexplained，不抽掉。仅候选token在替代prefill成为argmax时作保守解释，记录原始证据。
+- 本阶段不会新测加速比；旧null只在显式historical replay模式核验新策略，不授权历史晋升。
+  正式候选活动仍必须用事先冻结且匹配的当前null。当前阶段目标是实际stock mismatch/δ、
+  健康/故障/等价控制、作者final独立正确性判定，以及版本化判据的可执行证据。
+
+### 正式runner冻结
+
+- `exp/p5_real_run.py`串接以上固定协议，`exp/p5_remote_real.sh`持久日志/exit并设10800秒总上限；
+  head预检与320-token-cap归约控制各独立子进程，上限1800秒，退出释放外部head显存。
+  先单独起scorer并做head预检，通过后才起AR，避免预检失败浪费AR冷启动。
+- 全部原始请求/响应、server身份与生成segments逐文件带SHA；每条trace保存后立即重放验证。
+  scorer GPU1持续使用同一身份，GPU0依次fresh AR/stock/final，明确这不是性能配对测量。
+- 审计仅实现相同prefix的prefill-length解释，尚未实现stock-path replay解释；不能将未解释事件
+  擅自消除。各cohort独立最多200事件，超出的全数留作unexplained。
+- `acceptance.json`区分裁判回归就绪与作者final正确性结果：健康四组均过、故障event拒绝、
+  post2048总token≥1024才有judge_ready；作者final独立拒绝不伪装裁判失败或作者通过。
+  不论结果如何本阶段promoted/ledger_eligible均为false，next_stage_allowed不代表自动进入下一阶段。
+- 117项CPU测试、三个shell语法检查和diff检查通过；真实head、δ及故障/健康回归仍待GPU实测。
+  首次正式任务名`specpilot-p5-real-forcing-20261108-a01`已查重total=0；提交前再查并记录完整命令。

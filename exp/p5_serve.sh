@@ -5,6 +5,9 @@ GPU=${2:?GPU UUID}
 PORT=${3:?port}
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 export SP_KIND=stock
+if [[ "$ROLE" == final ]]; then
+    export SP_KIND=final
+fi
 source "$ROOT/harness/sglang/env.sh"
 ARGS=(--model-path "$SP_TARGET" --dtype bfloat16 --kv-cache-dtype auto
       --mamba-ssm-dtype float32 --attention-backend fa3
@@ -16,6 +19,13 @@ case "$ROLE" in
     ar) ARGS+=(--mem-fraction-static 0.90) ;;
     stock) ARGS+=(--mem-fraction-static 0.90 --speculative-algorithm DFLASH
                  --speculative-draft-model-path "$SP_DRAFT" --speculative-num-draft-tokens 8) ;;
+    final)
+        FIN_ENV=${SP_FINAL_ENV:-$SP_DATA/work/env/${SP_SETTING}-final.env}
+        [[ -f "$FIN_ENV" ]] || "$SP_PY" "$ROOT/harness/sglang/gen_final_env.py" --out "$FIN_ENV"
+        "$SP_PY" "$ROOT/harness/sglang/gen_final_env.py" --out "$FIN_ENV" --check
+        source "$FIN_ENV"
+        ARGS+=(--mem-fraction-static 0.90 --speculative-algorithm DFLASH
+               --speculative-draft-model-path "$SP_DRAFT" --speculative-num-draft-tokens "$SPECPILOT_BLOCK_SIZE") ;;
     scorer) ARGS+=(--mem-fraction-static 0.75 --enable-fp32-lm-head
                   --enable-return-hidden-states --return-hidden-states-mode last) ;;
     *) echo "unsupported correctness server role: $ROLE" >&2; exit 2 ;;

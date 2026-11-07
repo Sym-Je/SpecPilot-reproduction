@@ -83,7 +83,7 @@ def run_probe(output, reference):
             errors.append(dict(capability='logit_bias', error=repr(error)))
         try:
             hidden = scorer.post('/generate', dict(input_ids=prompt,
-                sampling_params={'temperature': 0, 'top_k': 1, 'max_new_tokens': 1}, return_hidden_states=True))
+                sampling_params={'temperature': 0, 'top_k': 1, 'max_new_tokens': 1}, return_hidden_states='last'))
             values = hidden.get('hidden_states', hidden.get('meta_info', {}).get('hidden_states'))
             if values is None:
                 raise ValueError('enabled hidden-state API returned no evidence')

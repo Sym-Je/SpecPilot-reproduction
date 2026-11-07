@@ -1,6 +1,9 @@
 """Explicit paper-aligned readiness verdicts; never promote or write a ledger."""
 
 import math
+import hashlib
+import json
+from pathlib import Path
 
 from controller.stats import stratified_geomean_ci
 
@@ -10,6 +13,11 @@ POLICY = 'paper-aligned-v1'
 
 def valid_digest(value):
     return isinstance(value, str) and len(value) == 64 and all(character in '0123456789abcdef' for character in value)
+
+
+def record_digest(record):
+    return hashlib.sha256(json.dumps({key: value for key, value in record.items() if key != 'evidence_sha256'},
+        sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
 
 
 def calibration_from_intervals(sessions, *, declared_sessions, protocol_id, campaign_id, policy):
@@ -33,17 +41,76 @@ def calibration_from_intervals(sessions, *, declared_sessions, protocol_id, camp
         results.append(dict(session, noise=max(abs(lower - 1), abs(upper - 1)),
                             interval_width=width, precision_diagnostic=width < .002,
                             centered=lower <= 1 <= upper))
-    return dict(policy=policy, protocol_id=protocol_id, campaign_id=campaign_id,
+    result = dict(policy=policy, protocol_id=protocol_id, campaign_id=campaign_id,
                 calibration_valid=True, noise=max(session['noise'] for session in results),
                 noise_estimator='maximum distance from one of two-sided 95% null CI endpoints; max over predeclared sessions',
                 sessions=results, ledger_eligible=False,
                 scope='explicit readiness calibration; historical replay does not authorize retrospective promotion')
+    return dict(result, declared_sessions=list(declared_sessions), evidence_sha256=record_digest(dict(result, declared_sessions=list(declared_sessions))))
+
+
+def measurement_protocol_id(manifest):
+    required = ('model_path', 'declared_models', 'sampling', 'requests', 'suites',
+                'rounds', 'warmup', 'per_suite', 'max_new_tokens', 'gpus')
+    if any(key not in manifest for key in required):
+        raise ValueError('complete measurement protocol identity is required')
+    protocol = {key: manifest[key] for key in required if key != 'gpus'}
+    protocol['gpus'] = [{key: gpu[key] for key in ('index', 'uuid', 'name')} for gpu in manifest['gpus']]
+    protocol.update(stable_null=manifest.get('stable_null', False), cpu_pinning=manifest.get('cpu_pinning', False))
+    return record_digest(protocol)
+
+
+def calibrate_null_runs(directories, *, declared_sessions, campaign_id, mode,
+                       expected_protocol_id=None, expected_source_pin=None, campaign_started_unix=None):
+    from controller.null_validation import validate_null
+    from controller.stability_validation import validate_stable
+
+    if mode not in ('replay', 'current') or len(directories) != len(declared_sessions):
+        raise ValueError('explicit replay/current mode and all declared runs required')
+    if mode == 'current' and (not expected_protocol_id or not expected_source_pin or
+                              type(campaign_started_unix) not in (int, float) or not math.isfinite(campaign_started_unix)):
+        raise ValueError('current calibration needs a predeclared protocol, source and campaign start')
+    sessions = []
+    protocol_id = expected_protocol_id
+    for identifier, directory in zip(declared_sessions, directories):
+        directory = Path(directory).resolve()
+        manifest = json.loads((directory / 'manifest.json').read_text())
+        actual_protocol = measurement_protocol_id(manifest)
+        protocol_id = protocol_id or actual_protocol
+        if actual_protocol != protocol_id:
+            raise ValueError('null run protocols differ')
+        if mode == 'current' and (manifest['head'] != expected_source_pin or manifest['started_unix'] < campaign_started_unix):
+            raise ValueError('historical or wrong-source run cannot calibrate the current campaign')
+        if manifest.get('cpu_pinning'):
+            from harness.cpu_affinity import validate_cpu_bound
+            checked = validate_cpu_bound(directory)
+        elif manifest.get('stable_null'):
+            checked = validate_stable(directory)
+        else:
+            checked = validate_null(directory, rounds=manifest['rounds'])
+        files = [directory / 'manifest.json', directory / 'summary.json']
+        files += [path for number in range(1, manifest['rounds'] + 1)
+                  for path in sorted((directory / f'round-{number:02d}').glob('*.json*'))]
+        inventory = {str(path.relative_to(directory)): hashlib.sha256(path.read_bytes()).hexdigest() for path in files}
+        sessions.append(dict(session_id=identifier, protocol_id=protocol_id, source_sha256=record_digest(inventory),
+                             interval=checked['interval'], directory=str(directory)))
+    result = calibration_from_intervals(sessions, declared_sessions=declared_sessions,
+        protocol_id=protocol_id, campaign_id=campaign_id, policy=POLICY)
+    result.update(historical_replay=mode == 'replay', current_campaign_usable=mode == 'current')
+    result['evidence_sha256'] = record_digest(result)
+    return result
 
 
 def candidate_verdict(*, groups, calibration, correctness, protocol_id, campaign_id, output_identical):
     if (calibration.get('policy') != POLICY or calibration.get('calibration_valid') is not True or
             calibration.get('protocol_id') != protocol_id or calibration.get('campaign_id') != campaign_id):
         raise ValueError('candidate does not match its declared calibration campaign and protocol')
+    if calibration.get('evidence_sha256') != record_digest(calibration) or calibration.get('historical_replay') is True:
+        raise ValueError('calibration was altered or is only a historical replay')
+    rechecked = calibration_from_intervals(calibration['sessions'], declared_sessions=calibration['declared_sessions'],
+        protocol_id=protocol_id, campaign_id=campaign_id, policy=POLICY)
+    if calibration['noise'] != rechecked['noise']:
+        raise ValueError('calibration noise differs from all predeclared source intervals')
     noise = calibration.get('noise')
     if type(noise) not in (int, float) or not math.isfinite(noise) or noise < 0:
         raise ValueError('invalid calibrated noise')

@@ -49,3 +49,12 @@ class PaperPolicyTests(unittest.TestCase):
         self.assertFalse(result['promoted'])
         options['protocol_id'] = 'other'
         with self.assertRaises(ValueError): candidate_verdict(**options)
+
+    def test_noise_cannot_be_replaced_by_a_smaller_number(self):
+        from controller.paper_policy import candidate_verdict
+        calibration = self.calibrate()
+        calibration['noise'] = 0
+        with self.assertRaises(ValueError):
+            candidate_verdict(groups={'suite': [math.log(1.04)] * 4}, calibration=calibration,
+                correctness={'correctness_passed': True, 'evidence_sha256': 'c' * 64},
+                protocol_id='protocol', campaign_id='campaign', output_identical=True)

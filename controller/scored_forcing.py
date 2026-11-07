@@ -232,3 +232,22 @@ def judge_scored_forcing(calibration, candidate_paths, *, evidence_root, prefill
         candidate_sources=[trace['source'] for trace in traces.values()], ledger_eligible=False,
         scope='bound real-score contract verdict; token-Bernoulli rate approximation; no promotion or mathematical losslessness proof')
     return dict(result, evidence_sha256=digest_record(result))
+
+
+def validate_injected_generation(path, *, evidence_root, vocabulary_size=248320):
+    trace = load_score_trace(path, evidence_root=evidence_root)
+    segments = trace['generation_segments']
+    if len(segments) != 2 or not 2048 < trace['output_tokens'] <= 4096:
+        raise ValueError('fault must have a complete 2048-token prefix and a nonempty continuation')
+    first, second = [read_reference(segment, evidence_root) for segment in segments]
+    initial, tail = first['request']['sampling_params'], second['request']['sampling_params']
+    bias = {str(token): 2 for token in range(0, vocabulary_size, 7)}
+    if (len(first['response']['output_ids']) != 2048 or
+            first['response']['meta_info'].get('finish_reason', {}).get('type') != 'length' or
+            initial.get('max_new_tokens') != 2048 or tail.get('max_new_tokens') != 2048 or
+            initial.get('logit_bias') or tail.get('logit_bias') != bias or
+            initial.get('ignore_eos', False) or tail.get('ignore_eos', False)):
+        raise ValueError('raw generation did not apply exactly the registered post-2048 logit bias')
+    return dict(request_id=trace['request_id'], post2048_tokens=trace['output_tokens'] - 2048,
+                bias=2, stride=7, vocabulary_size=vocabulary_size,
+                generation_sources=segments, source=trace['source'])
