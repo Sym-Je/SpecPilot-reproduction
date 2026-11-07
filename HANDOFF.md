@@ -1,7 +1,7 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-07（第 2 步项目身份已定位为 WeaverDev，待新重提授权；成功任务仍为零；版本状态以 git log/status 为准）。
+> 最后更新：2026-11-07（第 2 步 a03 已提交并启动，Git 归属预检失败；GPU 烟测未运行；版本状态以 git log/status 为准）。
 
 ## 当前接续点：NorthJob 准备与 Git 全流程追踪
 
@@ -9,6 +9,7 @@
 - 用户已批准开始第 2 步，并明确同意使用下面固定 digest 的 oss-sglang 镜像。首次提交于 2026-11-07 06:46:44 UTC 被 HTTP 403 / code 40301 拒绝：账号 jixinpeng 不属于 default 项目。提交后按原名查询 total=0；无 code=200、无 job_uuid，未启动远程测量。需确认可用 `--project` 并获准重提，不要直接再次 create。运行记录见 `docs/experiments/p2-remote-smoke-20261107.md`。
 - 用户随后明确指定 `--project infra-dev-weaver --k8s-namespace qiji --k8s-queue qiji --k8s-toleration key=task-type,operator=Equal,value=infra-dev-weaver,effect=NoSchedule` 并授权重提一次。已核对 CLI help、凭据格式与查重；新尝试名 `specpilot-p2-smoke-20261107-a02`，代码 pin 与镜像不变。2026-11-07 15:23:13 +08:00 返回 HTTP 400 / code 40005：项目 infra-dev-weaver 不存在；无 UUID，提交后 total=0。模板确认四项参数正确、无新增 nodeSelector；项目、namespace/queue、toleration 不能混同，toleration 不保证只调度该池。暂停，核实后端项目身份并取得新授权后才能再次提交。
 - 用户要求只读排查后，已交叉核对 CLI/API 与两条本人 Kubernetes 任务：当前账号 jixinpeng、CLI 3.3.11、后端 10.1.2.7:31000 均无身份/环境覆盖异常。旧 infra-dev-weaver 任务在服务端为 project_exists=false / user_in_project=false；本人 WeaverDev 任务为 true / true，且现场注解、namespace/queue 与 API 一致。建议下一次仅改 `--project WeaverDev`，保留 qiji namespace/queue 和 infra-dev-weaver toleration，待用户授权再提交。只读诊断证据 `logs/p2-project-diagnosis-20261107.json`；不能据此称 GPU 配额、调度或镜像兼容通过，也不知道旧任务的创建路径或项目历史变更。本轮没有 create/update/delete。
+- 用户随后批准修正项目重提。a03 名 `specpilot-p2-smoke-20261107-a03`，2026-11-07 15:54:59 +08:00 收到 code=200/data=None；精确查重唯一匹配 UUID `job-65f7d61d3d7f-20261107155459`，确认提交成功。进程 15:55:52 +08:00 已启动；持久日志显示 git dubious ownership，脚本 exit=128；最终 Job/Pod Failed（容器 exit=1）。未创建 runner 输出目录、未到 GPU 预检，无配对数据。请求 namespace/queue 为 qiji，服务端有效 queue 为 proj-31，不能隐瞒这一差别。未再次 create。下一次建议仅在任务命令的进程环境中设置 `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=/gpfs/users/jixinpeng/SpecDec/SpecPilot`，不改全局配置、不信任通配路径；本机模拟 Git 归属不匹配验证 128→0，尚需新授权才能重提。记录见 docs/experiments/p2-remote-smoke-20261107.md。
 - 可用 CLI 已找到：`/gpfs/users/jixinpeng/miniconda3/envs/dev/bin/northjob`（3.3.11，参数与 skill 匹配，get 查询成功）；不再用缺 Kubernetes 依赖的 `/gpfs/envs/miniconda3/bin/northjob`，未升级 CLI。计划名 `specpilot-p2-smoke-20261107` 的查询 total=0；真正提交前重新查重。
 - 已从本人现有任务核对镜像候选：`harbor.local.clusters/bp/oss-sglang@sha256:6e9415fcf90dbe66f14e994a7f7c51cb242db3805b1910ce7bd6d0b8e8db0798`。仅证明在集群已有运行实例，不证明适配本实验；拟优先复用共享 `sp-sglang1520` 环境，不切换为镜像内未知引擎。
 - 挂载已补最小适配：`exp/p2_northjob.py create ...` 在本进程调用原 CLI，仅在其生成的模板上追加 `share-readonly` / `models` 子路径到 `/gpfs/models` 的只读挂载；主挂载用 `jixinpeng-pvc` → 用户目录。不改已安装 CLI、不复制权重；真实模板离线验收通过。`RUN/` 已忽略，提交回执与日志保留在 `logs/`。
@@ -27,7 +28,7 @@
 
 RSI 的**制度层**在 mock 规模跑通（G2–G5）；**执行层**已打通到"三臂各起一次真 server、
 跑同一请求集、落可审计 JSONL"（P0–P3，G6/G7/G8 全绿）。
-**NorthJob 已尝试提交两次，均被项目校验拒绝，成功任务零个。** 论文数字一个都还没独立测出；本机烟测 stock/AR 3.74×
+**NorthJob 已尝试提交三次，前两次被拒，a03 成功创建并启动但 Git 预检失败。** 论文数字一个都还没独立测出；本机烟测 stock/AR 3.74×
 只作历史诊断，不代表正式配对尺子已经校准。
 
 ## 接手前必做（5 分钟）
@@ -201,7 +202,7 @@ $SP_PY harness/sglang/probe_greedy.py --n 3 --repeats 2 --max-new-tokens 2048
 - `eval/sealed` 空（`eval/dev` 已由 `assets/upstream/dev` 供给，5 suite × 20 条）；
   `memory/entries/rsi.json` 是 mock 结果
 - `exp/run_e2e.sh` 用 TinyLM，不是真引擎
-- **NorthJob 两次提交被项目校验拒绝（default 无权限；infra-dev-weaver 不存在）；成功任务零个，远程验收未运行**
+- **NorthJob 前两次项目校验拒绝，a03 在 WeaverDev 创建成功但 Git 预检退出；GPU 烟测及远程配对验收未运行**
 - `harness/make_traces.py`：自蒸馏语料生成，**WIP，不在主路径上**（DFlash2 已是训练好的 drafter，
   不需要自蒸馏）。保留但不要依赖。
 - `harness/qwen_backend.py` / `qwen_spec.py`：自写前向，与 HF 数值一致（max diff 0.0），

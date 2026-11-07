@@ -1,6 +1,6 @@
 # 第 2 步：远程双卡生命周期烟测
 
-状态：submission-rejected；用户已批准第 2 步并确认镜像，两次提交分别被默认项目权限及指定项目不存在拒绝，远程验收未运行。不是论文性能或 lossless 验收。
+状态：startup-preflight-failed；前两次提交被拒，用户授权改为 WeaverDev 的 a03 提交成功并启动，Git 归属预检退出，GPU 烟测未运行。不是论文性能或 lossless 验收。
 
 ## 目标与固定协议
 
@@ -113,9 +113,55 @@ git diff --check && git diff --exit-code -- controller
 | `logs/p2-project-diagnosis-myjobs-20261107.log` | `e014a565c7eebc7a1b4b548dd9873b7905f4720d64271d50584d095971c55dec` |
 | `logs/p2-project-diagnosis-k8s-20261107.json` | `4cf06fc65e70358080a6f1b568ec819d8c16a8fb540b6d33e2c2cd78777e4bf5` |
 
+## 尝试 a03：项目修正后提交成功，启动预检失败
+
+- 用户明确批准仅修正项目；本次只执行一次 create，无再次提交。
+- 新名称 `specpilot-p2-smoke-20261107-a03`，输出前缀 `logs/p2-remote-smoke-20261107-a03`；保留 a01/a02 证据。
+- CLI help、本人凭据、精确任务名查重（total=0）及源 pin 均已核对。提交时 HEAD=`c5f794bd3b1392faaf73c625c2d7c0b901c01494`，exp/harness/controller 与 pin 无差异。
+- 命令与 a02 相同，仅 `--project WeaverDev`、job-name/output 的尝试后缀改为 a03。镜像、2 H100/256Gi、源 pin、只读模型挂载、双卡烟测协议、namespace/queue/toleration 均按原命令保留；未加 nodeSelector。
+- 服务端响应：2026-11-07 15:54:59 +08:00，`code=200, data=None, message=success`，request_id=`ReqID-20261107-155459-3141-e54e`；CLI 退出 0。因响应未携带 UUID，按精确 user_def_name 查询，唯一匹配 **job-65f7d61d3d7f-20261107155459**，才确认提交成功。
+- namespace=qiji、project=WeaverDev，project_exists/user_in_project 均为 true。**请求 queue=qiji，服务端实际 queue=proj-31**；已由任务列表和 Kubernetes Job 双重核对，不将实际队列描述为仍是 qiji。
+
+### 生命周期分开验收
+
+| 环节 | 实际结果 |
+|---|---|
+| 提交 | PASS：code=200 + 精确查重解析 UUID |
+| 容器进程启动 | 已启动：Pod 记录开始时间 2026-11-07 15:55:52 +08:00 |
+| 启动预检 | FAIL：持久日志报 Git dubious ownership，脚本 exit=128 |
+| 最终任务状态 | Job/Pod Failed；保存快照中的容器 exit=1，结束于 15:55:54 +08:00；与脚本退出码分开记录 |
+| GPU 预检 | 未到达，不能宣称通过或将此次归因于 GPU 测试失败 |
+| 双卡配对烟测 | 未运行，无 runner 输出目录、manifest、pair 或 GPU 互换验收 |
+
+共享仓库及 .git 本机 owner 为 uid=5084/gid=2888。容器中的 Git 拒绝信任该目录；没有采集到容器进程实际 uid，不能仅凭镜像默认值断言身份。旁路 `.log` 与 `.exit-status` 已持久保存。Kubernetes 还记录 RestartJob 事件，不能把集群自身的重启事件误记为 agent 再次提交；本次仅调用一次 create。后续读取到的 Pod stdout 无有效错误内容，原因证据以持久脚本日志为准。
+
+### 最小修复的本机验证（尚未远程重提）
+
+先用 `GIT_TEST_ASSUME_DIFFERENT_OWNER=1` 且隔离全局/系统 Git 配置，模拟同一仓库归属不匹配：git rev-parse 退出 128 并报同类错误；再仅给该子进程设置精确 safe.directory，退出 0 并解析到冻结前 HEAD。本轮无源码实现变更，也没有修改用户全局 Git 配置。
+
+建议下一次远程命令增加进程环境前缀：
+
+```bash
+GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=/gpfs/users/jixinpeng/SpecDec/SpecPilot
+```
+
+该配置仅信任当前仓库并随该进程树结束，不使用 `safe.directory=*`。保留现有源 pin/镜像/测量规则。此本机模拟只验证 Git 信任机制，不证明远程后续依赖、GPU 或 server 可用，仍需新授权才能提交下一次尝试。
+
+### a03 证据 SHA-256
+
+| 路径 | SHA-256 |
+|---|---|
+| `logs/p2-northjob-submit-20261107-a03.log` | `3fc3babca0af60ee786d240bd512ce44d7c1b395419602e20ee19651f095b7b0` |
+| `logs/p2-northjob-lookup-after-a03-20261107.log` | `e7f96d8e30dd055cd741830d4ceefbb0233725baa10979ad5c0b2740b4e36458` |
+| `logs/p2-remote-smoke-20261107-a03.log` | `bc5f4154ffaf6d5e1e4cdd09b6b004290b5f61f0370ba7d27ed74e7e49d2f208` |
+| `logs/p2-remote-smoke-20261107-a03.exit-status` | `56292515f7d3a7110811eb8de26b3f75f82a0766aa5a1fd66ebcfcb84fe6d5ff` |
+| `logs/p2-northjob-lifecycle-a03-20261107.json` | `ecb1ef103c7b7c7e2177aad478895a5cd786be1bf9b47445c907aaec2d14d2fc` |
+| `RUN/specpilot-p2-smoke-20261107-a03/specpilot-p2-smoke-20261107-a03.yaml` | `8abfd2ad2a355ac633148c4f2d40e37c496436bf76473319c68d8c70476f6156` |
+| `logs/p2-git-trust-check-20261107.json` | `7aa1ef8300df67366942935d613dec0e7031bd76ee8dbf266b2c5b7a92843627` |
+
 ## 决策
 
-暂停等待新重提授权：只读证据已定位 WeaverDev 为有效项目，尚未提交验证；不更换镜像或调度约束。此前授权仅执行一次 a02 create，诊断阶段没有继续重试。
+暂停等待新重提授权：WeaverDev 已通过服务端项目校验并创建 a03，但启动预检未通过。下一次仅为进程树增加精确 safe.directory，不修改全局 Git 配置、镜像、源 pin 或测量协议；获准后再查重并展示完整命令。
 
 模板、启动或请求失败即停，不静默换镜像、不自动重提、不提前跑第 3 步。
 生命周期验收通过后更新首页；第 3 步仍需用户批准，不能把本烟测区间用作正式晋升或论文数字。

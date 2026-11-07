@@ -11,7 +11,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 | 步骤 | 主线任务 | 状态 | 已有进展 / 待完成项 |
 |---|---|---|---|
 | 1 | 明确复现对象与实验协议 | 🟡 初步完成 | 已区分 dev / sealed 与诊断 / 正式统计，见[协议规划](docs/11-reproduction-plan.md) |
-| 2 | 双卡配对测量自动化与远程验收 | 🔵 正在推进（待重提授权） | 本地测试 15/15 + 9/9 通过；已定位有效项目 WeaverDev，远程烟测未运行，见[实验及诊断记录](docs/experiments/p2-remote-smoke-20261107.md) |
+| 2 | 双卡配对测量自动化与远程验收 | 🔵 正在推进（启动预检受阻） | WeaverDev 提交成功，进程在 Git 仓库归属预检退出；GPU 烟测未运行，见[实验及诊断记录](docs/experiments/p2-remote-smoke-20261107.md) |
 | 3 | AR vs stock 基线测量 | ⬜ 待正式配对测量 | 20 请求、2048 token 上限、两轮换卡；当前无完成的真实配对结果 |
 | 4 | 验证作者 final 的收益 | ⬜ 待正式配对测量 | 先 AR/final，再直接 stock/final；[历史烟测](docs/09-p3-harness-validation.md)不算正式结果 |
 | 5 | 真实正确性、噪声与晋升判据 | ⬜ 待补齐真实验收 | 有 mock 骨架；真实 forcing、噪声校准与正式 controller 判据待维护者补齐 |
@@ -21,11 +21,11 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 | 9 | 多轮真实优化闭环与记忆 | ⬜ 待真实验证 | [mock 闭环](docs/06-gates.md)已跑通，不代表真实引擎闭环完成 |
 | 10 | 对照实验与最终报告 | ⬜ 未开始 | 分析各组件贡献，分别报告架构与数字复现证据 |
 
-**当前状态：**按用户指定的 `infra-dev-weaver` 项目、`qiji` namespace/queue 和 toleration 重提一次，服务端返回 HTTP 400 / code 40005：项目不存在。两次尝试均被拒绝，提交后查重为空；未启动远程进程、未通过 GPU 验收。
+**当前状态：**a03 使用 `WeaverDev` 提交成功（code=200，UUID `job-65f7d61d3d7f-20261107155459`）；进程已启动，但 Git 报 dubious ownership，烟测脚本退出 128，任务最终 Failed。尚未执行 GPU 预检或配对测量。
 
 **只读诊断：**本人旧任务中的 `infra-dev-weaver` 被后端标记 `project_exists=false`；另一本人任务的 `WeaverDev` 为 `project_exists=true / user_in_project=true`。旧任务注解不等于有效注册项目，不能与节点 toleration 混同。
 
-**下一动作：**获准后仅把项目改为 `WeaverDev`，重新查重、展示命令并提交一次；保留 `qiji` namespace/queue、原 `infra-dev-weaver` toleration、镜像和双卡协议。项目/GPU 配额及远程烟测仍未验证。
+**下一动作：**获准后仅在任务进程内设置本仓库的精确 `safe.directory`，再查重并重提一次；不改全局 Git 配置、不换镜像或协议。本机模拟修复通过，不等于远程 GPU 验收通过。请求队列仍为 qiji；a03 服务端实际归入 proj-31，已在实验记录区分。
 
 **已有基础：**三臂真实 server 烟测与 mock 闭环完成，GitHub 私有远端已配置；**尚未独立复现论文数字。**
 
