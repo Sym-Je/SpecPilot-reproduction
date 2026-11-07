@@ -46,7 +46,7 @@ Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果
 | mock 闭环与真实三臂 smoke | 历史阶段已验收，非论文数字复现 | `docs/06-gates.md`、`docs/09-p3-harness-validation.md` |
 | 配对编排 | CPU/HTTP 验收 15/15，首次发布前已复验 | `exp/p3_pair_run.py`、`harness/test_p3_pair_run.py`；远程生命周期待验证 |
 | 本机 AR/stock 尝试 | 历史 blocked；未启动测量 server | `logs/p3-local-ar-stock-20261107.log`；不是远程执行前置条件 |
-| NorthJob 准备 | planned；image 未指定，零次提交 | 先建实验记录并确认 image、代码快照、挂载和资源 |
+| NorthJob 远程工具验收 | blocked；image 已确认，首次提交被 default 项目权限拒绝 | [尝试 a01](experiments/p2-remote-smoke-20261107.md)；确认可用 project 并获准重提，成功任务零个 |
 | A1：AR/stock | 未运行远程配对 | 20 请求、2048 cap、2 轮互换；通过才继续 A2 |
 | A2/A3：AR/final、stock/final | 待 A1 | 同协议，直接验证收益和必要的长度诊断 |
 | B/C：正式 dev、真实正确性与裁判 | 待诊断及维护者工作 | 正式统计、噪声和 forcing 不以 mock 通过代替 |
