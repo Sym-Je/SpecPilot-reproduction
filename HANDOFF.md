@@ -121,8 +121,11 @@ $SP_PY harness/sglang/probe_greedy.py --n 3 --repeats 2 --max-new-tokens 2048
 - **P0（已完成）**：`docs/08-upstream-pin.md` — tarball sha256 `25e68b1b…602dd4`，
   规范化清单 `assets/upstream/MANIFEST.sha256`（3097 文件）sha256 `4bca3c10…81563f`；
   已核对 tarball 解包树与现有树逐字节一致（差异仅 .pyc）。
-- **P1（1 天）**：`harness/build_engine.py` —— 按 `settings/*/config.json` 组装 stock/final 两棵树，
-  打印 content hash（sha256 of canonical {relpath: file sha256}），两次构建 hash 必须相同。
+- **P1（已完成）**：`harness/build_engine.py` + `gates/g6_engine_build.py`（6/6）。
+  stock `e5472c4f…652e3ff` / final `d406ba81…54f90a`，产物在
+  `specpilot_data/work/engines/<setting>-{stock,final}`。`env.sh` 已改为优先用派生树，
+  缓存按 `TREE_SHA[:16]` 分桶。验收：派生 stock 与上游树逐 token 一致（3/3）。
+  坑：换 PYTHONPATH 会让 JIT 缓存失效，首次启动 `draft_decode` 图采集 8.7 s → 222.8 s。
 - **P2（1–2 天）**：`controller/measure.py` 的 worker 从 JSONL stdio 换成本地 HTTP
   （`POST /generate`，body `{input_ids, sampling_params, stream}`），**只换传输不改统计**。
   验收：同请求两次 output ids 的 sha256 相同。

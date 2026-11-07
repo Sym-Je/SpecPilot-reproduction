@@ -78,3 +78,33 @@
 - agent 进程即使拿到 `python3 -c "open('ledger/x','a')"` 也物理写不进账本
 - sealed 请求集对 agent 不可读 —— 不是约定，是内核拒绝
 - 账本任何一条被回改，`verify()` 都能定位到 seq
+
+## G6 派生引擎树可重现 — 通过（6/6）
+
+`python3 gates/g6_engine_build.py`（纯 CPU，不碰 GPU）：
+
+| 判据 | 结果 |
+|---|---|
+| E1 同输入两次构建 → 同一 tree hash | `e5472c4fbb6e6bf5` == 同一值 |
+| E2 `kind=stock` 的 `python/` 与上游逐文件相同 | identical（0 差异） |
+| E3 `kind=final` 与 stock 不同 | 49 个文件变了 |
+| E4 改动全部来自 `settings/<setting>/files/` | clean（无夹带） |
+| E5 树内无 `.pyc` / `__pycache__` | 0 |
+| E6 dflash2 setting 不套 dspark overlay | 符合 |
+
+### 为什么需要这道门
+
+- **E1 是缓存的前提**：`serve.sh` 按 `TREE_SHA` 前缀分桶放 JIT / torch_extensions 缓存。
+  hash 不稳定 → 每次启动都冷编译，一次 220 s 起步，配对测量直接废掉。
+- **E2 是"默认=stock"的机器证据**：AGENTS.md 铁律 3 要求每个机制默认关闭且复现 stock。
+  靠人读代码保证不了；靠"stock 树 == 上游树"这个等式才保得住。
+- **E4 是防夹带的**：final 树只能由 `files/` 覆盖层产生差异。如果 final 树里出现
+  `files/` 里没有的改动，说明组装逻辑自己改了什么 —— 那部分就没被 option 控制。
+- **E5 是坑**：上游 `python/` 被 `PYTHONPATH` 直接 import 过，树里有 1069 个 `.pyc`。
+  不排除它们，哈希会随"谁 import 过"变化，E1 假失败。
+
+### 一个实现细节
+
+覆盖层 `settings/<setting>/files/` 的路径是 `python/sglang/...` 同构的，
+所以 G6 比对时必须把树内路径也统一成带 `python/` 前缀的形式；直接比
+`root/python/` 下的相对路径会让 E4 全部误报"夹带"。

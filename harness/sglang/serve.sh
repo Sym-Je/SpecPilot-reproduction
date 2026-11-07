@@ -21,6 +21,8 @@ PORT=${PORT:-30000}
 NCCL_PORT=${NCCL_PORT:-30001}
 DRAFT_TOKENS=${DRAFT_TOKENS:-8}
 
+echo "[serve] engine kind=$SP_KIND tree_sha=$SP_TREE_SHA block=$DRAFT_TOKENS" >&2
+
 exec "$SP_PY" -m sglang.launch_server \
   --model-path "$SP_TARGET" \
   --speculative-algorithm DFLASH \

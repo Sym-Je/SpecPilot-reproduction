@@ -154,7 +154,28 @@ G4 5/5  ·  RSI 3 轮  ·  ledger records=10 hash chain: OK
   *per exact-weight pass* 不同源 —— 见 HANDOFF §七 P4 的 G6 门禁要求。
 - ⚠️ 3 条样本、无 AR 臂 → **不能**推出 stock/AR ≈ 3.95×。
 
-## 5. 下一步（P1）
+## 5. 派生树等价性（P1 验收）
+
+`harness/build_engine.py` 组装的 stock 派生树
+（`work/engines/h100_c1_qwen38-27b_dflash2-stock`，tree sha `e5472c4f…652e3ff`）
+取代上游 `python/` 作为 `PYTHONPATH` 后，**逐 token 完全一致**：
+
+```
+gsm8k-1182  input_same=True  output_same=True  2f310702dffd
+gsm8k-211   input_same=True  output_same=True  569b0f5f1158
+gsm8k-877   input_same=True  output_same=True  7a5bd8b0cd50
+deterministic 3/3
+```
+
+这是 G6 E2（"stock 树 == 上游树"）在运行时的对应证据：
+文件级同字节 → 输出级同 token。
+
+**副作用（要记住）**：换 `PYTHONPATH` 会让 torch/Triton 的 JIT 缓存 key 失效，
+`draft_decode` CUDA graph 采集从 8.7 s 涨到 **222.8 s**（`scheduler_e2e` 388.3 s）。
+第二次启动会命中缓存（缓存按 `TREE_SHA[:16]` 分桶，见 `harness/sglang/env.sh`）。
+所以 **P3 配对测量必须给每臂留足冷启动预算，或者每臂都复用同一个树 sha 的热缓存**。
+
+## 6. 下一步（P2）
 
 `harness/build_engine.py`：按 `settings/*/config.json` 组装 stock/final 两棵派生树，
 打印 content hash（sha256 of canonical `{relpath: file sha256}`），两次构建必须同 hash。

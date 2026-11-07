@@ -58,3 +58,32 @@ find . -type f -not -path '*/__pycache__/*' -not -name '*.pyc' -printf '%P\n' \
 - 上游树**永远不改**。要在引擎上做机制，走 `patches/` + option（`AGENTS.md` 第 3 条），
   在 `harness/build_engine.py` 组装的派生树里生效，派生树带自己的 content hash。
 - 若上游被重新下载/替换，本文件与 `MANIFEST.sha256` 必须同步更新，并在 git log 里说明原因。
+
+## 6. 派生引擎树（P1 产出）
+
+上游树永远只读；真正跑的是 `harness/build_engine.py` 组装出来的派生树，位置：
+
+```
+/gpfs/users/jixinpeng/specpilot_data/work/engines/<setting>-{stock,final}
+```
+
+当前 `h100_c1_qwen38-27b_dflash2`：
+
+| kind | tree sha（canonical content hash） | 覆盖层 | block |
+|---|---|---|---|
+| stock | `e5472c4fbb6e6bf57e2736f898f5e0827b9448cdd34f332d8fb2df93f652e3ff` | 0 | 8 |
+| final | `d406ba8183917674fffc083c67117a9c5e7b01a51da3620f5419638a7854f90a` | 49 文件（`int-015-tlvcbn32`） | 32 |
+
+重建：
+
+```bash
+python3 harness/build_engine.py h100_c1_qwen38-27b_dflash2 stock /path/out
+python3 harness/build_engine.py h100_c1_qwen38-27b_dflash2 final /path/out
+python3 gates/g6_engine_build.py     # 6/6，重建出来的 sha 必须与上表一致
+```
+
+hash 定义与上游 `scripts/build_engine.py` 相同（`sha256` of canonical
+`{relpath: sha256(file)}`，排除 `__pycache__`/`.pyc`），所以两边的 `TREE_SHA`
+可以直接对比。**注意**：树上只有文件；final 的 46 个 `SPECPILOT_*` 开关与 block size
+由 `harness/sglang/serve.sh` 以环境变量注入，改开关不会改 tree sha —— 配对测量时
+必须把注入的环境一起记进测量记录。
