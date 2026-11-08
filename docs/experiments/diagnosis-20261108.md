@@ -114,3 +114,17 @@ git diff --exit-code 496ab11 -- controller patches assets/upstream
 - 原正式result/replay-01/replay-02已逐字节一致，SHA=
   `f998dcadd38d07647256898d6719184f21d351bd3957847e48dd63de8183af4b`。
   补采开始有成功trace，尚待完整验收，不把原16失败翻成成功或合并新正式性能样本。
+
+### 补采完成与CPU阶段标签适配
+
+- 补采16/16成功，Job Completed/Pod Succeeded/脚本与容器exit0，17:44:24–17:56:10 UTC，11m46s。
+  原始HTTP证明32次start/stop均HTTP200，响应没有Content-Type，内容为纯文本
+  `Start profiling.\n` / `Stop profiling. This will take some time.\n`；支持采集器不兼容诊断。
+- 两任务总占卡11.267778 GPU小时（原16GPU小时预算内），同时最多2GPU；两卡最终0MiB/0–1%，端口释放。
+- 原保守固定scope白名单未识别带形状的动态标签，故初次profile报告的GPU阶段未归因100%保持原样。
+  真实trace已公开标注`step[DRAFT ...]`、`step[VERIFY ...]`、`step[EXTEND ...]`，
+  新增CPU-only `exp/diagnosis_trace.py`只对这类明确语法做阶段关联：同线程scope包含的CPU launch，
+  再按原生correlation绑定GPU kernel。重叠不同阶段、未知标签或不明确correlation全部保留未归因。
+  不从kernel名称猜阶段，不回改trace，不把累计GPU kernel时间当完整请求耗时占比。
+- 这是观察运行时标签后的辅助诊断registry，不是修改三主要端点/晋升门槛；独立源码SHA和Git pin冻结，
+  四项合成红/绿反例验证嵌套/未知/歧义不误归因；完整167项CPU回归通过。
