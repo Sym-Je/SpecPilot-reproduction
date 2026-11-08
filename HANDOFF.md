@@ -1,9 +1,32 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-08 UTC（匹配因素诊断与profile补采/归因全部完成；无运行任务）。
+> 最后更新：2026-11-09 UTC+08（真实RSI准入核对完成；无运行任务）。
 
-## 最新接续点：匹配因素诊断全部完成，不自动新阶段
+## 最新接续点：真实RSI准入核对完成，不自动运行搜索
+
+- 用户批准结束final泛化/接受长度追因，复用已有验收，只补准备缺项；本阶段唯一记录
+  `docs/experiments/rsi-readiness-20261109.md`，基准pin=`c05d17d46446c31f3044943a7423c444583207a6`。
+- 独立目录`logs/rsi-readiness-20261109-a01/`，先写`acceptance.sh`后CPU验收；
+  不提交GPU，不调用`exp/run_e2e.sh`/mock loop，不修改controller/引擎/patches/eval，不碰sealed/ledger/memory。
+- 已核对：真实正确性裁判和30题dev联动不是缺项，不重复作者基线；搜索从stock/block8起步，
+  final仅作作者参考。既有noise和δ只属于原活动，新候选必须同活动重标定并验实际测速输出。
+- 真正缺口：CLI和dev活动固定ar/stock/final；没有通用真实candidate构建/option/T0适配；
+  costmodel仍kernel=1，代表性stock lattice/replay未接；proposer仍固定registry；
+  paper_policy明确只读pre-promotion verdict，正式真实候选状态机/账本集成需维护者交付。
+- 中文60题反例保留，作为后续开发/回归范围的依据；不手工读/搬私有题，不把见过结果的集再叫独立确认，
+  不擅加“所有领域必须都提速”论文门槛。作者产物验证、数字复现和真实自主发现仍分开。
+- 验收完成：11定向/167总回归、五阶段25319清单项SHA通过；裁判/dev各四独立进程重放一致。
+  初次`acceptance.sh`在dev原汇总字节比较处exit1保留，原文件仅比CLI多一个末尾换行；
+  新`acceptance-final.sh`验证dev与历史两CLI字节一致、原汇总严格仅多单个换行/JSON对象相同，exit0。
+- 活动22:52:53–22:56:43 UTC（本地2026-11-09 06:52:53–06:56:43）；
+  dev重放SHA=`840502614d4bbd84c743ea377838e22e457a64cbaa6e283e2e53bc728fed172f`，
+  裁判重放SHA=`ad1238a1fbc7ccf67ea7b176ed8a3f2fffe1079535e0c5f9a76b4f03e41d9d3c`。
+- 新37文件/2380283字节全SHA通过，清单`logs/rsi-readiness-evidence-20261109-a01.sha256`，
+  SHA=`f3d90b8237a340274b77c889ef1a3e7e84de6c1427f569a20c5f66178ecea23f`。
+  无GPU/晋升/真实RSI，无运行会话。下一大步骤先报candidate接入/T0方案获批，不自动改controller或开新GPU。
+
+## 上一阶段：匹配因素诊断全部完成，不自动新阶段
 
 - 唯一记录`docs/experiments/diagnosis-20261108.md`，已全部执行/重放/归档。不要重复提交、重抽样或改final追绿。
 - 固定stock/final/controller，12合成事实卡，中英文×512/1536精确输入×短/长指令96自然请求；
