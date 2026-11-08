@@ -356,6 +356,7 @@ def analyze(private, public):
     with public.open('x') as destination:
         json.dump(result,destination,indent=2,ensure_ascii=False,allow_nan=False)
         destination.write('\n')
+    public.chmod(0o644)
     return result
 
 

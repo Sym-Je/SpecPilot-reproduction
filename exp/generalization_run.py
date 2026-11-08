@@ -28,6 +28,7 @@ from exp.p5_real_run import Campaign, head_process, launch
 def event(public, phase, **fields):
     with (public/'events.jsonl').open('a') as destination:
         append_json(destination,dict(time_unix=time.time(),phase=phase,**fields))
+    (public/'events.jsonl').chmod(0o644)
 
 
 def build(private, data_path, public, environment, gpus):
@@ -160,7 +161,20 @@ def quality(private,dataset,campaigns,public):
         event(public,'task-quality-complete',cap=cap,code_controls_passed=sum(controls.values()),code_controls_total=len(controls))
 
 
-def run(private,data_path,public):
+def finish(private,dataset,campaigns,public,defer_quality=False):
+    if defer_quality:
+        write_json(public/'gpu-complete.json',dict(gpu_work_complete=True,scientific_acceptance_complete=False,
+                   quality_location='local-cpu-sandbox',source_pin=os.environ.get('GENERALIZATION_EXPECTED_COMMIT')))
+        (public/'gpu-complete.json').chmod(0o644)
+        event(public,'gpu-work-complete-local-quality-pending')
+        return
+    quality(private,dataset,campaigns,public)
+    event(public,'independent-evidence-validation-start')
+    result=analyze(private,public/'result.json')
+    event(public,'execution-complete',conditions=len(result['caps']))
+
+
+def run(private,data_path,public,defer_quality=False):
     os.umask(0o077)
     private.mkdir(mode=0o700)
     event(public,'execution-start')
@@ -173,6 +187,7 @@ def run(private,data_path,public):
                 for gpu in gpus:
                     resources.enter_context(gpu_lock(gpu))
                 root=build(private,data_path,public,environment,gpus)
+                root['quality_location']='local-cpu-sandbox' if defer_quality else 'same-job-sandbox'
                 write_json(private/'manifest.json',root)
                 dataset=json.loads(data_path.read_text())
                 campaigns=[]
@@ -186,13 +201,10 @@ def run(private,data_path,public):
                 write_json(private/'timing-cleanup.json',wait_for_idle([0,1]))
                 write_json(private/'score-start.json',dict(started_unix=time.time()))
                 scoring(private,root,campaigns,environment,public)
-                quality(private,dataset,campaigns,public)
                 check_ports([30100,30110,30120,30130])
                 write_json(private/'cleanup.json',wait_for_idle([0,1]))
                 subprocess.run(['git','diff','--exit-code',root['source_pin'],'--','controller','exp','harness','assets/upstream'],cwd=ROOT,check=True)
-                event(public,'independent-evidence-validation-start')
-                result=analyze(private,public/'result.json')
-                event(public,'execution-complete',conditions=len(result['caps']))
+                finish(private,dataset,campaigns,public,defer_quality)
         except BaseException as error:
             traceback.print_exc()
             write_json(private/'failed.json',dict(error=repr(error),time_unix=time.time()))
@@ -212,5 +224,6 @@ if __name__=='__main__':
     parser.add_argument('--private',type=Path,required=True)
     parser.add_argument('--dataset',type=Path,required=True)
     parser.add_argument('--public',type=Path,required=True)
+    parser.add_argument('--defer-quality',action='store_true')
     args=parser.parse_args()
-    raise SystemExit(run(args.private.resolve(),args.dataset.resolve(),args.public.resolve()))
+    raise SystemExit(run(args.private.resolve(),args.dataset.resolve(),args.public.resolve(),args.defer_quality))

@@ -10,6 +10,18 @@ from unittest.mock import patch
 
 
 class GeneralizationTests(unittest.TestCase):
+    def test_deferred_quality_is_explicitly_pending_not_scientific_acceptance(self):
+        from exp.generalization_run import finish
+        with tempfile.TemporaryDirectory() as temporary:
+            public=Path(temporary)
+            with patch('exp.generalization_run.quality') as quality,patch('exp.generalization_run.analyze') as analyze:
+                finish(public,{},[],public,defer_quality=True)
+            quality.assert_not_called();analyze.assert_not_called()
+            pending=json.loads((public/'gpu-complete.json').read_text())
+            self.assertFalse(pending['scientific_acceptance_complete'])
+            self.assertEqual(pending['quality_location'],'local-cpu-sandbox')
+            self.assertFalse((public/'result.json').exists())
+
     def test_official_cmrc_schema_and_squad_schema(self):
         from exp.generalization_data import source_rows
         chinese=[dict(context_id='a',context_text='文章',qas=[dict(query_text='问题',query_id='b',answers=['答案'])])]

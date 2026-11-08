@@ -33,11 +33,14 @@ def watch(uuid,public,record):
             except client.exceptions.ApiException as error:
                 snapshot['query_error_status']=error.status
             status=public/'exit-status'
-            if status.exists():snapshot['script_exit']=status.read_text().strip()
             events=public/'events.jsonl'
-            if events.exists():
-                lines=events.read_text().splitlines()
-                if lines:snapshot['public_progress']=json.loads(lines[-1])
+            try:
+                if status.exists():snapshot['script_exit']=status.read_text().strip()
+                if events.exists():
+                    lines=events.read_text().splitlines()
+                    if lines:snapshot['public_progress']=json.loads(lines[-1])
+            except (PermissionError,json.JSONDecodeError) as error:
+                snapshot['public_status_error']=type(error).__name__
             history.write(json.dumps(snapshot)+'\n');history.flush()
             record.with_suffix('.latest.json').write_text(json.dumps(snapshot,indent=2))
             print(json.dumps(snapshot),flush=True)

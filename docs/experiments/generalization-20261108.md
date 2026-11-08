@@ -86,3 +86,33 @@ Dolly官方GitHub不含数据且HF不可达，摘要/普通对话改官方Stanfo
   同进程代码任务测试是功能代理，不是针对有意伪造测试完成标记的恶意代码的形式化正确性证明。
 - controller、patches、作者配置/原dev文件未修改；原始产物不提交Git。
   CLI当前help四个调度参数可用，凭据仅验证结构；2 H100、最长8小时/16GPU小时预算，任务名查重待核对。
+
+### 唯一GPU提交 a01
+
+- 2026-11-08 10:31:54–55 +08:00，create一次返回code=200/data=None；按精确名查重total=1，
+  UUID=`job-611d30b86458-20261108103155`，name=`specpilot-generalization-20261108-a01`。
+  请求WeaverDev/qiji，服务端实际queue=proj-31；初始Pending不是进程启动或GPU验收通过。
+- source pin=`c085f8bc069228c9dd156aac578f9d99ae6427f4`，
+  `logs/generalization-prep-20261108-a01/source.tar` SHA256=
+  `85b31e18789c9a056e2f7e064d81e7c5859af1ed23c7bb8d3e415d277d411467`。
+- 私有运行输出`logs/generalization-run-20261108-a01/`，agent只看公开状态
+  `logs/generalization-public-20261108-a04/`，生命周期/提交回执`logs/generalization-prep-20261108-a01/`。
+  完整最终命令留`submit.txt`及NorthJob生成的`RUN/specpilot-generalization-20261108-a01/`，无凭据入Git。
+
+### a01失败与执行位置修正（尚无性能结果）
+
+- a01在远程CPU自检处，隔离器正确程序被拒、死循环也提前拒；**未进入真实runner、未启动模型server、
+  未生成配对测量目录**。远程具体worker stderr当时丢弃，不能未经证据断言是某个内核调用。
+  node204，平台最终Failed/Pod Failed/exit1，Job retryCount=2；原文件保护阻止平台重试覆盖。
+  原始remote.log、失败平台状态和空监控失败均保留，不当科学拒绝或测量结果。
+- root容器以0600写公开日志，导致host UID5084监控PermissionError。只恢复两个公开诊断文件可读，
+  不开放私有数据；新入口仅公开聚合文件0644，私有根仍0700。
+- 本机同SP环境下root与普通身份隔离器合成测试通过，40参考解普通身份已过。
+  **先于任何性能结果**将代码执行与质量评测固定移至本机CPU安全隔离器；GPU任务只做配对/forcing。
+  本机controller式子进程仅读私有原始结果并发布汇总，agent仍不看样本。
+  远程不再执行模型生成代码；记录能力探针和纯合成worker诊断，不将安全不可用“降级成无沙箱运行”。
+- 新显式`--defer-quality`仅标`gpu_work_complete=true / scientific_acceptance_complete=false`；
+  远程退出后必须完成本机质量/独立证据重放，才发布完整result。新增pending非通过反例先红后绿。
+  新旧137项CPU回归通过；controller/最终实现/200题及cap/配对/统计判据不变。
+- 下一尝试a02用新公开状态目录，复用同一个dataset SHA，不重抽题、不读取部分性能结果；
+  新源码pin/命令先冻结并查重。此前短失败资源额外计入，不将预算或“单次提交”记录回改为零失败。

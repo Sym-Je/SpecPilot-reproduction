@@ -21,8 +21,20 @@
 - 新旧136项CPU测试通过；源冻结提交/最终NorthJob命令/UUID待登记。沿用用户已确认digest镜像、
   WeaverDev/qiji/实际proj-31/原toleration、单节点2 H100/256Gi，最长8小时（16GPU小时）。
   查重→展示完整命令/资源→create一次→code200+精确UUID，含糊先查不重提。
+- 已提交一次：source pin=`c085f8bc069228c9dd156aac578f9d99ae6427f4`，
+  UUID=`job-611d30b86458-20261108103155`，code200且精确名唯一；初始Pending。
+  私有输出`logs/generalization-run-20261108-a01/`不要读取；只监控公开a04状态目录。
+  不再次create，执行/科学验收仍待结果；生命周期落准备目录，最终更新以阶段记录为准。
 - 准备失败a01/a02为数据源路径/下载，a03为CMRC schema；均无GPU提交/性能结果，原证据保留。
   目前尚未产生新泛化数字；30题dev通过记录见下，不借其替代新数据验收。
+- 最新：GPU a01已Failed（node204，retryCount2，原日志和监控权限失败保留），未进入真实runner，
+  **无性能测量、无模型server**。远程沙箱正例自检不通过，具体worker stderr当时未保留；
+  不断言未经证实的内核根因。公开root日志0600也已诊断，只恢复公开文件可读，私有目录不开放。
+- 修正执行位置：新a02远程只配对+FP32 forcing，代码题/质量固定移到本机已验证CPU隔离器，
+  root本机9项隔离/编排合成测试通过、新旧137回归通过。新`--defer-quality`只记录质量待完成，不能当科学通过。
+  a02公开状态`logs/generalization-public-20261108-a05/`，仍复用a04同一dataset SHA；不重抽样或改final/controller。
+  远程完成后用`exp/generalization_local.py`（CUDA_VISIBLE_DEVICES=''，受控sudo读取root私有输出）
+  完成质量和独立重放，只读公开汇总；新任务查重/源码pin/UUID见实验记录后续登记。
 
 ## 最新接续点：30请求正式dev联合验收通过
 
