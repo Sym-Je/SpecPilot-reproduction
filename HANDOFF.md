@@ -1,9 +1,9 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-08 UTC（用户批准中文短答减速诊断；精确匹配数据/160回归通过，待GPU提交）。
+> 最后更新：2026-11-08 UTC（中文短答诊断已提交，node244运行中，无新科学结论）。
 
-## 最新接续点：中文短答减速诊断已批准，准备通过
+## 最新接续点：中文短答减速诊断GPU运行中
 
 - 唯一记录`docs/experiments/diagnosis-20261108.md`；新增`exp/diagnosis.py`/`exp/diagnosis_remote.sh`。
   不改final/stock/46开关/controller，不碰sealed/RSI/ledger。不是新的质量或lossless验收阶段。
@@ -18,6 +18,12 @@
 - 接下来冻结源码/tar、当前help查重、展示完整2GPU命令、create一次并核对code200+UUID。
   沿用已确认digest/WeaverDev/qiji/原toleration，1节点×2H100/256Gi，最多8小时；不因结果重抽样。
   profile公开API不可用或scope不全则明确局限，不改引擎“补证”。两次重放/SHA/README/阶段推送后停止。
+- 上述提交已完成：code200且精确UUID=`job-89c6c8cd6c11-20261108200750`，node244，
+  12:08:18 UTC启动，2H100/256Gi/原digest与挂载已核对；实际queue=proj-31。
+  pin=`629eb4268dcf49bed41e1266f0f159426dc7444a`，源tar SHA=
+  `2411dcc0208573d3ab8af7203948374ebc5816884093bb580cafa9f199401a67`。
+  私有运行`logs/diagnosis-run-20261108-a01/`，仅监控公开a01与准备目录lifecycle；
+  不再次create、不改代码，运行中仅文档更新。结束后CUDA不可见执行`diagnosis.py audit --out <新路径>`两次核验。
 
 ## 最新接续点：反例独立确认已完成，不自动进入下一阶段
 

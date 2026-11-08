@@ -1,6 +1,6 @@
 # 中文短答减速：匹配因素与执行阶段诊断
 
-状态：用户已批准执行；先冻结协议和验收，未提交GPU。基准496ab11。
+状态：用户已批准执行，数据/源码/验收冻结，GPU运行中。基准496ab11。
 
 ## 目标与边界
 
@@ -63,3 +63,17 @@ git diff --exit-code 496ab11 -- controller patches assets/upstream
 准备日志`logs/diagnosis-prep-20261108-a01/`。dataset SHA=
 `0d92ecbdd62cc57473fd97f692183013314f4d271ead9fa30e739fea8eab4b30`。
 现有CLI3.3.11 help及凭据结构已核对，不输出凭据、不升级；尚未提交GPU。
+
+## 唯一GPU提交a01（运行中）
+
+- source pin=`629eb4268dcf49bed41e1266f0f159426dc7444a`；
+  `logs/diagnosis-prep-20261108-a01/source.tar` SHA=
+  `2411dcc0208573d3ab8af7203948374ebc5816884093bb580cafa9f199401a67`。
+- 精确名查重total0，create一次返回code200/dataNone，按精确名唯一解析
+  UUID=`job-89c6c8cd6c11-20261108200750`，name=`specpilot-diagnosis-20261108-a01`。
+- 2026-11-08 12:08:18 UTC在node244启动。服务端2H100/256Gi、原digest、只读models、
+  禁hostNetwork、toleration核对通过。项目WeaverDev，请求namespace/queue=qiji、实际queue=proj-31。
+- 完整命令`logs/diagnosis-prep-20261108-a01/command.txt`，回执`submit.txt`与精确查询`lookup-after.txt`；
+  模板`RUN/specpilot-diagnosis-20261108-a01/specpilot-diagnosis-20261108-a01.yaml`。
+- 私有运行`logs/diagnosis-run-20261108-a01/`，agent只看公开a01聚合状态；
+  生命周期`logs/diagnosis-prep-20261108-a01/lifecycle.*`。尚无科学验收，不重复create，不改运行代码。
