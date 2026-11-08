@@ -18,6 +18,8 @@
    记录实际输出分布、EOS/截断、短/长指令是否真正拉开长度；不因不遵从指令删样/换题。
 3. 固定长度组：同卡短答指令的48请求，分别精确生成64/256/1024token。
    显式ignore_eos=true，其余greedy/top_k1不变；是长度干预，**不能当自然任务收益或质量结论**。
+   EOS后的延续可能改变token难度与草稿表现；长度对比不能单独证明“只有固定开销”这一机制。
+   解释时核对EOS后延续与不同预算的共同前缀稳定性，只作为辅助诊断，不替换三主要端点。
    每个条件null-pre→stock/final→null-post，各两轮fresh双server/物理换卡，2短预热+全集全尺度预热。
 4. 三主要条件对比：固定64token的中文/英文加速比之比；固定1024/64token的加速比之比；
    固定1536/512输入的加速比之比（跨三个输出预算等权）。以12事实卡做cluster，
@@ -77,3 +79,23 @@ git diff --exit-code 496ab11 -- controller patches assets/upstream
   模板`RUN/specpilot-diagnosis-20261108-a01/specpilot-diagnosis-20261108-a01.yaml`。
 - 私有运行`logs/diagnosis-run-20261108-a01/`，agent只看公开a01聚合状态；
   生命周期`logs/diagnosis-prep-20261108-a01/lifecycle.*`。尚无科学验收，不重复create，不改运行代码。
+
+## 正式计时完成；profile采集器修复（协议修订，仅辅助证据）
+
+- 原任务Job Completed/Pod Succeeded/容器与脚本exit0，node244，12:08:18–17:34:34 UTC，
+  5h26m16s；所有四条件/十二会话/二十四轮计时及前后null验收完成，原始证据不改、不重跑。
+- 初次16个profile探针均JSONDecodeError。JSON-only NativeClient在解析非JSON成功响应前抛错，
+  原始失败载荷未保存，不能凭异常猜出具体响应文本；OpenAPI schema和原失败记录保留。
+  原1token代理仍有效；初次profile不能记为已获得阶段trace。
+- 修复仅新增`exp/diagnosis_profile.py`独立ProfileClient：原生profile start/stop可接受JSON/纯文本，
+  记录HTTP状态/content-type/原始字节base64与SHA；不修改controller.NativeClient或原计时源码。
+  只在公开schema支持时开启detailed_annotations，未知scope仍不猜归因。
+- 163回归通过；新增`diagnosis_profile_remote.sh`仅补采原定两轮fresh/换卡的profile探针，
+  同一原始dataset/模型/引擎/46开关，不运行正式null/candidate测量。
+  原始主报告仍由629eb42冻结源独立重放，修复profile另有source pin和单独报告，不能回填覆盖旧失败。
+- 原计划一次提交因采集器错误修订为额外一次profile-only任务，**不是追加独立性能样本**。
+  原任务已结束才提交；仍最多同时2GPU，补采最长1小时。
+  原5h26m16s＋补采上限1小时（另有短初始化）仍小于原8小时/16GPU小时总预算，不扩大资源上限。
+  新任务同skill当前help/唯一名查重/完整命令与2GPU展示/code200+UUID规则。
+- 辅助EOS后延续和跨预算共同前缀审计只读原始输出、仅发布聚合，源SHA单独绑定；
+  不改变三主要端点/样本/区间，也不把输出前缀相同当lossless证明。

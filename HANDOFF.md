@@ -1,9 +1,9 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-08 UTC（中文短答诊断已提交，node244运行中，无新科学结论）。
+> 最后更新：2026-11-08 UTC（诊断正式计时完成；profile JSON-only采集器修复163回归通过，待仅补采profile）。
 
-## 最新接续点：中文短答减速诊断GPU运行中
+## 最新接续点：诊断正式计时完成，profile采集器修复待补采
 
 - 唯一记录`docs/experiments/diagnosis-20261108.md`；新增`exp/diagnosis.py`/`exp/diagnosis_remote.sh`。
   不改final/stock/46开关/controller，不碰sealed/RSI/ledger。不是新的质量或lossless验收阶段。
@@ -24,6 +24,14 @@
   `2411dcc0208573d3ab8af7203948374ebc5816884093bb580cafa9f199401a67`。
   私有运行`logs/diagnosis-run-20261108-a01/`，仅监控公开a01与准备目录lifecycle；
   不再次create、不改代码，运行中仅文档更新。结束后CUDA不可见执行`diagnosis.py audit --out <新路径>`两次核验。
+- 原GPU任务已Completed/Pod Succeeded/exit0，12:08:18–17:34:34 UTC；正式四条件全验收。
+  profile16探针均JSONDecodeError（JSON-only客户端不能处理响应），初次trace不能宣称已采到。
+  初次CPU `diagnosis.py audit`已成功，公开a01/result.json；尚未完成阶段，不重跑任何正式测量。
+- 独立新增`diagnosis_profile.py`/`diagnosis_profile_remote.sh`修复纯文本响应捕获，163回归通过；
+  原main诊断/计时源码及controller保持不变，新任务仅两轮fresh/换卡补采profile，最长1小时，
+  加原5h26m16s仍在原8小时/16GPU小时内；同一时刻最多2GPU，正式数据始终绑定629eb42。
+  新公开`logs/diagnosis-profile-public-20261108-a01/`；新私有运行拟`logs/diagnosis-profile-run-20261108-a01/`。
+  新任务单独source pin/命令/UUID待登记，查重→展示→create一次，不复用旧任务名。
 
 ## 最新接续点：反例独立确认已完成，不自动进入下一阶段
 
