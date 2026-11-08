@@ -1,9 +1,34 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-08（Asia/Shanghai；第5步真实dev裁判回归通过，121项测试/两次独立重放一致，无运行GPU任务。以下旧“待维护者/执行中”均为历史记录）。
+> 最后更新：2026-11-08（Asia/Shanghai；30请求正式dev联合验收通过，128项回归/两次重放/1223文件校验通过；本活动无运行任务）。
 
-## 当前接续点：第5步真实裁判回归通过，正式活动待登记
+## 最新接续点：30请求正式dev联合验收通过
+
+- 新入口`docs/experiments/dev-joint-20261108.md`；本阶段controller协议适配/证据联动获用户授权，
+  默认legacy不变，不放宽判据。128项回归、旧P5重放/1347历史SHA与本活动独立重放通过。
+- UUID=`job-e71c6069ec59-20261108081913`，node135，08:19:29–09:10:36 +08:00，51分7秒；
+  Job=Completed/Pod=Succeeded、容器与脚本exit0。观测单Pod UID/Created1/Started1、容器restart0，
+  Job retryCount字段未设置。原镜像/WeaverDev/qiji/实际queue=proj-31，2 H100/256Gi。
+  source pin=`721b72c013aa6323837de30cba740c6eb55bf796`，运行中源码未变。
+- 输出`logs/dev-joint-20261108-a01/`，准备/提交/生命周期`logs/dev-joint-prep-20261108-a01/`。
+  固定每suite6条共30请求、2048cap自然EOS；null-pre → candidate → null-post，各两轮fresh/物理换卡，
+  2条短预热＋全30条全尺度预热，实际原生生成证据计时后落盘；测得120条输出＋新AR30完整评分。
+- final/stock=2.2214815927×，suite分层request-cluster95%CI [2.1585000041,2.2827307674]；
+  两轮分别2.219895/2.223069。null-pre=1.00051887 [0.999775944,1.001327351]，
+  null-post=1.00026564 [0.999435387,1.001086805]，两会话全部纳入noise=0.00132735095。
+  current_campaign_usable=true，输出不同故收益门槛3%，95%收益下界115.85%，性能通过。
+- 两轮独立δ=0.25；各轮stock198/25307=0.782392%、final187/24811=0.753698%，零大margin事件，
+  rate/event均未触发，正确性均通过。新AR只标定δ，没有重测AR性能。
+- joint_acceptance_passed=true，但promoted=false/ledger_eligible=false：作者产物不是自主发现。
+  两次独立进程重放JSON字节相同，源码tar/独立retokenize请求/原始HTTP/评分/时序绑定均通过。
+  测速后与评分后/最终两卡均0MiB/0%，端口释放；不能把Job Completed单独当科学通过。
+- 本活动1223文件清单`logs/dev-joint-evidence-20261108-a01.sha256`，SHA256=
+  `0ced7f2f3b760971ba9428ffb344e7da1a1bb974debfa715cd2320ce57c1d4f1`。
+- 下一步先向用户报第6步sealed隔离/正式验证的目标与流程，获准后由controller/维护者落实。
+  本阶段未读sealed、未做RSI、未写ledger/memory；不自动追加100请求或重复作者基线追数字。
+
+## 已完成：第5步真实裁判回归（上一子阶段）
 
 - 唯一新实验入口`docs/experiments/p5-real-controller-20261108.md`。用户授权本阶段controller改动，
   显式paper-aligned策略、真实FP32 scorer、δ与rate/event规则、runner/证据重放已交付；旧默认不变。
