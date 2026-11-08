@@ -1,7 +1,28 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-08（Asia/Shanghai；30请求正式dev联合验收通过，128项回归/两次重放/1223文件校验通过；本活动无运行任务）。
+> 最后更新：2026-11-08 UTC（作者final外部数据泛化审计已获用户批准，200题准备验收通过；新GPU测量待执行）。
+
+## 最新接续点：执行作者final外部数据泛化审计
+
+- 新唯一阶段记录`docs/experiments/generalization-20261108.md`。用户已批准实际运行，阶段内自主；
+  不修改final/stock/46开关/controller，不读取现有sealed，不写ledger/memory，不RSI。
+- 200条新题：原5领域各20（ID100）＋中文QA/科学QA/摘要/JSON抽取/普通指令各20（OOD100）。
+  排除作者全部100条dev与内部近重复，独立retokenize/源SHA及40代码参考解验收通过；
+  固定40题长度面板额外256/4096cap，2048复用主集同题；自然EOS，不把跨cap/卡轮重复当新样本。
+- 私有数据`logs/generalization-data-20261108-a04/`，dataset SHA256=
+  `7c179e5d0f84fb87b0ebcdb78a70248f15c01e51d9668ee1b72da5cdcb514486`。
+  **agent不得读取新题目/答案/逐题结果**；仅查看`logs/generalization-public-20261108-a04/`聚合状态/报告。
+  同UID约定隔离不冒充第三方物理盲评。输入59–636 token，不宣称长上下文泛化；摘要参考为合成数据，
+  对话无可靠语义裁判。若结果后改final，此集转dev，必须换确认集。
+- 运行入口`exp/generalization_remote.sh <新私有输出> <dataset.json> <公开状态目录>`，
+  复用既有controller计时/统计/forcing，exp仅新协议编排和代理质量；三cap各前null→候选→后null、各两轮fresh/物理换卡。
+  全部测速结束后新AR/完整自身prefix FP32评分/任务质量；不套旧δ或旧noise。
+- 新旧136项CPU测试通过；源冻结提交/最终NorthJob命令/UUID待登记。沿用用户已确认digest镜像、
+  WeaverDev/qiji/实际proj-31/原toleration、单节点2 H100/256Gi，最长8小时（16GPU小时）。
+  查重→展示完整命令/资源→create一次→code200+精确UUID，含糊先查不重提。
+- 准备失败a01/a02为数据源路径/下载，a03为CMRC schema；均无GPU提交/性能结果，原证据保留。
+  目前尚未产生新泛化数字；30题dev通过记录见下，不借其替代新数据验收。
 
 ## 最新接续点：30请求正式dev联合验收通过
 

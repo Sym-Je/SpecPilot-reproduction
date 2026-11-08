@@ -25,9 +25,9 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 
 **当前边界：**最新为5 suite×6条=30请求、2048上限、自然EOS；stock/final实际平均843.57/827.03 token。是作者产物dev验证，不是数学lossless、自主发现或sealed结论；不能拿本结果宣称sealed 2.13×已复现。旧20请求诊断及所有失败仍保留。
 
-**当前状态：**[30请求联合验收](docs/experiments/dev-joint-20261108.md)已完成，NorthJob `job-e71c6069ec59-20261108081913`为Completed/exit0，本活动无运行任务。当前null匹配已验证，不借用历史校准；promoted=false、ledger_eligible=false。
+**当前状态：**[30请求联合验收](docs/experiments/dev-joint-20261108.md)已完成。正在进行用户批准的[作者final外部数据泛化审计](docs/experiments/generalization-20261108.md)：固定200条新题（原5领域100＋新5领域100）、40题长度面板，匹配新null/FP32 forcing/任务质量代理；准备已验收，GPU测量待执行，不改final或controller。
 
-**接下来：**先提出第6步sealed隔离与正式验证的目标/流程，批准后由controller/维护者落实；agent不读取sealed，不按dev结果挑样本。本阶段不追加GPU实验、不自动进入sealed或RSI。
+**接下来：**先完成上述泛化盲审，分别报告ID/OOD/各领域和256/2048/4096 cap；任务完成不等于科学通过。再根据证据提出第6步方案，不自动进入sealed或RSI，不以此审计冒充论文原sealed。
 
 **已有基础：**三臂真实 server 烟测与 mock 闭环完成，GitHub 私有远端已配置；**尚未独立复现论文数字。**
 

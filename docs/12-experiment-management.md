@@ -52,6 +52,7 @@ Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果
 | C：第5步真实正确性与裁判 | 真实回归及dev联动完成 | [真实回归](experiments/p5-real-controller-20261108.md)：健康/故障/归约通过；后续30请求current null/实际测速输出forcing已联动验收，作者产物不写晋升账本 |
 | B：正式 dev 扩围 | 30请求联合验收通过 | [验收记录](experiments/dev-joint-20261108.md)，pin=721b72c，UUID=job-e71c6069ec59-20261108081913已完成；2.2215× [2.1585,2.2827]，noise0.1327%，两轮δ0.25/正确性通过；128回归、两次重放/1223文件校验通过 |
 | P4、真实 RSI 与最终对照 | 未开始 | 前置条件满足后按计划推进，agent 不接触 sealed |
+| 作者final外部数据泛化审计 | 准备已验收、GPU待执行 | [协议/记录](experiments/generalization-20261108.md)：200新题、固定40题长度面板、匹配新null/forcing及质量代理；不改final/controller，不冒充论文sealed |
 
 上表引用的历史产物尚未在本次变更中补齐校验清单；不能称为已完成全量归档。
 
