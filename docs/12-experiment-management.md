@@ -41,9 +41,11 @@ Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果
 
 ## 4. 当前阶段索引
 
-当前活动：[中文短答减速诊断](experiments/diagnosis-20261108.md)GPU运行中；
-12事实卡/96自然请求/每输出预算48固定请求，精确匹配输入，160回归通过，不改final/controller。
-pin629eb42，UUID job-89c6c8cd6c11-20261108200750，node244/2H100/原镜像；仅提交及进程启动通过。
+最新完成：[中文短答减速诊断](experiments/diagnosis-20261108.md)执行/补采/归因/重放/归档完成；
+12事实卡匹配输入/输出后仍有语言相关收益差；预选probe主要工作差异在VERIFY循环，非单纯短输出。
+167回归、正式及profile独立重放、6509文件SHA通过，不改final/controller。
+正式pin629eb42/UUID job-89c6c8cd6c11-20261108200750；补采pin74afcee/UUID job-72e589efab39-20261109014404；
+CPUmapper pind7a5fd2。两任务已Completed/exit0，node244两卡释放，总约11.27GPU小时/16预算，无sealed/RSI/晋升。
 
 新增活动：[final反例独立确认](experiments/confirmation-20261108.md)执行/重放/归档完成；
 中文60/人工参考摘要60/代码40，排除全部dev与前审计；中文请求延迟比0.5397×的反例确认，

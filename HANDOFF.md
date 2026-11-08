@@ -1,9 +1,56 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-08 UTC（正式计时两次重放一致；profile-only补采运行中且开始成功落trace）。
+> 最后更新：2026-11-08 UTC（匹配因素诊断与profile补采/归因全部完成；无运行任务）。
 
-## 最新接续点：正式计时完成，profile-only补采运行中
+## 最新接续点：匹配因素诊断全部完成，不自动新阶段
+
+- 唯一记录`docs/experiments/diagnosis-20261108.md`，已全部执行/重放/归档。不要重复提交、重抽样或改final追绿。
+- 固定stock/final/controller，12合成事实卡，中英文×512/1536精确输入×短/长指令96自然请求；
+  短指令48变体分别实际固定64/256/1024。每条件前null→candidate→后null，各两轮fresh/物理换卡。
+  语言/长度/物理轮次在事实卡内聚合，独立单位是12，不是96/240。
+- 三主要对比Bonferroni区间：固定64下S中文/S英文=0.408755[0.394764,0.424361]；
+  S1024/S64=1.794214[1.650111,1.961477]；S输入1536/S512=1.024434[0.942193,1.105345]。
+  S=stock请求耗时/final请求耗时，别把收益系数之比误读为两语言原始速度比。
+- **不能只用短输出解释减速。** 固定512输入/实际64输出，中文S0.619186、英文1.490048；
+  1536输入0.566826/1.409761。长答自然EOS允许但两臂实际均2048触顶，中文0.665814/0.656750，
+  英文2.185057/2.318001。触顶不是完成任务的实用收益，无新语义非劣/lossless结论。
+- 强制1024有大量EOS后延续：stock71.5820%/final75.0122%token，不能把收益提高只归于固定开销。
+  64组无EOS，跨预算各臂前64token96/96相同，但不是stock/final互相lossless证明。
+- 阶段probe只取预先固定1张合成卡/512输入/两物理轮。64token时final中文/英文
+  VERIFY标签38/10，累计VERIFY kernel均值774.647/204.341ms，EXTEND71.698/71.849ms；
+  差异主要落在验证循环而不是本probe输入扩展。未核验接受率/树/TLV因果，不判某开关坏了。
+  12数值变体/1模板不能推广到所有中文；profile累计kernel时间不是端到端墙钟占比。
+- 原保守scope白名单未识别动态`step[DRAFT/VERIFY/EXTEND ...]`，未归因100%的报告保留；
+  新CPU `diagnosis_trace.py`按明确标签、同线程launch及correlation归因，未知/歧义保留，
+  16trace未归因仅1.083–1.201%。没有从kernel名字猜阶段，没有读作者实现。
+- 原正式GPU UUID=`job-89c6c8cd6c11-20261108200750`，node244，12:08:18–17:34:34 UTC，exit0；
+  初次profile16个JSONDecodeError保留，原HTTP字节未保存的局限如实记录，不翻绿。
+- profile-only补采UUID=`job-72e589efab39-20261109014404`，node244，17:44:24–17:56:10 UTC，exit0；
+  32次HTTP200确认为无Content-Type纯文本响应；独立ProfileClient修复，16/16 trace成功。
+  两任务均Completed/Pod Succeeded，监控648/18快照各单Pod/restart0，Job retryCount均未设置。
+  不重叠/最多同时2GPU，按容器时长11.267778GPU小时，原16预算内；两卡0MiB/0–1%，端口释放。
+- 正式pin629eb4268dcf49bed41e1266f0f159426dc7444a，source.tar SHA=
+  `2411dcc0208573d3ab8af7203948374ebc5816884093bb580cafa9f199401a67`；
+  补采pin74afcee9077baa7da7c60113673e8b7d34fa1e83，profile-source.tar SHA=
+  `095da269bae0ba8d647ed6c2d21d01914e43118e305f20ae0325482cd53955bf`；
+  CPUmapper pin d7a5fd2c0558c2d939546807d7451575bae12ff4，trace-source.tar SHA=
+  `b3b19e600797960b2fe79b916aba088438749c0d0a4eb6bb78b664bd6c85bacb`。
+- dataset SHA=`0d92ecbdd62cc57473fd97f692183013314f4d271ead9fa30e739fea8eab4b30`，私有data/run/profile-run在
+  `logs/diagnosis-data-20261108-a01/`、`logs/diagnosis-run-20261108-a01/`、`logs/diagnosis-profile-run-20261108-a01/`。
+  **agent只看公开`logs/diagnosis-public-20261108-a01/`和`logs/diagnosis-profile-public-20261108-a01/`**。
+- 正式result/replay01/02字节一致SHA=f998dcadd38d07647256898d6719184f21d351bd3957847e48dd63de8183af4b；
+  补采result/replay01/02一致SHA=0a11c217cfe8736d41aa1c22a54d8c8996481bd896b68cd97f0f39e5536eb87a；
+  EOS审计重放一致SHA=1cd84c1d187f89d87fc765001054b0560aa7beddf81f33b6d02680630edbc66c；
+  CPU阶段归因重放一致SHA=e6e6a99ee81f18aee0644259b6d12bc4c241fdab07397f5803e97c57b5066e64。
+- 167项最终回归/shell/diff通过；1440正式pair/2880臂行，1440全尺度预热/48短预热pair；
+  6509文件/507041718字节全SHA通过，清单`logs/diagnosis-evidence-20261108-a01.sha256`，SHA=
+  `3e970173a509dfe501f70db89f8ea4b77265da52cd24b9b18ae7444624812aee`。
+  前一阶段5928文件也复验全过。controller/patches/作者config/dev未改；无sealed/RSI/ledger/memory/晋升。
+- 所有监控/CPU进程结束。下一大步骤先报方案获用户允许；可继续查验证循环，也可回论文工作负载主线。
+  不以这次诊断额外设论文硬门槛，不自动重复GPU，不读取私有逐题输出/已有sealed/作者实现。
+
+## 本阶段准备与补采历史（已完成，不再作为下一步）
 
 - 唯一记录`docs/experiments/diagnosis-20261108.md`；新增`exp/diagnosis.py`/`exp/diagnosis_remote.sh`。
   不改final/stock/46开关/controller，不碰sealed/RSI/ledger。不是新的质量或lossless验收阶段。
