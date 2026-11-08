@@ -1,9 +1,26 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 UTC+08（真实RSI准入核对完成；无运行任务）。
+> 最后更新：2026-11-09 UTC+08（用户已批准candidate接入，CPU通过，待远程烟测）。
 
-## 最新接续点：真实RSI准入核对完成，不自动运行搜索
+## 最新接续点：真实candidate接入已批准，先冻结再双卡烟测
+
+- 唯一记录`docs/experiments/candidate-20261109.md`，准备目录`logs/candidate-prep-20261109-a01/`。
+  本阶段用户已批准阶段内自主，包括短双卡烟测；不改controller/eval/ledger/memory，不自主搜索。
+- 新`harness/candidate.py`只支持启动参数`draft_tokens`，默认8；本次开启值也8，刻意no-op。
+  构建为stock同源复制，canonical SHA固定e5472c4f...；候选runtime receipt核验实际sglang解析到快照内。
+  第一版不支持任意作者覆盖层或源码patch，不把接线当发现。
+- 新`exp/candidate_smoke.py`/`candidate_serve.sh`/`candidate_remote.sh`，既有三臂入口不变。
+  17项新CPU/真实HTTP测试及167项旧回归通过；红测试/首次实际stock链接拒绝保留。
+  stock有1个合法内部相对`.clang-format`文件链接，复制保留并计入hash，外链/断链/目录链仍拒绝。
+- 下一内部动作：冻结源码提交与tar、prepare新的candidate bundle、核对当前help/任务名查重，
+  展示完整命令/2GPU，create一次且核对code200+精确UUID。仍使用已确认镜像digest、WeaverDev/qiji/原toleration。
+  1节点×2H100/256Gi，bash/nproc1，禁RDMA/hostNetwork；最长1小时，即2GPU小时，不追性能数字。
+- 关闭/开启各2轮fresh并物理换卡，每suite1条共5公开dev/64cap自然EOS，20pair/40臂行；
+  之后单独stock FP32 scorer评分40条实际输出并用controller检查原始生成绑定。
+  无当前noise/δ晋升结论，无lossless声明。结束后两次CPU重放、SHA/清理/首页与交接提交推送。
+
+## 上一阶段：真实RSI准入核对完成，不自动运行搜索
 
 - 用户批准结束final泛化/接受长度追因，复用已有验收，只补准备缺项；本阶段唯一记录
   `docs/experiments/rsi-readiness-20261109.md`，基准pin=`c05d17d46446c31f3044943a7423c444583207a6`。

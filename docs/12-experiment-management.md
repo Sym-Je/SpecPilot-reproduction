@@ -41,6 +41,11 @@ Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果
 
 ## 4. 当前阶段索引
 
+当前活动：[真实candidate接入与no-op双卡烟测](experiments/candidate-20261109.md)，用户已批准执行。
+17项新测试与167项旧回归通过；冻结后1节点×2H100/256Gi、最长1小时，关闭/开启各两轮换卡，
+20pair/40臂行及40条实际输出评分。只做生命周期/接口验收，不修改controller、不宣称收益或晋升。
+准备目录`logs/candidate-prep-20261109-a01/`；正式源码pin/任务UUID/产物与校验在阶段记录追加。
+
 最新完成：[真实RSI准入准备](experiments/rsi-readiness-20261109.md)，用户批准结束final追因并回到主线。
 仅CPU回归/历史证据重放/接口缺项核对，不提交GPU、不改controller或eval。stock为搜索起点，
 final仅参考；历史noise/δ不得代替未来候选校准。candidate option/T0接入、完整成本模型、真实proposer
@@ -72,6 +77,7 @@ node208/2H100已释放。中文1题辅助质量格式缺测不删性能题；无
 | B：正式 dev 扩围 | 30请求联合验收通过 | [验收记录](experiments/dev-joint-20261108.md)，pin=721b72c，UUID=job-e71c6069ec59-20261108081913已完成；2.2215× [2.1585,2.2827]，noise0.1327%，两轮δ0.25/正确性通过；128回归、两次重放/1223文件校验通过 |
 | P4、真实 RSI 与最终对照 | 未开始 | 前置条件满足后按计划推进，agent 不接触 sealed |
 | 真实RSI准入准备 | 已完成，不代表真实搜索就绪 | [基线与缺项](experiments/rsi-readiness-20261109.md)；167回归/25319清单项/各四次重放通过，不改裁判，下一候选重新标定 |
+| 真实candidate外围接入 | 执行中，CPU已通过 | [no-op烟测计划](experiments/candidate-20261109.md)；仅启动option，远程配对/评分待验收，无正式晋升 |
 | 作者final外部数据泛化审计 | 执行/归档完成，部分泛化且有反例 | [完整结果](experiments/generalization-20261108.md)：200题1.8230×，原5类2.1718×/新5类1.5302×；中文0.5133×，摘要质量代理告警。a02 Completed/exit0，137回归/两次重放/10312文件校验通过；不改final/controller，不冒充论文sealed |
 
 本次仅按已有清单复核真实裁判、dev、泛化、反例确认、诊断五阶段的25319项；

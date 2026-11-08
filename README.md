@@ -45,9 +45,9 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 
 **最新完成：**按用户批准回到真实自主优化主线，[stock基线、验收护栏与接口缺项核对](docs/experiments/rsi-readiness-20261109.md)完成：167回归、五阶段25319项SHA、裁判/dev各四次重放通过。原格式比较失败保留，仅末尾换行差异已核实；未启动GPU或修改裁判。
 
-**正在做：**真实RSI的接入准备已收口，等待下一大步骤批准。结束接受长度追因，不再追加作者final实验。历史验收能复用工具和证据，但下一候选必须有自己的noise、δ与实际输出forcing。
+**正在做：**用户已批准[真实candidate接入与no-op烟测](docs/experiments/candidate-20261109.md)。启动option、stock同源快照、运行时module路径及身份绑定已实现，17项新测试和167项旧回归通过；下一内部动作是冻结源码、远程双卡烟测及实际输出FP32评分。不改controller，不宣称优化收益或lossless。
 
-**接下来：**先补真实candidate的option/default=stock契约、构建/启动身份与裁判接入，再采代表性stock profile/replay、接真实proposer。目前loop仍是固定策略，正式候选晋升/账本集成也未就绪；不能直接运行mock入口冒充真实RSI。新大步骤另报方案获批；controller、eval及sealed由维护者负责，不自动变更。
+**接下来：**本阶段验收后，再报代表性stock profile/replay与真实成本模型方案。第一版candidate只支持启动参数option，不冒充任意源码patch接入；真实proposer与正式晋升/账本集成仍未就绪。不能运行mock入口冒充真实RSI；新大步骤另获批准，controller、eval及sealed由维护者负责。
 
 **已有基础：**三臂真实 server、dev验收、外部数据审计与mock闭环完成；**尚未复现论文原sealed数字或真实RSI方法结论。**
 
