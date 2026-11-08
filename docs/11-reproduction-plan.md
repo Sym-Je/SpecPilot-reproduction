@@ -208,13 +208,15 @@ NorthJob 为后续执行入口：按 skill 查重名、展示完整命令与资�
 
 ## 13. 下一次实际执行
 
-2026-11-09（UTC+08）用户批准回到真实RSI主线，先做[准入准备](experiments/rsi-readiness-20261109.md)。
+2026-11-09（UTC+08）用户批准回到真实RSI主线，[准入准备](experiments/rsi-readiness-20261109.md)与
+[启动option候选接入/no-op烟测](experiments/candidate-20261109.md)均完成。
 本节取代旧的“立即转sealed”建议，不改变§8的Phase 4边界或既有判据。
 
 1. A1/A2/A3、真实裁判、30请求dev及后续泛化/诊断已完成，不重测作者final或继续接受长度追因。
 2. 先用CPU复核历史证据和准入缺项；stock为搜索起点，final仅作已知产物参考。
-3. 下一大步骤另行获批后补candidate option/T0/身份接入；正式晋升接口缺项由维护者明确交付，
-   不因为一般代码授权而修改controller。真实profile/replay、成本模型和proposer缺项也不能用mock补名。
+3. 启动option的candidate/T0/身份/配对/评分接口已在真实双卡完成no-op验收，不支持任意源码patch。
+   下一大步骤先报代表性stock profile/replay与实测成本模型方案获批；真实proposer和正式晋升接口
+   仍缺，由维护者明确交付，不因为一般代码授权而修改controller，也不能用mock补名。
 4. 新候选仍需自己活动的stock null/δ/实际输出forcing；已有中文反例保留为开发回归边界，
    不手工读取私有题、不新增全域提速硬门槛，不把已见证据再称独立确认。
 5. sealed抽样/功效/等效容差/访问控制须由维护者在揭盲前冻结，agent不读取内容；Phase 4合格前不写promoted memory。

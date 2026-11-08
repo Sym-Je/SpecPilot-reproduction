@@ -1,9 +1,36 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 UTC+08（用户已批准candidate接入，CPU通过，待远程烟测）。
+> 最后更新：2026-11-09 UTC+08（candidate接入/双卡烟测/重放/归档完成，无运行任务）。
 
-## 最新接续点：真实candidate接入已批准，先冻结再双卡烟测
+## 最新接续点：真实candidate启动option接入完成，不自动开始自主搜索
+
+- 唯一记录`docs/experiments/candidate-20261109.md`。184项CPU回归通过，controller及作者资源未改。
+  首版只支持`draft_tokens`启动option；默认8、本次开启值也8，no-op，不支持任意源码patch，不算新发现。
+- 执行pin=`d526f763b3c003f84e8a0e91a8adf5a5db8e87ba`；源码tar SHA=
+  `94e1a6cc8d5ea734ab57021c0d09d00752e57a88670689427c022fe6362c9915`，准备目录
+  `logs/candidate-prep-20261109-a01/`；bundle=`logs/candidate-bundle-20261109-a01/`，spec SHA=
+  `4b55bd2d3d232d25ee7107f74e902bc7c9ab0359a1eec044b1586a50925f8037`。
+- 唯一GPU任务UUID=`job-4fcf9416b13f-20261109072806`，create code200/dataNone后精确查名解析，未重复提交。
+  node233，2026-11-08 23:28:33–23:40:24 UTC（本地11-09 07:28:33–07:40:24），11分51秒。
+  Job Completed/Pod Succeeded/容器和脚本exit0；2H100/256Gi/原digest/WeaverDev/实际proj-31核对通过。
+  23监控快照单Pod UID/容器restart0；Job retryCount未设置，不扩称全任务无重试。
+- 关闭/开启各两轮fresh/物理换卡，5独立公开dev请求/64cap，20pair/40臂行全部输出相同；
+  8测量server另起1 stock FP32 scorer，40条实际输出/2560token及head preflight/证据绑定全过。
+  四个candidate runtime均实际解析到bundle内sglang，不只是改标签；stock-copy canonical hash=e5472c4f...。
+  全40臂行length触顶，不是完整任务质量验证，也不是一般候选的rate/event门禁。
+- 私有原始运行`logs/candidate-run-20261109-a01/`及`.log/.exit-status`，只看受控聚合，不手工看逐题输出。
+  首次CPU重放01仅因sudo PATH无git失败保留；02/03显式传原PATH及进程safe.directory成功，
+  与远程result逐字节一致，SHA=`eccc657de223a957ee59a7847705844008df077b8fd7fdcdd14d29f1fe619ebf`。
+- 新2970项/38058598逻辑字节全SHA通过，清单`logs/candidate-evidence-20261109-a01.sha256`，
+  SHA=`9249c02f1a26a4856d01d412a3c7b635a28bf29b32684856873679613126ed4e`；前阶段37项亦复验通过。
+  两卡0MiB/利用率0–1%，端口释放，全部监控/CPU会话结束；折算0.395GPU小时，2预算内。
+- `correctness_passed=null/performance_passed=null/promoted=false/ledger_eligible=false`，仅接口smoke。
+  未sealed/真实RSI/写ledger或memory；不能把184测试/同token/评分通过说成lossless或性能晋升。
+- 下一大步骤先报代表性stock profiling/replay和实测成本模型方案获批；不再重跑本smoke。
+  真实proposer/正式晋升状态机仍缺，controller/eval变更需维护者明确授权，不自动执行下一阶段。
+
+## 本阶段准备/运行历史（已完成，不再执行）
 
 - 唯一记录`docs/experiments/candidate-20261109.md`，准备目录`logs/candidate-prep-20261109-a01/`。
   本阶段用户已批准阶段内自主，包括短双卡烟测；不改controller/eval/ledger/memory，不自主搜索。
@@ -19,6 +46,12 @@
 - 关闭/开启各2轮fresh并物理换卡，每suite1条共5公开dev/64cap自然EOS，20pair/40臂行；
   之后单独stock FP32 scorer评分40条实际输出并用controller检查原始生成绑定。
   无当前noise/δ晋升结论，无lossless声明。结束后两次CPU重放、SHA/清理/首页与交接提交推送。
+- 已冻结并提交：pin=`d526f763b3c003f84e8a0e91a8adf5a5db8e87ba`，source.tar SHA=
+  `94e1a6cc8d5ea734ab57021c0d09d00752e57a88670689427c022fe6362c9915`；
+  bundle `logs/candidate-bundle-20261109-a01/`，spec SHA=4b55bd2d3d232d25ee7107f74e902bc7c9ab0359a1eec044b1586a50925f8037。
+- create一次code200/dataNone，精确查名取得UUID=`job-4fcf9416b13f-20261109072806`，
+  23:28:33 UTC容器在node233启动；2H100/原digest/256Gi/实际proj-31与GPU版本预检通过。
+  运行`logs/candidate-run-20261109-a01/`，生命周期在准备目录；正在前台监控，不改源码/commit或再create。
 
 ## 上一阶段：真实RSI准入核对完成，不自动运行搜索
 

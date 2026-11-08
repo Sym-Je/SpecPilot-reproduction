@@ -41,19 +41,20 @@ Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果
 
 ## 4. 当前阶段索引
 
-当前活动：[真实candidate接入与no-op双卡烟测](experiments/candidate-20261109.md)，用户已批准执行。
-17项新测试与167项旧回归通过；冻结后1节点×2H100/256Gi、最长1小时，关闭/开启各两轮换卡，
-20pair/40臂行及40条实际输出评分。只做生命周期/接口验收，不修改controller、不宣称收益或晋升。
-准备目录`logs/candidate-prep-20261109-a01/`；正式源码pin/任务UUID/产物与校验在阶段记录追加。
+最新完成：[真实candidate接入与no-op双卡烟测](experiments/candidate-20261109.md)。184回归、
+关闭/开启各两轮换卡、20pair/40臂行输出一致与40条实际输出FP32评分/绑定通过；两次CPU重放字节一致，
+2970项SHA通过。pin=d526f76，UUID=`job-4fcf9416b13f-20261109072806`已Completed/exit0，
+node233两卡释放，折算0.395GPU小时。只做启动option接口验收，不改controller、不宣称收益/lossless或晋升。
+准备/运行/bundle/清单均见阶段记录；无运行任务，下一大步骤待批准。
 
-最新完成：[真实RSI准入准备](experiments/rsi-readiness-20261109.md)，用户批准结束final追因并回到主线。
+此前完成：[真实RSI准入准备](experiments/rsi-readiness-20261109.md)，用户批准结束final追因并回到主线。
 仅CPU回归/历史证据重放/接口缺项核对，不提交GPU、不改controller或eval。stock为搜索起点，
 final仅参考；历史noise/δ不得代替未来候选校准。candidate option/T0接入、完整成本模型、真实proposer
 与正式晋升状态机仍缺，不能以现有mock入口冒充真实RSI。167回归、25319项SHA、裁判/dev各四次重放通过；
 格式比较初次失败保留，修正参照历史CLI后通过。新37文件证据`logs/rsi-readiness-20261109-a01/`及
 `logs/rsi-readiness-evidence-20261109-a01.sha256`已校验；无运行任务，下一大步骤待批准。
 
-最新完成：[中文短答减速诊断](experiments/diagnosis-20261108.md)执行/补采/归因/重放/归档完成；
+此前诊断：[中文短答减速诊断](experiments/diagnosis-20261108.md)执行/补采/归因/重放/归档完成；
 12事实卡匹配输入/输出后仍有语言相关收益差；预选probe主要工作差异在VERIFY循环，非单纯短输出。
 167回归、正式及profile独立重放、6509文件SHA通过，不改final/controller。
 正式pin629eb42/UUID job-89c6c8cd6c11-20261108200750；补采pin74afcee/UUID job-72e589efab39-20261109014404；
@@ -77,7 +78,7 @@ node208/2H100已释放。中文1题辅助质量格式缺测不删性能题；无
 | B：正式 dev 扩围 | 30请求联合验收通过 | [验收记录](experiments/dev-joint-20261108.md)，pin=721b72c，UUID=job-e71c6069ec59-20261108081913已完成；2.2215× [2.1585,2.2827]，noise0.1327%，两轮δ0.25/正确性通过；128回归、两次重放/1223文件校验通过 |
 | P4、真实 RSI 与最终对照 | 未开始 | 前置条件满足后按计划推进，agent 不接触 sealed |
 | 真实RSI准入准备 | 已完成，不代表真实搜索就绪 | [基线与缺项](experiments/rsi-readiness-20261109.md)；167回归/25319清单项/各四次重放通过，不改裁判，下一候选重新标定 |
-| 真实candidate外围接入 | 执行中，CPU已通过 | [no-op烟测计划](experiments/candidate-20261109.md)；仅启动option，远程配对/评分待验收，无正式晋升 |
+| 真实candidate外围接入 | 首版验收完成，仅启动option | [no-op烟测结果](experiments/candidate-20261109.md)；184回归/20pair/40评分/两重放/2970项SHA通过，无正式晋升 |
 | 作者final外部数据泛化审计 | 执行/归档完成，部分泛化且有反例 | [完整结果](experiments/generalization-20261108.md)：200题1.8230×，原5类2.1718×/新5类1.5302×；中文0.5133×，摘要质量代理告警。a02 Completed/exit0，137回归/两次重放/10312文件校验通过；不改final/controller，不冒充论文sealed |
 
 本次仅按已有清单复核真实裁判、dev、泛化、反例确认、诊断五阶段的25319项；
