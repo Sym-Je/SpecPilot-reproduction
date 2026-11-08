@@ -99,3 +99,18 @@ git diff --exit-code 496ab11 -- controller patches assets/upstream
   新任务同skill当前help/唯一名查重/完整命令与2GPU展示/code200+UUID规则。
 - 辅助EOS后延续和跨预算共同前缀审计只读原始输出、仅发布聚合，源SHA单独绑定；
   不改变三主要端点/样本/区间，也不把输出前缀相同当lossless证明。
+
+### profile-only补采提交
+
+- 当前help和精确名查重total0后create一次，code200/dataNone，精确唯一UUID=
+  `job-72e589efab39-20261109014404`，name=`specpilot-diagnosis-profile-20261108-a01`。
+  2026-11-08 17:44:24 UTC在node244启动（UUID日期是服务端+08时间，实验日期仍按UTC）。
+- source pin=`74afcee9077baa7da7c60113673e8b7d34fa1e83`，profile-source.tar SHA=
+  `095da269bae0ba8d647ed6c2d21d01914e43118e305f20ae0325482cd53955bf`；
+  新私有`logs/diagnosis-profile-run-20261108-a01/`，新公开`logs/diagnosis-profile-public-20261108-a01/`。
+- 服务端原digest/2H100/256Gi/禁hostNetwork/只读models已核对，项目WeaverDev，实际queue=proj-31。
+  完整命令`logs/diagnosis-prep-20261108-a01/profile-command.txt`，回执`profile-submit.txt`，
+  生命周期`profile-lifecycle.*`，模板`RUN/specpilot-diagnosis-profile-20261108-a01/`。
+- 原正式result/replay-01/replay-02已逐字节一致，SHA=
+  `f998dcadd38d07647256898d6719184f21d351bd3957847e48dd63de8183af4b`。
+  补采开始有成功trace，尚待完整验收，不把原16失败翻成成功或合并新正式性能样本。

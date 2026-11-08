@@ -1,9 +1,9 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-08 UTC（诊断正式计时完成；profile JSON-only采集器修复163回归通过，待仅补采profile）。
+> 最后更新：2026-11-08 UTC（正式计时两次重放一致；profile-only补采运行中且开始成功落trace）。
 
-## 最新接续点：诊断正式计时完成，profile采集器修复待补采
+## 最新接续点：正式计时完成，profile-only补采运行中
 
 - 唯一记录`docs/experiments/diagnosis-20261108.md`；新增`exp/diagnosis.py`/`exp/diagnosis_remote.sh`。
   不改final/stock/46开关/controller，不碰sealed/RSI/ledger。不是新的质量或lossless验收阶段。
@@ -32,6 +32,14 @@
   加原5h26m16s仍在原8小时/16GPU小时内；同一时刻最多2GPU，正式数据始终绑定629eb42。
   新公开`logs/diagnosis-profile-public-20261108-a01/`；新私有运行拟`logs/diagnosis-profile-run-20261108-a01/`。
   新任务单独source pin/命令/UUID待登记，查重→展示→create一次，不复用旧任务名。
+- 补采已提交且开始成功trace：code200，UUID=`job-72e589efab39-20261109014404`，node244，
+  17:44:24 UTC启动；2H100/原镜像/WeaverDev/proj-31核对通过。
+  source pin=`74afcee9077baa7da7c60113673e8b7d34fa1e83`，profile-source.tar SHA=
+  `095da269bae0ba8d647ed6c2d21d01914e43118e305f20ae0325482cd53955bf`。
+  只监控新公开`logs/diagnosis-profile-public-20261108-a01/`，私有profile-run-a01不手工看逐题结果。
+  原正式result/replay01/replay02字节一致，SHA=f998dcadd38d07647256898d6719184f21d351bd3957847e48dd63de8183af4b。
+  新补采结束后`diagnosis_profile.py audit --private <profile-run> --out <新公开JSON>`，显式CUDA不可见，
+  两次重放/原始字节与traceSHA/总证据校验后再收尾。不重复create，不动运行代码，只能更新文档。
 
 ## 最新接续点：反例独立确认已完成，不自动进入下一阶段
 
