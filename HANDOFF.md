@@ -1,7 +1,23 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-08 UTC（反例独立确认完成并归档；中文减速确认，质量退化证据不足；无运行任务）。
+> 最后更新：2026-11-08 UTC（用户批准中文短答减速诊断；精确匹配数据/160回归通过，待GPU提交）。
+
+## 最新接续点：中文短答减速诊断已批准，准备通过
+
+- 唯一记录`docs/experiments/diagnosis-20261108.md`；新增`exp/diagnosis.py`/`exp/diagnosis_remote.sh`。
+  不改final/stock/46开关/controller，不碰sealed/RSI/ledger。不是新的质量或lossless验收阶段。
+- 12合成事实卡×中英文×精确512/1536输入×短/长指令=96自然请求（2048cap）；
+  短指令48条分别ignore_eos固定64/256/1024实际token。干预组不冒充自然任务收益。
+  每条件前null→candidate→后null各两轮fresh/物理换卡；全部以事实卡聚类，不把因素重复当新样本。
+- 主要对比语言/输出长度/输入长度三项，提前冻结Bonferroni区间；计时后单独profile/1token代理，
+  1token含初次解码及HTTP，不叫纯prefill；不明scope/不等价TLV计数不推断接受率或阶段占比。
+- 数据私有`logs/diagnosis-data-20261108-a01/`，仅看公开`logs/diagnosis-public-20261108-a01/`；
+  SHA=`0d92ecbdd62cc57473fd97f692183013314f4d271ead9fa30e739fea8eab4b30`。
+  精确token与独立进程分词通过，160项CPU回归通过；准备日志`logs/diagnosis-prep-20261108-a01/`。
+- 接下来冻结源码/tar、当前help查重、展示完整2GPU命令、create一次并核对code200+UUID。
+  沿用已确认digest/WeaverDev/qiji/原toleration，1节点×2H100/256Gi，最多8小时；不因结果重抽样。
+  profile公开API不可用或scope不全则明确局限，不改引擎“补证”。两次重放/SHA/README/阶段推送后停止。
 
 ## 最新接续点：反例独立确认已完成，不自动进入下一阶段
 

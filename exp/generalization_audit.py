@@ -45,7 +45,7 @@ def cluster_groups(pairs, requests, metric='throughput'):
     return groups
 
 
-def validate_session(directory, campaign):
+def validate_session(directory, campaign, packet_validator=validate_packet):
     manifest = json.loads((directory / 'manifest.json').read_text())
     if manifest != campaign:
         raise ValueError('session manifest differs from the frozen campaign')
@@ -84,7 +84,7 @@ def validate_session(directory, campaign):
             raise ValueError('missing or adaptive full-scale warmup')
         for row, request in zip(warmups, warm_requests):
             for key, assignment in zip(('a', 'b'), assignments):
-                validate_packet(row[key], request, assignment, 32 if row['phase'] == 'short' else cap,
+                packet_validator(row[key], request, assignment, 32 if row['phase'] == 'short' else cap,
                                 campaign['directory'], campaign['launch_protocol'])
                 if row[key]['finish_reason'] not in ('stop','length'):
                     raise ValueError('failed warmup generation')
@@ -96,7 +96,7 @@ def validate_session(directory, campaign):
                 raise ValueError('nonmonotonic or wrong-round measurement')
             previous = pair['finished_unix']
             for key, assignment in zip(('a', 'b'), assignments):
-                validate_packet(pair[key], request, assignment, cap, campaign['directory'], campaign['launch_protocol'])
+                packet_validator(pair[key], request, assignment, cap, campaign['directory'], campaign['launch_protocol'])
                 if pair[key]['finish_reason'] not in ('stop','length'):
                     raise ValueError('failed measured generation')
                 if not pair['started_unix'] <= pair[key]['client_timing']['started_unix'] <= pair['finished_unix']:
