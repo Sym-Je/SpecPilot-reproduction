@@ -1,9 +1,50 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-08 UTC（200题泛化审计a02已启动，运行中；a01无测量失败保留，尚无新泛化结论）。
+> 最后更新：2026-11-08 UTC（200题泛化审计完成，发现中文性能退化与质量告警；无运行任务）。
 
-## 最新接续点：执行作者final外部数据泛化审计
+## 最新接续点：泛化审计完成，不能宣称普适2.2倍
+
+- 本阶段唯一记录`docs/experiments/generalization-20261108.md`已包含完整结果、失败、规则和复核命令。
+  **任务已完成，不再提交GPU、不重抽样、不改final追绿、不自动sealed/RSI。**
+- 200条新题（排除已知作者全部100条dev）、2048cap：全部1.823022× [1.792292,1.854873]；
+  原5基准族新100题2.171842× [2.129914,2.216151]，新5领域100题1.530226× [1.487339,1.574006]。
+  不只是原30题有效，但公开题不能保证作者绝对未见，也不能把这些结果当原sealed数字。
+- **中文阅读QA减速：0.513279× [0.464119,0.573095]**，整请求约需1.94倍时间，
+  输出长度stock/final72.65/72.30，自然EOS，不能只用总体均值掩盖。
+  同4中文面板题256/2048/4096约0.4263/0.4274/0.4282，上限加长未消除减速；尚未做因果profile。
+- 摘要ROUGE-L0.322758→0.302970，差-0.0197875，未校正95%CI[-0.0420161,-0.0027901]；
+  合成参考/代理/多重比较限制，不断言语义已退化。4096 HumanEval3/4→2/4，n=4证据不足。
+  MT/普通指令未作可靠语义评测；不能宣称全任务质量非劣或排除所有reward hack。
+- 同40题长度面板256/2048/4096分别1.753500/1.790064/1.799322×，不是拿全200题与40题直接比cap。
+  两臂4096各8/80轮次输出触顶，保留自然EOS，未把不同cap/两卡重复当新独立样本。
+- 新noise分别0.3498892%/0.3413052%/0.7115808%，全部前后null计入；不要求CI覆盖1或全宽0.2%。
+  三cap全局δ0.25、rate/event通过、全局零大margin事件；局部HumanEval4096更小δ下有1事件/轮，
+  stock也有1，未触发门禁。中文4题在256/4096局部δ无法标定，明确证据不足，不套旧值。
+  **joint_acceptance=true只表示总体性能＋forcing，不表示全域提速/语义非劣/数学lossless。**
+- GPU UUID=`job-6b21065b7a0e-20261108104221`，node244，02:42:54–07:04:34 UTC，
+  4h21m40s，Job Completed/Pod Succeeded/容器与脚本exit0；522快照只见单Pod UID/容器restart0，
+  Job retryCount未设置。两卡清理0MiB/0%，端口释放。a01 Failed/retryCount2无真实测量，原证据保留。
+- source pin=`c39c7af0b244e2669bb307ec5684c4165f16d6f6`，固定镜像/WeaverDev/qiji/实际proj-31，
+  原2 H100/256Gi；运行期间仅文档commit6f2fb9b，代码/config始终未变。
+  `source-a02.tar` SHA=`c19da8e1726c92cccea411bc0a708eb8e0c2024e427d30069a84e03752c67a5b`。
+- 私有输入`logs/generalization-data-20261108-a04/`，私有输出`logs/generalization-run-20261108-a02/`；
+  **agent不要读题目/答案/逐题输出**，只看`logs/generalization-public-20261108-a05/`聚合报告。
+  受控sudo/controller读取root私有证据；代码题仅本机Landlock/seccomp隔离执行，未无沙箱降级。
+  dataset SHA=`7c179e5d0f84fb87b0ebcdb78a70248f15c01e51d9668ee1b72da5cdcb514486`。
+- 远程1400条完整FP32评分，本机任务质量与证据统一验收07:18:27 UTC完成；40参考代码通过，137回归通过，
+  两独立进程重放与result.json逐字节一致，三份SHA均为
+  `df269e986755c02b3d94810e76d75315c8572cbb6a28e4acc1b264c7600aa3a3`。
+  不要重跑`generalization_local.py`覆盖现有质量产物；只用冻结`generalization_audit.py --out <新路径>`复核。
+- 成功/失败/源码/原始证据共10312文件、598919466字节，清单
+  `logs/generalization-evidence-20261108-a01.sha256`，SHA=
+  `2fc0112af7d18e7fa368fa15aa88138e0afaceef4b1cfa9b0b82dd23c2757675`，全量核验通过；
+  旧dev1223文件SHA复验全过。controller/patches/作者config/dev相对e12537c无变化。
+- promoted=false/ledger_eligible=false；未读既有sealed、未RSI、未写ledger/memory。
+  下一大步骤先提出中文短回答性能与摘要/长代码质量告警的独立确认方案，再由用户选择与正式sealed的顺序；
+  这些是本次发现的研究问题，不是擅加论文硬门槛。若以后改final，此集转dev，必须换新确认集。
+
+## 本阶段准备/执行历史（已完成，不再作为下一步）
 
 - 新唯一阶段记录`docs/experiments/generalization-20261108.md`。用户已批准实际运行，阶段内自主；
   不修改final/stock/46开关/controller，不读取现有sealed，不写ledger/memory，不RSI。
@@ -42,7 +83,7 @@
   GPU脚本exit0且gpu-complete存在后，才运行本机质量、两次独立重放/证据SHA，再报告泛化结论。
   运行中只允许文档进度提交，不变更controller/exp/harness/assets；运行身份始终使用上述pin与source-a02.tar。
 
-## 最新接续点：30请求正式dev联合验收通过
+## 历史接续点：30请求正式dev联合验收通过
 
 - 新入口`docs/experiments/dev-joint-20261108.md`；本阶段controller协议适配/证据联动获用户授权，
   默认legacy不变，不放宽判据。128项回归、旧P5重放/1347历史SHA与本活动独立重放通过。
