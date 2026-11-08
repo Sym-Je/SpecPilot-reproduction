@@ -63,3 +63,19 @@ dataset SHA=`03f72f87aa3422197de540838fc9a7ae2f1494415e97e9a4ed5e13ce4f786e2e`�
 输入中文250–824、摘要129–1006、代码104–468token，长度分层仅相对，不是长上下文验证。
 DialogSum revision=`848cc8c05e0a04def79326539de827f1b28786a0`，固定summary1，
 CMRC/HumanEval复用逐文件SHA验证的上轮同revision官方源。未查看样本/答案/逐题输出。
+
+### 唯一GPU提交a01（运行中）
+
+- source pin=`65364f55ae0d367438f11efaa1c06332c2ebc717`，源档案
+  `logs/confirmation-prep-20261108-a01/source.tar`，SHA256=
+  `ac85e3ca050e50a614ceb4f840e7023dcebb1d7a0932bf1bec67d84de371328b`。
+- 当前CLI3.3.11 help已核对；凭据结构有效但不输出。精确名查重total0，create一次返回code200/dataNone，
+  精确名`specpilot-confirmation-20261108-a01`唯一解析UUID=`job-a99898c2f332-20261108164059`。
+- 2026-11-08 08:41:27 UTC容器在node208启动；服务端镜像、2H100/256Gi、禁hostNetwork、
+  模型只读挂载、toleration均验收。项目WeaverDev、请求namespace/queue=qiji、实际queue=proj-31。
+- 完整提交命令与回执`logs/confirmation-prep-20261108-a01/command.txt`、`submit.txt`，
+  生成模板`RUN/specpilot-confirmation-20261108-a01/specpilot-confirmation-20261108-a01.yaml`。
+  私有运行`logs/confirmation-run-20261108-a01/`，agent只看公开a02聚合状态；
+  生命周期监控`logs/confirmation-prep-20261108-a01/lifecycle.*`。
+- 当前仅确认提交和进程启动，尚无科学验收结果。不要重复create或修改运行代码。
+  结束后本机隔离质量、独立重放两次、原始证据校验，结果按预声明规则报告。

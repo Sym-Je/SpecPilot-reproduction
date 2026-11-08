@@ -1,9 +1,9 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-08 UTC（用户批准反例独立确认，160新题准备通过，待冻结提交）。
+> 最后更新：2026-11-08 UTC（反例独立确认已提交，node208运行中；没有新科学结论）。
 
-## 最新接续点：反例独立确认已批准，待提交GPU
+## 最新接续点：反例独立确认GPU运行中
 
 - 唯一记录`docs/experiments/confirmation-20261108.md`。固定final/stock/controller，不碰sealed/RSI/ledger。
 - 中文60＋DialogSum人工参考摘要60（2048cap），HumanEval40（4096cap）；排除作者100dev与上轮200题。
@@ -17,6 +17,12 @@
 - 下一内部动作：冻结源码/查重/展示完整2GPU命令，再create一次，核对code200与精确UUID。
   沿用确认镜像digest、WeaverDev/qiji、1节点×2H100/256Gi；最多8小时，不因结果扩样追绿。
   成功后本机隔离质量/两独立重放/证据SHA/进度提交推送，完成后再询问下一大阶段。
+- 上述提交已完成：code200，精确UUID=`job-a99898c2f332-20261108164059`，node208，
+  08:41:27 UTC启动，实际queue=proj-31，2H100/256Gi/原digest已核对。
+  source pin=`65364f55ae0d367438f11efaa1c06332c2ebc717`，源tar SHA=
+  `ac85e3ca050e50a614ceb4f840e7023dcebb1d7a0932bf1bec67d84de371328b`。
+  私有运行`logs/confirmation-run-20261108-a01/`，只监控公开a02与准备目录lifecycle。
+  不重复create、不改运行代码；运行中只允许更新文档。GPU结束后才本机finalize/audit。
 
 ## 最新接续点：泛化审计完成，不能宣称普适2.2倍
 
