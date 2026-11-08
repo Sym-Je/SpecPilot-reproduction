@@ -1,7 +1,22 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-08 UTC（200题泛化审计完成，发现中文性能退化与质量告警；无运行任务）。
+> 最后更新：2026-11-08 UTC（用户批准反例独立确认，160新题准备通过，待冻结提交）。
+
+## 最新接续点：反例独立确认已批准，待提交GPU
+
+- 唯一记录`docs/experiments/confirmation-20261108.md`。固定final/stock/controller，不碰sealed/RSI/ledger。
+- 中文60＋DialogSum人工参考摘要60（2048cap），HumanEval40（4096cap）；排除作者100dev与上轮200题。
+  摘要不同来源，不以新源无下降推翻旧Alpaca告警。三主要端点、Bonferroni同时区间提前声明。
+- 新入口`exp/confirmation.py`和`exp/confirmation_remote.sh`；复用既有controller，不改裁判。
+  `generalization_audit`只新增可选domains/caps，原默认不变；146回归通过。
+- 私有数据`logs/confirmation-data-20261108-a02/`，公开状态`logs/confirmation-public-20261108-a02/`；
+  agent不要看题目/答案/逐题输出。SHA=`03f72f87aa3422197de540838fc9a7ae2f1494415e97e9a4ed5e13ce4f786e2e`。
+  准备/失败日志`logs/confirmation-prep-20261108-a01/`；a01源schema失败止于抽样前，保留不覆盖。
+- 独立retokenize、全部源SHA、40参考代码隔离测试通过。输入104–1006token，不宣称长上下文。
+- 下一内部动作：冻结源码/查重/展示完整2GPU命令，再create一次，核对code200与精确UUID。
+  沿用确认镜像digest、WeaverDev/qiji、1节点×2H100/256Gi；最多8小时，不因结果扩样追绿。
+  成功后本机隔离质量/两独立重放/证据SHA/进度提交推送，完成后再询问下一大阶段。
 
 ## 最新接续点：泛化审计完成，不能宣称普适2.2倍
 

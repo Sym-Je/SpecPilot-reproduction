@@ -134,9 +134,10 @@ def verdict_summary(verdict):
             'large_margin_events','unexplained_events','event_flagged','correctness_passed')}
 
 
-def rescore(directory, campaign, requests):
+def rescore(directory, campaign, requests, domains=None):
+    domains = DOMAINS if domains is None else domains
     root = directory / 'correctness'
-    verdicts, subgroup = [], {domain:[] for domain in DOMAINS}
+    verdicts, subgroup = [], {domain:[] for domain in domains}
     for number in (1, 2):
         timed_root = directory / 'candidate' / f'round-{number:02d}'
         paths = {role:[root / f'round-{number:02d}-{role}' / (request['id']+'.json') for request in requests]
@@ -168,7 +169,7 @@ def rescore(directory, campaign, requests):
         if stored != verdict:
             raise ValueError('stored forcing verdict differs from raw evidence')
         verdicts.append(verdict)
-        for domain in DOMAINS:
+        for domain in domains:
             indices = [index for index,request in enumerate(requests) if request['suite'] == domain]
             selected = {role:[values[index] for index in indices] for role,values in paths.items()}
             try:
@@ -225,7 +226,7 @@ def quality_summary(directory, requests):
     return output
 
 
-def verify_quality(private,dataset):
+def verify_quality(private,dataset,caps=(2048,256,4096)):
     from transformers import AutoTokenizer
     from exp.generalization_quality import grade,run_code
     tokenizer=AutoTokenizer.from_pretrained('/gpfs/models/huggingface.co/Qwen/Qwen3.8-27B',local_files_only=True)
@@ -236,7 +237,7 @@ def verify_quality(private,dataset):
             code=item['canonical'] if not item.get('entry_point') else item['code_prompt']+item['canonical']
             if controls[item['id']] != (run_code(code,item['tests'])['status']=='pass'):
                 raise ValueError('quality canonical control not reproducible')
-    for cap in (2048,256,4096):
+    for cap in caps:
         directory=private/f'cap-{cap}'
         quality={(row['round'],row['role'],row['id']):row for row in read_rows(directory/'quality.jsonl')}
         for number in (1,2):
