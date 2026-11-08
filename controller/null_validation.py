@@ -8,11 +8,11 @@ from exp.p3_pair_run import arm_specs, clean_environment
 from harness.baseline_validation import read_rows, validate_paired_run
 
 
-def validate_null(directory, rounds=2):
+def validate_null(directory, rounds=2, per_suite=4):
     directory = Path(directory)
     names = ['stock-a', 'stock-b']
     expected_arms, _ = arm_specs(names, clean_environment())
-    result, manifest, summary = validate_paired_run(directory, names, expected_arms, rounds=rounds)
+    result, manifest, summary = validate_paired_run(directory, names, expected_arms, rounds=rounds, per_suite=per_suite)
     first_outputs = {}
     for round_number in range(1, rounds + 1):
         round_dir = directory / f'round-{round_number:02d}'

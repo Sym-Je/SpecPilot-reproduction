@@ -273,7 +273,7 @@ def result_row(result, request, arm, gpu, round_index, max_new):
 
 def run_round(arms, gpus, ports, round_index, requests, output_dir, environment,
               max_new, warmup, startup_timeout, server_factory=Server, bench_factory=HttpPairBench,
-              stable_null=False, cpu_plan=None):
+              stable_null=False, cpu_plan=None, arm_factory=Arm):
     output_dir.mkdir(parents=True, exist_ok=False)
     assigned = gpus if round_index % 2 == 0 else list(reversed(gpus))
     ports = list(reversed(ports)) if stable_null and round_index >= 2 else ports
@@ -307,7 +307,7 @@ def run_round(arms, gpus, ports, round_index, requests, output_dir, environment,
                 write_json(output_dir.parent / 'cpu-plan.json', cpu_plan)
             ready_binding = apply_bindings(servers, cpu_plan)
             write_json(output_dir / 'cpu-binding-ready.json', ready_binding)
-        clients = [Arm(arm['name'], f'http://127.0.0.1:{port}',
+        clients = [arm_factory(arm['name'], f'http://127.0.0.1:{port}',
                        block_size=arm['block'], tree_sha=arm['tree_sha'], env=arm.get('env', {}),
                        trace_timing=stable_null)
                    for arm, port in zip(arms, ports)]

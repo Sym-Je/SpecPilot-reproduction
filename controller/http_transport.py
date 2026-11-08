@@ -29,11 +29,12 @@ import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from .stats import paired_ci
 
 
-def _post(url, body, timeout=3600, timing=None):
+def _post(url, body, timeout=3600, timing=None, capture=None):
     req = urllib.request.Request(url, data=json.dumps(body).encode(),
                                  headers={"Content-Type": "application/json"})
     try:
@@ -43,7 +44,10 @@ def _post(url, body, timeout=3600, timing=None):
             payload = r.read()
             if timing is not None:
                 timing['body_complete_ns'] = time.perf_counter_ns()
-            return json.loads(payload)
+            result = json.loads(payload)
+            if capture is not None:
+                capture.update(url=url, request=body, response=result, http_status=r.status)
+            return result
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"HTTP {e.code} {url}: {e.read()[:400]!r}")
 
@@ -62,6 +66,7 @@ class Arm:
     env: dict = field(default_factory=dict)
     sampling: dict = field(default_factory=lambda: {"temperature": 0.0, "top_k": 1})
     trace_timing: bool = False
+    raw_dir: Path | None = None
 
     def health(self, timeout=5.0) -> bool:
         try:
@@ -77,6 +82,10 @@ class Arm:
         self._session = {"arm": self.name, "url": self.url, "block_size": self.block_size,
                          "tree_sha": self.tree_sha,
                          "env": {k: v for k, v in self.env.items() if k.startswith("SPECPILOT_")}}
+        if self.raw_dir is not None:
+            self.raw_dir = Path(self.raw_dir)
+            self.raw_dir.mkdir(parents=True, exist_ok=False)
+            self._evidence_sequence = 0
 
     def step(self, input_ids, max_new: int, warmup: int = 0, rid: str | None = None) -> dict:
         """跑一次生成，返回和 harness.engine.RunResult 对齐的字段。"""
@@ -86,10 +95,12 @@ class Arm:
                   {"input_ids": input_ids, "sampling_params": sampling,
                    "rid": f"{(rid or 'w')}|warmup"})
         timing = {'step_start_ns': time.perf_counter_ns(), 'started_unix': time.time()} if self.trace_timing else None
+        capture = {} if self.raw_dir is not None else None
         t0 = time.perf_counter()
         j = _post(self.url + "/generate",
                   {"input_ids": input_ids, "sampling_params": sampling,
-                   "rid": f"{(rid or 'r')}|measure"}, timing=timing)
+                   "rid": f"{(rid or 'r')}|measure"}, timing=timing,
+                  **({'capture': capture} if capture is not None else {}))
         dt = time.perf_counter() - t0
         if timing is not None:
             timing['step_end_ns'] = time.perf_counter_ns()
@@ -113,6 +124,12 @@ class Arm:
         }
         if timing is not None:
             result['client_timing'] = timing
+        if capture is not None:
+            self._evidence_sequence += 1
+            destination = self.raw_dir / f'{self._evidence_sequence:06d}.json'
+            with destination.open('x') as output:
+                json.dump(capture, output, allow_nan=False)
+            result['raw_evidence'] = dict(path=str(destination), sha256=hashlib.sha256(destination.read_bytes()).hexdigest())
         return result
 
 

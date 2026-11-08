@@ -11,14 +11,17 @@ def read_rows(path):
     return [json.loads(line) for line in path.read_text().splitlines()]
 
 
-def validate_paired_run(directory, names, expected_arms=None, reference_requests=None, rounds=2):
+def validate_paired_run(directory, names, expected_arms=None, reference_requests=None, rounds=2, per_suite=4):
     directory = Path(directory)
     if (directory / 'failed.json').exists():
         raise ValueError('runner recorded a failure')
     manifest = json.loads((directory / 'manifest.json').read_text())
     if type(rounds) is not int or rounds < 2 or rounds % 2:
         raise ValueError('expected physical rounds must be positive and even')
-    expected = {'rounds': rounds, 'per_suite': 4, 'max_new_tokens': 2048,
+    if type(per_suite) is not int or per_suite < 1:
+        raise ValueError('positive expected per-suite coverage required')
+    count = len(SUITES) * per_suite
+    expected = {'rounds': rounds, 'per_suite': per_suite, 'max_new_tokens': 2048,
                 'warmup': 2, 'suites': SUITES}
     if any(manifest.get(key) != value for key, value in expected.items()):
         raise ValueError('unexpected baseline protocol')
@@ -35,8 +38,8 @@ def validate_paired_run(directory, names, expected_arms=None, reference_requests
     if reference_requests is not None and requests != reference_requests:
         raise ValueError('requests differ from the frozen baseline')
     by_id = {request['id']: request for request in requests}
-    if (len(requests) != 20 or len(by_id) != 20 or
-            Counter(request['suite'] for request in requests) != Counter({suite: 4 for suite in SUITES})):
+    if (len(requests) != count or len(by_id) != count or
+            Counter(request['suite'] for request in requests) != Counter({suite: per_suite for suite in SUITES})):
         raise ValueError('unexpected request coverage')
     if any(request['turn'] != 0 or not request['input_ids'] or
            sha_ids(request['input_ids']) != request['input_sha256'] for request in requests):
@@ -47,7 +50,7 @@ def validate_paired_run(directory, names, expected_arms=None, reference_requests
     for round_number in range(1, rounds + 1):
         round_dir = directory / f'round-{round_number:02d}'
         complete = json.loads((round_dir / 'complete.json').read_text())
-        if complete != {'round': round_number, 'pairs': 20}:
+        if complete != {'round': round_number, 'pairs': count}:
             raise ValueError('incomplete round')
         deployment = json.loads((round_dir / 'deployment.json').read_text())
         entries = deployment['assignments']
@@ -56,7 +59,7 @@ def validate_paired_run(directory, names, expected_arms=None, reference_requests
             raise ValueError('invalid physical GPU assignment')
         assignments.append(mapping)
         pairs = read_rows(round_dir / 'pairs.jsonl')
-        if len(pairs) != 20 or {pair['id'] for pair in pairs} != set(by_id):
+        if len(pairs) != count or {pair['id'] for pair in pairs} != set(by_id):
             raise ValueError('missing or duplicate request/round coverage')
         for key, arm in zip(('a', 'b'), arms):
             name = arm['name']
@@ -89,7 +92,7 @@ def validate_paired_run(directory, names, expected_arms=None, reference_requests
             raise ValueError('physical GPUs were not exchanged')
     summary = json.loads((directory / 'summary.json').read_text())
     if (summary.get('arms') != names or summary.get('max_new_tokens') != 2048 or
-            summary.get('per_suite_requested') != 4):
+            summary.get('per_suite_requested') != per_suite):
         raise ValueError('unexpected summary protocol')
     recalculated = summarize(all_pairs, requests, rounds, summary['bootstrap_iters'])
     if any(summary.get(key) != value for key, value in recalculated.items()):
@@ -101,7 +104,7 @@ def validate_paired_run(directory, names, expected_arms=None, reference_requests
                          'mean': sum(counts) / len(counts), 'at_cap': counts.count(2048),
                          'finish_reasons': dict(Counter(row['finish_reason'] for row in rows))}
     result = {'protocol_passed': True,
-            'requests': 20, 'pairs': 20 * rounds, 'arm_rows': 40 * rounds, 'rounds': rounds,
+            'requests': count, 'pairs': count * rounds, 'arm_rows': 2 * count * rounds, 'rounds': rounds,
             'physical_gpu_swap': True, 'geomean': summary['geomean'],
             'ci95': [summary['lower'], summary['upper']],
             'actual_lengths': lengths,

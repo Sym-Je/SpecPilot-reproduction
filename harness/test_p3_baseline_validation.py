@@ -17,14 +17,14 @@ class BaselineValidationTests(unittest.TestCase):
     def write(self, path, value):
         path.write_text(json.dumps(value))
 
-    def fixture(self, speedup=4.0, swap=True):
+    def fixture(self, speedup=4.0, swap=True, per_suite=4):
         requests = [{'id': f'{suite}-{index}', 'suite': suite, 'turn': 0,
                      'input_ids': [100, index], 'input_sha256': sha_ids([100, index])}
-                    for suite in SUITES for index in range(4)]
+                    for suite in SUITES for index in range(per_suite)]
         arms = [{'name': name, 'block': block, 'tree_sha': 'a' * 64, 'env': {}}
                 for name, block in (('ar', 0), ('stock', 8))]
         self.write(self.root / 'manifest.json', {
-            'arms': arms, 'rounds': 2, 'per_suite': 4, 'max_new_tokens': 2048,
+            'arms': arms, 'rounds': 2, 'per_suite': per_suite, 'max_new_tokens': 2048,
             'warmup': 2, 'suites': SUITES, 'requests': requests,
             'sampling': {'temperature': 0.0, 'top_k': 1, 'enable_thinking': True}})
         all_pairs = []
@@ -53,10 +53,10 @@ class BaselineValidationTests(unittest.TestCase):
                                ('stock', [pair['b'] for pair in pairs])):
                 (directory / f'{name}.jsonl').write_text(
                     ''.join(json.dumps(row) + '\n' for row in rows))
-            self.write(directory / 'complete.json', {'round': round_number, 'pairs': 20})
+            self.write(directory / 'complete.json', {'round': round_number, 'pairs': len(requests)})
             all_pairs.extend(pairs)
         summary = summarize(all_pairs, requests, 2, iters=64)
-        summary.update(arms=['ar', 'stock'], max_new_tokens=2048, per_suite_requested=4,
+        summary.update(arms=['ar', 'stock'], max_new_tokens=2048, per_suite_requested=per_suite,
                        acceptance={'target': 3.95, 'relative_tolerance': 0.10,
                                    'passed': 3.95 * 0.9 <= speedup <= 3.95 * 1.1})
         self.write(self.root / 'summary.json', summary)

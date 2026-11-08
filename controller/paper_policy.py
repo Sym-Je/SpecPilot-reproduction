@@ -57,11 +57,14 @@ def measurement_protocol_id(manifest):
     protocol = {key: manifest[key] for key in required if key != 'gpus'}
     protocol['gpus'] = [{key: gpu[key] for key in ('index', 'uuid', 'name')} for gpu in manifest['gpus']]
     protocol.update(stable_null=manifest.get('stable_null', False), cpu_pinning=manifest.get('cpu_pinning', False))
+    if 'campaign_protocol_version' in manifest:
+        protocol.update({key: manifest[key] for key in
+            ('campaign_protocol_version', 'full_scale_warmup', 'synchronized_start', 'raw_capture')})
     return record_digest(protocol)
 
 
 def calibrate_null_runs(directories, *, declared_sessions, campaign_id, mode,
-                       expected_protocol_id=None, expected_source_pin=None, campaign_started_unix=None):
+                       expected_protocol_id=None, expected_source_pin=None, campaign_started_unix=None, per_suite=4):
     from controller.null_validation import validate_null
     from controller.stability_validation import validate_stable
 
@@ -87,7 +90,7 @@ def calibrate_null_runs(directories, *, declared_sessions, campaign_id, mode,
         elif manifest.get('stable_null'):
             checked = validate_stable(directory)
         else:
-            checked = validate_null(directory, rounds=manifest['rounds'])
+            checked = validate_null(directory, rounds=manifest['rounds'], per_suite=per_suite)
         files = [directory / 'manifest.json', directory / 'summary.json']
         files += [path for number in range(1, manifest['rounds'] + 1)
                   for path in sorted((directory / f'round-{number:02d}').glob('*.json*'))]
