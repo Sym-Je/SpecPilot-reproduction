@@ -41,9 +41,11 @@ Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果
 
 ## 4. 当前阶段索引
 
-新增活动：[final反例独立确认](experiments/confirmation-20261108.md)运行中；
-中文60/人工参考摘要60/代码40，排除全部dev与前审计，146回归通过，不改final/controller。
-pin65364f5，UUID job-a99898c2f332-20261108164059，node208/2H100；提交及进程启动已核对，科学验收待完成。
+新增活动：[final反例独立确认](experiments/confirmation-20261108.md)执行/重放/归档完成；
+中文60/人工参考摘要60/代码40，排除全部dev与前审计；中文请求延迟比0.5397×的反例确认，
+摘要/代码退化证据不足。148回归、两独立重放/5928文件SHA通过，不改final/controller。
+GPU pin65364f5、CPU pinbb5b8fb，UUID job-a99898c2f332-20261108164059已Completed/exit0，
+node208/2H100已释放。中文1题辅助质量格式缺测不删性能题；无新GPU或sealed/RSI/晋升。
 
 | 阶段 | 状态 | 已有证据 / 下一步 |
 |---|---|---|

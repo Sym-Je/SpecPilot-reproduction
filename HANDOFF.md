@@ -1,9 +1,45 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-08 UTC（反例确认GPU完成，CPU质量类型适配148回归通过；等待新CPU完成器）。
+> 最后更新：2026-11-08 UTC（反例独立确认完成并归档；中文减速确认，质量退化证据不足；无运行任务）。
 
-## 最新接续点：反例独立确认GPU完成，CPU质量修复待执行
+## 最新接续点：反例独立确认已完成，不自动进入下一阶段
+
+- 唯一记录`docs/experiments/confirmation-20261108.md`。用户批准的阶段已全部完成，不再提交GPU/重抽题/改final。
+- 160新题排除作者全部100dev与上轮200题：中文60、人工参考摘要60（2048cap）、代码40（4096cap）；
+  两条件各前null→candidate→后null、各两轮fresh/物理换卡。独立题cluster，不把两卡当新样本。
+- 三主要端点Bonferroni同时区间（每项98.333333%）：中文请求stock/final延迟比0.539657
+  [0.504294,0.577406]，**final约需1.853倍时间，性能反例确认**。
+  摘要ROUGE-L差-0.002707[-0.010846,0.004635]、代码通过率差+0.05[-0.05,0.175]均证据不足。
+  不能以未显著证明质量非劣，也不能用新DialogSum结果推翻旧Alpaca告警。不是故意reward hack的证据。
+- 中文每臂120轮次全自然EOS，实际平均输出76.267/77.533token。未因果隔离语言/短答/prefill/接受率，
+  不说“中文本身造成”。摘要通过率代理均值0.259538/0.256830（ROUGE-L非准确率）；代码平均82.5%/87.5%。
+- 两cap新noise0.6597425%/0.4177801%；全局/局部新δ0.25、rate/event均过，零大margin事件。
+  800条完整FP32评分（640测速输出+160新AR），960正式pair/1920臂行。forcing不是数学lossless。
+- GPU唯一UUID=`job-a99898c2f332-20261108164059`，node208，08:41:27–10:49:13 UTC（2h7m46s），
+  Job Completed/Pod Succeeded/容器与脚本exit0，255快照单Pod UID/restart0，Job retryCount未设置。
+  两H100均0MiB/利用率0–1%，端口释放；所有监控/CPU会话已结束。
+- GPU源pin=`65364f55ae0d367438f11efaa1c06332c2ebc717`，source.tar SHA=
+  `ac85e3ca050e50a614ceb4f840e7023dcebb1d7a0932bf1bec67d84de371328b`；
+  CPU评测源pin=`bb5b8fbcdf1bc1da32ddb474b12af9d8c57702ff`，evaluator.tar SHA=
+  `631d8a4c222c6e9bd20937e14819fdbd77c28956d7d4a29a61ac9e0f30ad9678`。
+- 原CPU评分失败因中文180参考中1个有限float；原partial文件不覆盖。新CPU评测只标该题辅助质量缺测，
+  60题速度/160题forcing全保留，主要摘要/代码不缺测。修复PATH仅进程有效，未改controller或阈值。
+- 私有数据`logs/confirmation-data-20261108-a02/`，私有运行`logs/confirmation-run-20261108-a01/`，
+  私有质量`logs/confirmation-evaluation-20261108-a01/`；**agent只看公开`logs/confirmation-public-20261108-a02/`**。
+  dataset SHA=`03f72f87aa3422197de540838fc9a7ae2f1494415e97e9a4ed5e13ce4f786e2e`。
+- 11:10:49 UTC统一验收完成；result/replay-01/replay-02字节一致，SHA=
+  `b07cf371ca03c20bc66b844fe7048e9f12a9e28a045af46b6d2f772bc6657c77`。
+  148回归/shell/diff通过，旧泛化10312文件SHA复验全过；本阶段5928文件/272733966字节校验全过。
+  清单`logs/confirmation-evidence-20261108-a01.sha256`，SHA=
+  `29bfb790646ab81cfcab9035071d904a96cfa82fb66ada6be9238f4923bfebbf`。
+- controller/patches/作者config/dev相对36166c7无变化；没有sealed/RSI/ledger/memory写入或晋升。
+  不再次运行finalize；复核仅冻结CPU源`confirmation.py audit --quality-root <上述私有质量目录> --out <新路径>`，
+  显式CUDA不可见，只看聚合，不手工读私有样本。完整命令见唯一记录。
+- 下一步建议：先给用户中文短答减速的因果诊断方案，再获准执行；也可由用户选择正式sealed顺序。
+  质量告警仍需可靠语义复核，不擅加论文硬门槛、不自动新阶段，不用本确认集改final再自验。
+
+## 本阶段准备与运行历史（已完成，不再作为下一步）
 
 - 唯一记录`docs/experiments/confirmation-20261108.md`。固定final/stock/controller，不碰sealed/RSI/ledger。
 - 中文60＋DialogSum人工参考摘要60（2048cap），HumanEval40（4096cap）；排除作者100dev与上轮200题。
