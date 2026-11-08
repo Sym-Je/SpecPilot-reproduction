@@ -1,9 +1,9 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-08 UTC（反例独立确认已提交，node208运行中；没有新科学结论）。
+> 最后更新：2026-11-08 UTC（反例确认GPU完成，CPU质量类型适配148回归通过；等待新CPU完成器）。
 
-## 最新接续点：反例独立确认GPU运行中
+## 最新接续点：反例独立确认GPU完成，CPU质量修复待执行
 
 - 唯一记录`docs/experiments/confirmation-20261108.md`。固定final/stock/controller，不碰sealed/RSI/ledger。
 - 中文60＋DialogSum人工参考摘要60（2048cap），HumanEval40（4096cap）；排除作者100dev与上轮200题。
@@ -23,6 +23,15 @@
   `ac85e3ca050e50a614ceb4f840e7023dcebb1d7a0932bf1bec67d84de371328b`。
   私有运行`logs/confirmation-run-20261108-a01/`，只监控公开a02与准备目录lifecycle。
   不重复create、不改运行代码；运行中只允许更新文档。GPU结束后才本机finalize/audit。
+- 最新GPU已Completed/Pod Succeeded/exit0，08:41:27–10:49:13UTC，255快照单Pod/restart0；
+  两卡0MiB/0–1%，两条件新δ0.25/forcing通过。原本机finalize失败：中文180参考中1个有限float。
+  新评测器将该题的辅助质量标缺测，60题速度/160题forcing不删；主要摘要/代码不允许缺测。
+  原partial quality/本机失败log保留，不再次运行旧完成器或新GPU。
+- CPU修复148回归通过，下一步独立冻结CPU源码/归档，在新目录
+  `logs/confirmation-evaluation-20261108-a01/`完成质量。GPU源始终65364f5不变。
+  `confirmation.py finalize/audit`现在必须传`--quality-root <该目录>`；finalize另需
+  `CONFIRMATION_EVALUATOR_EXPECTED_COMMIT`、`CONFIRMATION_EVALUATOR_TAR`、`CONFIRMATION_EVALUATOR_SHA256`。
+  CPU显式CUDA不可见；只看公开a02汇总，不手工读私有样本。成功后两次重放与SHA归档。
 
 ## 最新接续点：泛化审计完成，不能宣称普适2.2倍
 

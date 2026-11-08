@@ -79,3 +79,18 @@ CMRC/HumanEval复用逐文件SHA验证的上轮同revision官方源。未查看�
   生命周期监控`logs/confirmation-prep-20261108-a01/lifecycle.*`。
 - 当前仅确认提交和进程启动，尚无科学验收结果。不要重复create或修改运行代码。
   结束后本机隔离质量、独立重放两次、原始证据校验，结果按预声明规则报告。
+
+### GPU完成与CPU质量适配
+
+- GPU最终Job Completed/Pod Succeeded，容器与脚本exit0，08:41:27–10:49:13 UTC（2h7m46s）；
+  255生命周期快照只见一个Pod UID、容器restart0，Job retryCount字段未设置。
+  两卡均0MiB，利用率0/1%，端口已释放。两条件/四轮全局forcing均通过，新δ均0.25，零大margin事件。
+- 初次本机质量完成器失败于中文参考类型：60题共180参考中179个str、1个有限float；
+  前审计20中文题60参考全str。只查看类型计数，没有查看题目/参考值/输出。
+  原本机失败log、partial quality、controls和全部GPU原始产物保留，不覆盖。
+- 新CPU评测器只把含非字符串参考的中文题辅助质量标为缺测，不猜测/强转答案，
+  **全部60中文性能题和全部160题forcing仍保留**。摘要/代码主要端点不允许缺测。
+  不换样、不重测GPU、不改阈值或controller。三主要端点、同时区间方法不变。
+- CPU修复独立冻结源码pin/tar，与GPU执行pin分开记录；新评测目录
+  `logs/confirmation-evaluation-20261108-a01/`。验收绑定原GPU源/数据SHA、验证controller逐文件相同，
+  从原生测速输出重做质量并独立复验；源archive及失败路径都归档。

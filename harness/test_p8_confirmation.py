@@ -1,8 +1,10 @@
 import math
 import json
+import io
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch,MagicMock
 
 
 class ConfirmationTests(unittest.TestCase):
@@ -93,6 +95,40 @@ class ConfirmationTests(unittest.TestCase):
             rows[0]['output_sha256']='tampered'
             save(rows)
             with self.assertRaises(ValueError): quality_metrics(root,requests)
+
+    def test_nonstring_auxiliary_reference_is_ungraded_without_coercion(self):
+        from exp.confirmation import grade_confirmation
+        result=grade_confirmation(dict(metric='qa',answers=['valid',1.5]),'<think>x</think>valid')
+        self.assertIsNone(result['score'])
+        self.assertEqual(result['metric'],'unsupported-reference-type')
+        valid=grade_confirmation(dict(metric='qa',answers=['valid']),'<think>x</think>valid')
+        self.assertEqual(valid['score'],1.)
+        with self.assertRaises(TypeError):
+            grade_confirmation(dict(metric='rouge_l',answer=1.5),'<think>x</think>text')
+
+    def test_cpu_evaluator_requires_same_controller_and_runtime_binding(self):
+        from exp.confirmation import validate_evaluator
+        import hashlib
+        digest=hashlib.sha256(b'frozen').hexdigest()
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);evaluation=root/'evaluation';evaluation.mkdir()
+            runtime=dict(source_pin='runtime',dataset_sha256='dataset',source_sha256={'controller/test.py':digest})
+            (root/'manifest.json').write_text(json.dumps(runtime))
+            identity=dict(runtime_source_pin='runtime',dataset_sha256='dataset',runtime_directory=str(root),
+                grading_policy='nonstring-qa-reference-ungraded-v1',source_archive='synthetic.tar',
+                source_archive_sha256=digest,source_sha256={'controller/test.py':digest})
+            archive=MagicMock();archive.__enter__.return_value=archive
+            archive.extractfile.side_effect=lambda name:io.BytesIO(b'frozen')
+            def save(): (evaluation/'manifest.json').write_text(json.dumps(identity))
+            save()
+            with patch('exp.confirmation.checksum',return_value=digest),patch('exp.confirmation.tarfile.open',return_value=archive):
+                self.assertEqual(validate_evaluator(root,evaluation),identity)
+                identity['runtime_source_pin']='other';save()
+                with self.assertRaises(ValueError): validate_evaluator(root,evaluation)
+                identity['runtime_source_pin']='runtime'
+                runtime['source_sha256']['controller/test.py']='changed'
+                (root/'manifest.json').write_text(json.dumps(runtime));save()
+                with self.assertRaises(ValueError): validate_evaluator(root,evaluation)
 
 
 if __name__=='__main__':

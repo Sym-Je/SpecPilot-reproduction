@@ -22,11 +22,11 @@ from controller.dev_campaign import check_phase_order
 from controller.http_transport import sha_ids
 from controller.paper_policy import POLICY, calibration_from_intervals, measurement_protocol_id
 from controller.stats import bootstrap_ci, stratified_geomean_ci
-from exp.generalization_audit import PHASES, cluster_groups, rescore, validate_session, verify_quality
+from exp.generalization_audit import PHASES, cluster_groups, rescore, validate_session
 from exp.generalization_data import REVISIONS, SOURCES, duplicate, source_rows
-from exp.generalization_quality import run_code
-from exp.generalization_run import build, event, quality, scoring, timing
-from exp.p3_pair_run import SUITES, check_ports, clean_environment, gpu_lock, interrupted, wait_for_idle, write_json
+from exp.generalization_quality import grade, run_code
+from exp.generalization_run import build, event, scoring, timing
+from exp.p3_pair_run import SUITES, append_json, check_ports, clean_environment, gpu_lock, interrupted, wait_for_idle, write_json
 from harness.baseline_validation import read_rows
 
 SEED = '261102501-confirmation-v1'
@@ -282,8 +282,83 @@ def run(private,data_path,public):
     return 0
 
 
-def quality_metrics(directory,requests_data):
-    rows=read_rows(directory/'quality.jsonl')
+def grade_confirmation(item,text):
+    if item['metric']=='qa' and any(not isinstance(answer,str) for answer in item['answers']):
+        return dict(score=None,metric='unsupported-reference-type',answered=None)
+    return grade(item,text)
+
+
+def evaluator_identity(private):
+    expected=os.environ['CONFIRMATION_EVALUATOR_EXPECTED_COMMIT']
+    actual=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
+    if actual!=expected:
+        raise ValueError('CPU evaluator is not its frozen source')
+    subprocess.run(['git','diff','--exit-code',expected,'--','controller','exp','harness','assets/upstream'],cwd=ROOT,check=True)
+    runtime=json.loads((private/'manifest.json').read_text())
+    archive=Path(os.environ['CONFIRMATION_EVALUATOR_TAR'])
+    digest=os.environ['CONFIRMATION_EVALUATOR_SHA256']
+    if checksum(archive)!=digest:
+        raise ValueError('CPU evaluator archive changed')
+    sources={name:checksum(ROOT/name) for name in runtime['source_sha256']}
+    if any(sources[name]!=value for name,value in runtime['source_sha256'].items() if name.startswith('controller/')):
+        raise ValueError('controller changed between GPU and CPU phases')
+    return dict(source_pin=expected,source_archive=str(archive),source_archive_sha256=digest,
+        source_sha256=sources,runtime_source_pin=runtime['source_pin'],runtime_directory=str(private),
+        dataset_sha256=runtime['dataset_sha256'],grading_policy='nonstring-qa-reference-ungraded-v1')
+
+
+def validate_evaluator(private,evaluation):
+    identity=json.loads((evaluation/'manifest.json').read_text())
+    runtime=json.loads((private/'manifest.json').read_text())
+    if (identity['runtime_source_pin']!=runtime['source_pin'] or identity['dataset_sha256']!=runtime['dataset_sha256']
+            or identity['runtime_directory']!=str(private) or identity['grading_policy']!='nonstring-qa-reference-ungraded-v1'
+            or checksum(identity['source_archive'])!=identity['source_archive_sha256']):
+        raise ValueError('CPU evaluation detached from frozen runtime')
+    if set(identity['source_sha256'])!=set(runtime['source_sha256']):
+        raise ValueError('CPU evaluator source inventory changed')
+    with tarfile.open(identity['source_archive']) as archive:
+        for name,digest in identity['source_sha256'].items():
+            if checksum(ROOT/name)!=digest or hashlib.sha256(archive.extractfile(name).read()).hexdigest()!=digest:
+                raise ValueError('CPU evaluator differs from frozen archive')
+            if name.startswith('controller/') and runtime['source_sha256'][name]!=digest:
+                raise ValueError('controller identity changed')
+    return identity
+
+
+def evaluate_quality(private,evaluation,dataset,write=False):
+    from transformers import AutoTokenizer
+    tokenizer=AutoTokenizer.from_pretrained('/gpfs/models/huggingface.co/Qwen/Qwen3.8-27B',local_files_only=True)
+    controls={}
+    items={item['id']:item for item in dataset['items']}
+    for item in dataset['items']:
+        if item['metric']=='code':
+            controls[item['id']]=run_code(item['code_prompt']+item['canonical'],item['tests'])['status']=='pass'
+    if len(controls)!=40 or not all(controls.values()):
+        raise ValueError('CPU evaluator reference-code control failed')
+    if write:
+        write_json(evaluation/'quality-controls.json',controls)
+    elif json.loads((evaluation/'quality-controls.json').read_text())!=controls:
+        raise ValueError('reference-code control not reproducible')
+    for cap in CAPS:
+        rows=[]
+        for number in (1,2):
+            for role in ('stock','final'):
+                for row in read_rows(private/f'cap-{cap}'/'candidate'/f'round-{number:02d}'/(role+'.jsonl')):
+                    result=grade_confirmation(items[row['id']],tokenizer.decode(row['output_ids'],skip_special_tokens=False))
+                    rows.append(dict(id=row['id'],suite=row['suite'],round=number,role=role,
+                        output_sha256=row['output_sha256'],quality=result))
+        directory=evaluation/f'cap-{cap}'
+        if write:
+            directory.mkdir()
+            with (directory/'quality.jsonl').open('x') as destination:
+                for row in rows:
+                    append_json(destination,row)
+        elif read_rows(directory/'quality.jsonl')!=rows:
+            raise ValueError('CPU task quality differs on independent replay')
+
+
+def quality_metrics(directory,requests_data,quality_directory=None):
+    rows=read_rows((quality_directory or directory)/'quality.jsonl')
     expected={(number,role,request['id']) for number in (1,2) for role in ('stock','final') for request in requests_data}
     actual=[(row['round'],row['role'],row['id']) for row in rows]
     if set(actual)!=expected or len(actual)!=len(expected):
@@ -298,7 +373,14 @@ def quality_metrics(directory,requests_data):
     for domain in sorted({request['suite'] for request in requests_data}):
         selected=[request for request in requests_data if request['suite']==domain]
         means={role:[] for role in ('stock','final')}
+        ungraded=0
         for request in selected:
+            results=[indexed[number,role,request['id']]['quality'] for number in (1,2) for role in means]
+            if any(result['score'] is None for result in results):
+                if domain!='chinese-qa' or any(result['metric']!='unsupported-reference-type' or result['score'] is not None for result in results):
+                    raise ValueError('ungraded primary quality endpoint')
+                ungraded+=1
+                continue
             for role in means:
                 scores=[indexed[number,role,request['id']]['quality']['score'] for number in (1,2)]
                 if any(score is None or not math.isfinite(score) for score in scores):
@@ -306,14 +388,15 @@ def quality_metrics(directory,requests_data):
                 means[role].append(statistics.mean(scores))
         differences=[final-stock for stock,final in zip(means['stock'],means['final'])]
         simultaneous=interval(differences,simultaneous=True)
-        result[domain]=dict(n=len(selected),metric=indexed[1,'stock',selected[0]['id']]['quality']['metric'],
+        result[domain]=dict(n=len(differences),measured_requests=len(selected),ungraded_requests=ungraded,
+            metric='qa' if domain=='chinese-qa' else indexed[1,'stock',selected[0]['id']]['quality']['metric'],
             stock_mean=statistics.mean(means['stock']),final_mean=statistics.mean(means['final']),
             paired_difference=interval(differences),simultaneous_difference=simultaneous,
             outcome=outcome(simultaneous,0),semantic_noninferiority_proven=False)
     return result
 
 
-def analyze(private,out):
+def analyze(private,out,evaluation):
     root=json.loads((private/'manifest.json').read_text())
     data_path=Path(root['dataset_path'])
     if checksum(data_path)!=root['dataset_sha256'] or checksum(root['source_archive'])!=root['source_archive_sha256']:
@@ -325,7 +408,8 @@ def analyze(private,out):
             if hashlib.sha256(archive.extractfile(name).read()).hexdigest()!=digest:
                 raise ValueError('runtime source differs from frozen archive')
     dataset=json.loads(data_path.read_text())
-    verify_quality(private,dataset,caps=CAPS)
+    evaluator=validate_evaluator(private,evaluation)
+    evaluate_quality(private,evaluation,dataset)
     head=json.loads((private/'head-preflight/result.json').read_text())
     if (head.get('native_reverse_token_differences')!=0 or head.get('tokens')!=1
             or head.get('head_identity',{}).get('source_sha256')!=root['source_sha256']['controller/head_reference.py']
@@ -354,7 +438,7 @@ def analyze(private,out):
         domains=sorted({request['suite'] for request in requests_data})
         correct,local=rescore(directory,campaign,requests_data,domains=domains)
         pairs=sessions[1][1]
-        quality_result=quality_metrics(directory,requests_data)
+        quality_result=quality_metrics(directory,requests_data,evaluation/f'cap-{cap}')
         domain_result={}
         for domain in domains:
             selected=[request for request in requests_data if request['suite']==domain]
@@ -382,6 +466,7 @@ def analyze(private,out):
     if len(cleanup)!=2 or any(gpu['memory_used_mib']>256 or gpu['utilization']>10 for gpu in cleanup):
         raise ValueError('GPU cleanup not established')
     result=dict(execution_complete=True,source_pin=root['source_pin'],dataset_sha256=root['dataset_sha256'],
+        evaluator_source_pin=evaluator['source_pin'],evaluator_source_archive_sha256=evaluator['source_archive_sha256'],
         unique_requests=160,caps=results,primary_endpoints={
             'chinese_latency':results[0]['domains']['chinese-qa']['latency_outcome'],
             'summary_rouge_l':results[0]['domains']['summary']['quality']['outcome'],
@@ -390,6 +475,7 @@ def analyze(private,out):
         limitations=['summary source changed: cannot refute old Alpaca alert',
             'proxies do not prove semantic quality or mathematical losslessness',
             'nonsignificance is not noninferiority','public data may have been seen',
+            'one Chinese auxiliary quality item ungraded due to nonstring reference; all 60 speed pairs retained',
             'confirmation, not causal profiling or autonomous discovery'])
     if out.exists():
         raise FileExistsError('confirmation report is append-only')
@@ -397,7 +483,7 @@ def analyze(private,out):
     return result
 
 
-def finalize(private,public):
+def finalize(private,public,evaluation):
     if os.environ.get('CUDA_VISIBLE_DEVICES')!='':
         raise ValueError('local evaluator must explicitly disable CUDA')
     if (public/'exit-status').read_text().strip()!='0' or not (public/'gpu-complete.json').exists():
@@ -405,14 +491,13 @@ def finalize(private,public):
     root=json.loads((private/'manifest.json').read_text())
     if root['quality_location']!='local-cpu-sandbox':
         raise ValueError('quality location changed')
-    for name,digest in root['source_sha256'].items():
-        if checksum(ROOT/name)!=digest:
-            raise ValueError('local evaluator differs from frozen GPU source')
-    with (private/'local-quality.log').open('x') as log,redirect_stdout(log),redirect_stderr(log):
+    identity=evaluator_identity(private)
+    evaluation.mkdir(mode=0o700)
+    write_json(evaluation/'manifest.json',identity)
+    with (evaluation/'local-quality.log').open('x') as log,redirect_stdout(log),redirect_stderr(log):
         dataset=json.loads(Path(root['dataset_path']).read_text())
-        campaigns=[json.loads((private/f'cap-{cap}'/'manifest.json').read_text()) for cap in CAPS]
-        quality(private,dataset,campaigns,public)
-        analyze(private,public/'result.json')
+        evaluate_quality(private,evaluation,dataset,write=True)
+        analyze(private,public/'result.json',evaluation)
         event(public,'scientific-evidence-validation-complete')
     print(json.dumps(dict(local_quality_complete=True,public_report=str(public/'result.json'))))
 
@@ -424,13 +509,14 @@ if __name__=='__main__':
     parser.add_argument('--public',type=Path)
     parser.add_argument('--dataset',type=Path)
     parser.add_argument('--out',type=Path)
+    parser.add_argument('--quality-root',type=Path)
     args=parser.parse_args()
     if args.mode=='prepare': prepare(args.private,args.public)
     elif args.mode=='verify': publish(args.out,verify_prepared(args.private,args.public))
     elif args.mode=='run': raise SystemExit(run(args.private,args.dataset,args.public))
-    elif args.mode=='finalize': finalize(args.private,args.public)
+    elif args.mode=='finalize': finalize(args.private,args.public,args.quality_root)
     else:
         if os.environ.get('CUDA_VISIBLE_DEVICES')!='':
             raise ValueError('offline replay must explicitly disable CUDA')
-        result=analyze(args.private,args.out)
+        result=analyze(args.private,args.out,args.quality_root)
         print(json.dumps(dict(replay_complete=True,primary_endpoints=result['primary_endpoints'])))
