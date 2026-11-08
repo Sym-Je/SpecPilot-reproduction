@@ -1,7 +1,7 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-08 UTC（作者final外部数据泛化审计已获用户批准，200题准备验收通过；新GPU测量待执行）。
+> 最后更新：2026-11-08 UTC（200题泛化审计a02已启动，运行中；a01无测量失败保留，尚无新泛化结论）。
 
 ## 最新接续点：执行作者final外部数据泛化审计
 
@@ -35,6 +35,12 @@
   a02公开状态`logs/generalization-public-20261108-a05/`，仍复用a04同一dataset SHA；不重抽样或改final/controller。
   远程完成后用`exp/generalization_local.py`（CUDA_VISIBLE_DEVICES=''，受控sudo读取root私有输出）
   完成质量和独立重放，只读公开汇总；新任务查重/源码pin/UUID见实验记录后续登记。
+- a02已code200+精确UUID=`job-6b21065b7a0e-20261108104221`，node244，02:42:54 UTC容器启动，
+  pin=`c39c7af0b244e2669bb307ec5684c4165f16d6f6`，公开events进入2048cap/null-pre/round1。
+  **不要再次提交或修改运行代码**；前台monitor session13645，文件`logs/generalization-prep-20261108-a01/lifecycle-a02.*`。
+  新纯合成探针确认为Landlock后ctypes库查找误走gcc/tempfile，非内核不支持；本机质量路径已验收。
+  GPU脚本exit0且gpu-complete存在后，才运行本机质量、两次独立重放/证据SHA，再报告泛化结论。
+  运行中只允许文档进度提交，不变更controller/exp/harness/assets；运行身份始终使用上述pin与source-a02.tar。
 
 ## 最新接续点：30请求正式dev联合验收通过
 

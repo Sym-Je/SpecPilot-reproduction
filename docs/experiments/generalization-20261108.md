@@ -1,6 +1,6 @@
 # 作者 final 新数据泛化审计
 
-日期：2026-11-08 UTC；用户已批准执行，阶段内自主安排。状态：准备，尚无新测量。
+日期：2026-11-08 UTC；用户已批准执行，阶段内自主安排。状态：a02运行中，尚未揭盲/形成泛化结论。
 基准：e12537cd213c74b4d1dea2f1677a82ea8bf6ab12。
 
 ## 目标及不变边界
@@ -116,3 +116,22 @@ Dolly官方GitHub不含数据且HF不可达，摘要/普通对话改官方Stanfo
   新旧137项CPU回归通过；controller/最终实现/200题及cap/配对/统计判据不变。
 - 下一尝试a02用新公开状态目录，复用同一个dataset SHA，不重抽题、不读取部分性能结果；
   新源码pin/命令先冻结并查重。此前短失败资源额外计入，不将预算或“单次提交”记录回改为零失败。
+
+### a02正在执行
+
+- 2026-11-08 10:42:21 +08:00 create一次返回code200/data=None，精确名唯一，
+  UUID=`job-6b21065b7a0e-20261108104221`；node244，02:42:54 UTC容器启动。
+  资源/镜像/WeaverDev/实际proj-31/模型只读挂载/默认hostNetwork=false经服务端核对通过。
+- pin=`c39c7af0b244e2669bb307ec5684c4165f16d6f6`；源码档案
+  `logs/generalization-prep-20261108-a01/source-a02.tar`，SHA256=
+  `c19da8e1726c92cccea411bc0a708eb8e0c2024e427d30069a84e03752c67a5b`。
+  私有运行`logs/generalization-run-20261108-a02/`；公开状态`logs/generalization-public-20261108-a05/`。
+  仍使用原a04 dataset SHA，未重新抽样；ID仅指同基准族新题，模板另行构造，不宣称严格同分布或论文原协议。
+- 新节点纯合成探针确认kernel5.15/Landlock ABI1/libseccomp存在；具体失败为隔离后
+  `ctypes.util.find_library → _findLib_gcc → tempfile.NamedTemporaryFile`无法写临时目录。
+  这定位新节点环境的setup次序问题，不把它误写为内核缺Landlock，也不据此伪称已恢复a01被丢弃的stderr。
+  本次固定本机安全评测，不在运行中改源码/放开写权限或重新执行候选代码。
+- 远程7项非代码执行协议测试通过；本机root9项完整测试通过。公开events已记录进入2048cap前置null第一轮。
+  **提交成功、容器启动、完整测量与科学验收分别记录**；目前只确认前两项，未宣称新数据收益或质量通过。
+- 完整命令/回执`submit-a02.txt`、`lookup-a02.txt`、`accepted-spec-a02.json`，
+  生命周期`lifecycle-a02.*`和`watch-a02.console`均在准备目录；监控只看公开状态，无样本/逐题结果。
