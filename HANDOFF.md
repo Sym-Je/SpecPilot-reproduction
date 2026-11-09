@@ -16,6 +16,8 @@
 - 发现调度竞态：runner先写failed，再恢复基线，旧broker提前返回，方向报告提交时cleanup检查使研究停止。`experiment_lifecycle.py`将此阶段呈现为restoring_baseline，调度器等待实际收尾，保留已完成报告；42项检查通过。恢复复用D2完整回执，不重复方向API或实验，工具动作21、实验2次原样保留。失败的实际启动日志和人工取消依据通过受限证据交Master，避免只看到泛化的cancellation。
 - Master接续后另遇NorthGate上游60秒停止发送（原生turn/end code=SERVER），未完成第三方向决策；这不是预算耗尽。`resume_claude.py --resume-upstream`从原会话继续，后续仅对这一已确认错误最多额外重试两次；新请求逐次预占，不重复大段上下文或重置账本。45项检查通过，历史失败回执保留。实时角色/进程以state和supervisor为准。
 - 恢复后的Master提出stop/no_gain，答复末尾JSON代码块前有说明文字，已补充终端代码块解析，原答复不改。该提议未被当作任务完成：两方向只覆盖prefill预算，本轮尚未执行用户要求的profile。按原任务要求发起一次明确记录的覆盖复核，剩余一方向仍由Master自主选择诊断，允许无收益结论；不得强迫正结果或声称这一督导修正是模型独立发现。复核依据/原提议SHA保存在`research/master-stop-coverage-review.json`，validation保持未打开。
+- D3首个profile（名字含c32-baseline）在8192配置的NPUGraph capture中发生aclnnCumsum/worker-init失败，trace数量0；研究进程仍在等runner恢复基线。新增`startup_guard.py watch`仅在命中两类致命标记且runner argv/PID出生时间/候选归属均核对后SIGTERM该runner，由原finally恢复；不重置设备或影响别的任务。此次实际runner在guard启用前已自行失败，未发送信号，后续故障才由guard自动处理；这一区别在注释回执里明确。
+- 关键口径纠正：冻结`profile_request`只采一条中长度请求、C1、max_tokens=128，忽略screen_concurrency，不能声称C32或长输入trace。已通过本次失败的受限证据向存活Direction披露；新broker明确能力并拒绝profile/C32提交（已加载的旧MCP进程不假称热更新）。51项本地检查通过，新增guard/范围检查不是已经获得性能提升。
 - `research/supervisor.json`与`handoff/supervisor.json`区分研究进程和条件切换进程。仅持久化Claude预算不足事件可触发GPT；普通错误需要处理后重新挂起监督，Master正常停止或validation冻结后不启用GPT。不要重复启动已有进程。
 - 全机flock串行协调独立量化任务，不抢占它们。服务在实验后恢复。不能重复启动已有监督进程。
 - validation仍未打开。独立终测程序已接通，但只在研究停止、候选对应已完成dev实验且配置/代码冻结之后执行；不把终测反馈给研究角色。

@@ -69,6 +69,18 @@ failed receipt; this does not grant general log or filesystem access. A saved
 completed direction report can be resumed after cleanup without another model
 call or resetting its allocations.
 
+`startup_guard.py watch` checks only this campaign's owned candidates during
+startup. A graph-capture failure plus worker-init failure, exact runner argv,
+runner birth time and candidate ancestry are required before it signals that
+runner. The existing runner owns cleanup/restoration; the guard never resets
+NPUs or kills by process name. Interventions are recorded once per experiment.
+
+The frozen profile runner currently samples ONE mid-input request at concurrency
+1, output cap 128. Its `screen_concurrency` option previously affected benchmark
+mode only. The broker now states this limit and rejects C8/C32 profile requests;
+already-running old MCP processes receive the scope audit through their trusted
+failure receipt. No C32/long-input profile is claimed from this implementation.
+
 Acceptance (from the runtime directory's parent workspace):
 
 ```bash

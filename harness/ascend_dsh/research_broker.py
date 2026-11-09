@@ -39,7 +39,7 @@ DESCRIPTIONS = {
     'read_source': 'Read at most 12000 characters of one authorized stock source file at a byte-independent character offset.',
     'write_scratch': 'Write a bounded .py/.json/.patch file in your own scratch directory. This does not modify the deployment.',
     'run_cpu': 'Execute your scratch Python analysis inside a chroot, dropped UID and seccomp CPU sandbox: no network, devices, subprocess, host reads or writes; 3 CPU seconds. Standard-library analysis modules only.',
-    'launch_experiment': 'Submit a serial 8-NPU configuration experiment, or a diagnostic Ascend CPU+NPU profile. The trusted runner restores baseline afterwards. Config keys: max_num_batched_tokens, max_num_seqs, gpu_memory_utilization, enable_prefix_caching, enforce_eager, num_speculative_tokens, additional_config; screen_concurrency=1/8/32 chooses the same three input buckets. No sampling/model/weights/topology/dataset changes. Returns an ID, never a self-reported result.',
+    'launch_experiment': 'Submit a serial 8-NPU configuration experiment, or a diagnostic Ascend CPU+NPU profile. The trusted runner restores baseline afterwards. Config keys: max_num_batched_tokens, max_num_seqs, gpu_memory_utilization, enable_prefix_caching, enforce_eager, num_speculative_tokens, additional_config. Benchmark screen_concurrency=1/8/32 selects the same three input buckets. Profile is currently ONLY one fixed mid-input request at C1 with output cap 128; profile screen_concurrency must be 1, and C8/C32 or long-input profiling is unavailable. No sampling/model/weights/topology/dataset changes. Returns an ID, never a self-reported result.',
     'wait_experiment': 'Wait for trusted experiment progress/result without launching or duplicating work. Up to 1200 seconds; no model billing while waiting. Measurements are serial screening, not formal paired promotion.',
     'read_profile': 'Read at most 12000 characters from an owned completed experiment CSV under traces. Use profile_summary.csv_files for paths. No request or model output files are exposed.',
     'search_source': 'Literal search in authorized engine Python sources, at most 30 matching lines and 12000 characters. Use a path prefix to narrow the search.',
@@ -89,6 +89,8 @@ class Broker:
         if name == 'deployment':
             return {'launch_script': (OUT / 'launch-mrv1.sh').read_text(),
                     'configuration_only_capabilities': True,
+                    'profile_workload': {'concurrency': 1, 'input_stratum': 'mid', 'request_count': 1,
+                                         'output_cap': 128, 'multi_request_profile_supported': False},
                     'patches': 'Source/kernel patches can be submitted for independent review; not auto-executed by the broker.'}
         if name == 'budget':
             ledger = 'billing-gpt' if os.environ.get('SP_BUDGET_PHASE') == 'gpt' else 'billing'
@@ -145,6 +147,8 @@ class Broker:
             if not re.fullmatch(r'[a-z0-9-]{1,60}', experiment_id): raise ValueError('Invalid experiment ID')
             validate_config(args['config'])
             if args['mode'] not in ('benchmark', 'profile'): raise ValueError('Unknown experiment mode')
+            if args['mode'] == 'profile' and args['config'].get('screen_concurrency', 1) != 1:
+                raise ValueError('Profile supports only C1, one mid-input request, output cap 128; C8/C32 profiling is unavailable')
             experiment_id = self.role + '-' + experiment_id
             folder = OUT / 'experiments' / experiment_id
             if folder.exists():

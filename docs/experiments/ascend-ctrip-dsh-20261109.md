@@ -96,4 +96,12 @@ Master接续时另一次请求以原生SERVER错误结束，明确原因是上�
 
 恢复后的Master提出无收益收尾；输出为说明文字加末尾JSON代码块，已修复该格式的确定性解析，未改变答复值。本轮两个方向只覆盖prefill预算，尚未进行用户原先要求的Ascend profiling，因此不能把该停止提议等同整个任务完成。监督者明确提醒这一未覆盖要求，要求Master使用剩余方向独立复核是否补充诊断，不指定瓶颈、优化方案或正收益；原stop答复、SHA、复核提示与来源均留存。此次覆盖纠偏需与模型自主发现区分，validation未因此打开。45项定向检查仍通过，包括带前置说明的终端JSON代码块及尾随非JSON拒绝。
 
+## 第三方向首次profile未成功；采样范围纠正
+
+Master分配了device-cost-attribution-profile方向。首次实验名含c32-baseline，使用8192预算与图模式，但在aclnnCumsum的图捕获阶段发生worker初始化失败，未进入采样，trace文件数量0。此事实不能作为吞吐、算子耗时占比或C32瓶颈结论。
+
+代码核对还发现接口口径缺陷：冻结profile_request固定选择一条mid输入，单并发、输出上限128；screen_concurrency仅对benchmark生效。该限制此前没有充分告知角色，实验名和配置中的32不能改变实际负载。已向存活Direction的失败证据附上源SHA绑定的范围审计；新broker明确这一能力并拒绝profile/C8或C32。未假称旧MCP进程已热更新，也未修改已提交实验的执行pins。
+
+新增独立startup_guard，在只属于本任务的candidate_startup阶段同时确认NPUGraph致命错误、worker-init失败、runner精确命令/PID出生时间及候选进程归属后，才SIGTERM可信runner，由原finally清理并恢复。不会重置设备或按名称终止进程。本次dry-run核验通过，但runner在guard启动前已自行进入失败恢复，实际未发送信号；这一差别单独记录。51项定向检查通过，覆盖误报拒绝、所有权、PID复用、幂等操作及错误profile并发拒绝，仍无新的性能收益。
+
 本次未修改已冻结NPU实验计划、采样或配置；当前实验继续。冻结plan和正在运行的监督器启动元数据中的500美元属于原始授权记录，实时上限以`billing/state.json`及`billing/budget-amendment-200.json`为准。
