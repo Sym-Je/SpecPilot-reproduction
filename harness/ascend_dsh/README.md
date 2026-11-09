@@ -91,3 +91,10 @@ native session without adding tool or experiment allocation. A completed answer
 with one premature root-closing brace can be recovered by one audited syntactic
 deletion; the original receipt remains unchanged. This does not manufacture a
 scientific report or retry a failed NPU experiment.
+
+A native `SERVER` error explicitly reporting an upstream 60-second stream stall
+can resume the same session with a short continuation prompt, at most two extra
+attempts per invocation. Each attempt is separately admitted and failed-call
+reservations remain charged. Authentication errors, budget errors and unknown
+failures are not retried by this rule. Native receipts and retry events remain
+durable; the transport recovery does not authorize a model switch.

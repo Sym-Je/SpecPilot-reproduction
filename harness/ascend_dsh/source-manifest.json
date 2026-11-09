@@ -16,12 +16,13 @@
   "prepare_baseline.py": "89ed271b3c0de190ac31cd45b7e64acb9e37562b0a5366e5851dcd5c7d47e1ea",
   "research_broker.py": "1f7177ac129b63b0c7ccf1ef6d35185ad748b9a8ea44d8e297bc76235c65112d",
   "research_driver.py": "66cb616e8e6c12f202279b36237c80ae7ca6089f67cbd4b7d910677e86f91321",
-  "resume_claude.py": "273f4284d6a94881b02d799a7e6abc17878f1c80f6eab52a4ca6ea4c44f8ab5b",
+  "resume_claude.py": "550a51643cd858d0c93781e46d8847d624d0e65e6dc4a619c0f83fd1c363c6cb",
   "run_baseline.py": "46b7e58c00f5bc4c36c5fbbf482e5fbe6d10ef96508a1ad9cdb9c28c4ea9e18f",
   "test_broker.py": "f689ab3f1da5c6e2e4408bcb91a997c490e1190d5a74cec831e2154c59cfdd14",
   "test_budget.py": "b491f98cd79008f0587607d217f65136e62a9029782b401e34f3802605ac7e7c",
   "test_driver.py": "bae32e91337da4fe755a6ffebbf9a27520751336e709af0dea0dcfc201b4ebb4",
   "test_experiment_lifecycle.py": "6b4dfb94a594603fe22ef7c53a7d9d7efaff434217483d81c94ccd8133f6f7c0",
   "test_gpt_handoff.py": "0fb7d96d1c34db6aa07ea774ecbd1654db7ccd5ca56d4343239de91df0fb1986",
+  "test_stream_recovery.py": "f8bf7aba9bdd9f2b61c542e060a1041cfbaad403538a734f2fa711be2512e2bc",
   "test_validation.py": "cd5d5c72ca017323fab830694d8da3c2c053ac448503a9e645e3f38b9ecb61f7"
 }
