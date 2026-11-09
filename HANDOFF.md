@@ -1,7 +1,32 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 北京时间（首轮真实agent探索接入验收完成，科学结论待更多证据）。
+> 最后更新：2026-11-09 北京时间（独立记录核查完成，缺新记录，未运行确认）。
+
+## 当前接续点：独立确认缺数据，先批准最小采集
+
+- 用户批准本阶段核查已有独立计数并CPU确认；无合格记录时只报告采集方案，不提交GPU。
+  唯一记录`docs/experiments/history-confirmation-20261109.md`，基准2ff1c49；本阶段运行源码未改。
+- 受控程序只读22份归档SHA索引元数据及已有匿名计数，35030去重路径；3份计数副本SHA一致，
+  仍是原3个诊断请求。两observer流是原活动两轮；可识别格式中没有新增候选流。
+  首次RUN元数据误拒与普通权限漏读1索引均保留，修正范围/受控读索引后补齐，不读私有内容。
+  只覆盖已归档索引及stock-step/count-order格式，不声称全盘绝无数据，也未复验35030个原始产物。
+- 清点SHA=969ae8c079400274501da0c152e61f69f32f238fa72a7dec53cb84f59f231ef4，两独立CLI重放字节一致。
+  复用原a02 master真实resume/send/completion/close；未换agent，原始输入/响应/回执在
+  `logs/history-confirmation-20261109-a01/`，结论needs_independent_collection。
+  independent_confirmation_run=false、confirmation_mae=null、end_to_end_gain=null、implementation_ready=false。
+  缺数据不是规则证伪，不重算3旧题冒充独立确认；原角色已关闭，模型精确ID/用量仍不可得。
+- 14定向/224总CPU回归、清点与响应审计重放及3类工程篡改拒绝通过；0GPU、无候选实现/晋升。
+  新32文件/121237逻辑字节全SHA通过，清单`logs/history-confirmation-20261109-a01.sha256`，
+  SHA=407ee5796497a3d3d66fb850ce31ee23d205def388467cb85eccfef9d9107443。
+  观测time_ns只有发出时间，不能推算入队、可靠终止信息时刻或关键路径，不另开终止方向采集。
+- 下一阶段待批准：GSM8K/HumanEval各2新dev，broker排除旧3题与重复/别名后固定哈希选择，
+  stock/block8/greedy/2048cap/自然EOS，两次fresh采集/线性重放，只向模型导出匿名计数。
+  agent建议一轮不符合现有history_screen两轮契约，broker已标出并建议保留两轮，不放宽验收。
+  拟1H100/最多30GPU分钟仅计数诊断，不是单卡A/B，不报告性能；未来性能仍需双卡配对换卡。
+  仅4新题固定T001留一/训练专属均值中位数/同suite基线，不混旧3题、不调参，最多初步筛选。
+  当前采集入口固定旧3题，需下一阶段批准后做外围runner/导出适配与执行冻结，不改controller/eval。
+  不自动提交NorthJob/实现优化/晋升/RSI/sealed；以下全部是历史，不再执行旧“下一步”。
 
 ## 最新接续点：真实agent探索已接通，尚无可实施候选
 

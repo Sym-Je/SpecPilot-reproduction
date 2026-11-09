@@ -41,6 +41,13 @@ Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果
 
 ## 4. 当前阶段索引
 
+最新核查：[接受历史方向独立记录可用性](experiments/history-confirmation-20261109.md)。
+22份归档索引/35030去重路径中可识别计数仍只有旧3题，独立确认未运行，MAE/收益null。
+原master真实复核needs_independent_collection并关闭；14定向/224回归、两独立清点重放及3类篡改拒绝通过。
+32文件/121237字节归档全SHA通过，清单`logs/history-confirmation-20261109-a01.sha256`，SHA见阶段记录。
+仅索引元数据与匿名计数，不是原始产物全量复验；不修改运行源码/保护目录，0GPU、无实现或晋升。
+下一阶段待批4新dev/两次fresh计数采集，拟1H100/30GPU分钟；不是单卡A/B性能测量，不放宽T001契约。
+
 最新完成：[首轮真实agent探索工程接入与证据分析](experiments/exploration-20261109.md)。
 真实master自主选方向，direction实际完成2项CPU实验；科学结论needs_more_evidence，无可实施提案。
 a01接口不足保留，按agent需求补证据后a02 fresh重试，不算两轮优化；两attempt共6角色已关闭。
@@ -104,6 +111,7 @@ node208/2H100已释放。中文1题辅助质量格式缺测不删性能题；无
 | stock真实profiling/部分成本观察 | 诊断能力完成，完整成本模型未完成 | [瓶颈及缺项](experiments/bottleneck-20261109.md)；202回归/20pair/20窗口/两重放/393项SHA，窗口VERIFY约89.6%，三因子null |
 | stock逐步钩子与真实线性重放 | 完成有限3题工程验收，非最佳树/完整成本模型 | [真实链与计数解释](experiments/step-replay-20261109.md)；210回归/12pair/6链/24故障拒绝/两重放/5598项SHA，已释放GPU |
 | 真实agent探索接入与首轮分析 | 工程验收通过，科学结论待证据 | [真实探索记录](experiments/exploration-20261109.md)；自主选2方向/实际2项CPU实验/224回归/两独立重放/5类篡改拒绝/118项SHA；无可实施提案、0GPU、无晋升 |
+| 接受历史方向独立记录核查 | 核查完成；独立确认缺数据未执行 | [可用性与最小采集建议](experiments/history-confirmation-20261109.md)；22索引/35030路径无新增可识别独立计数，原master复核待采集；224回归/0GPU/无实现 |
 | 作者final外部数据泛化审计 | 执行/归档完成，部分泛化且有反例 | [完整结果](experiments/generalization-20261108.md)：200题1.8230×，原5类2.1718×/新5类1.5302×；中文0.5133×，摘要质量代理告警。a02 Completed/exit0，137回归/两次重放/10312文件校验通过；不改final/controller，不冒充论文sealed |
 
 本次仅按已有清单复核真实裁判、dev、泛化、反例确认、诊断五阶段的25319项；
