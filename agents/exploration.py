@@ -9,7 +9,7 @@ import re
 
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE_PATHS=('agents/exploration.py','agents/exploration_prompts.py','exp/exploration.py',
-              'harness/test_p13_exploration.py')
+              'harness/test_p13_exploration.py','harness/exploration_observations.py','harness/test_p13_observations.py')
 
 
 def object_sha(value):
@@ -29,9 +29,10 @@ def build_evidence(source_pin):
         'E001':'assets/upstream/configs/h100_c1_qwen38-27b_dflash2/config.json',
         'E002':'logs/bottleneck-public-20261109-a02/analysis.json',
         'E003':'logs/bottleneck-public-20261109-a02/result.json',
-        'E004':'logs/step-replay-public-20261109-a01/result.json'}
+        'E004':'logs/step-replay-public-20261109-a01/result.json',
+        'E005':'logs/exploration-public-20261109-a02/count-order-observations.json'}
     loaded={name:json.loads((ROOT/path).read_text()) for name,path in paths.items()}
-    config,analysis,counters,replay=[loaded[name] for name in paths]
+    config,analysis,counters,replay=[loaded[name] for name in ('E001','E002','E003','E004')]
     if config['stock']['block_size']!=8 or not counters['profile_capture_complete'] or replay['real_request_replays']!=6:
         raise ValueError('unexpected stock evidence protocol')
     evidence={
@@ -57,7 +58,11 @@ def build_evidence(source_pin):
                 'output_tokens','tail_clip_tokens')} for row in replay['replays']]),
             limitations=['observed stock linear chains only, not an optimal-tree lattice',
                 'observer synchronizes/copies/logs; its times are not unprofiled step times',
-                'no matched end-to-end benefit from removing an overlap tail has been measured'])}
+                'no matched end-to-end benefit from removing an overlap tail has been measured']),
+        'E005':dict(kind='sanitized-count-order',data=loaded['E005'],
+            limitations=['three previously selected diagnostic requests; not six independent examples',
+                'only accepted-count sequences and instrumented event ordering, no token IDs or generated text',
+                'worker emission order is not queue-entry timing or native critical-path causality'])}
     for name in evidence:
         evidence[name]['source']=dict(path=paths[name],sha256=file_sha(ROOT/paths[name]))
     packet=dict(schema='exploration-evidence-v1',source_pin=source_pin,evidence=evidence,
@@ -142,6 +147,12 @@ def run_cpu_tool(packet,request):
         raise ValueError('invalid CPU request')
     name,arguments=request['name'],request['arguments']
     common=dict(end_to_end_gain=None,controller_measurement=False)
+    if name in ('acceptance_history_audit','terminal_order_audit') and not arguments:
+        if 'E005' not in packet['evidence']:
+            raise ValueError('agent-requested count/order evidence is not available')
+        from harness.exploration_observations import history_screen,terminal_order_screen
+        function=history_screen if name=='acceptance_history_audit' else terminal_order_screen
+        return dict(common,**function(packet['evidence']['E005']['data']),source_refs=['E005'])
     if name=='profile_coverage' and not arguments:
         profile=packet['evidence']['E002']['data']
         return dict(common,shape_qualified_kernel_work_fraction=profile['identifiable_mm_cumulative_kernel_ms']/profile['cumulative_kernel_ms'],

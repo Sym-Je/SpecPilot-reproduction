@@ -14,6 +14,12 @@
   缺因子不填1；不能把局部prefix或kernel份额当端到端收益。implementation_ready固定false，晋升权仍归controller。
 - 下一内部动作：全回归→冻结源码与证据包→fresh真实master选方向，运行期间本地做非重叠验收/审计工作。
   不运行旧mock/registry，不修改controller，不提交GPU、候选实现、sealed或正式晋升。
+- a01源码pin8195964、tar df438f2b...，实际3个fresh角色/6响应，master自选接受历史块长与终止overlap方向；
+  两direction均tests=[]、needs_measurement，master也needs_more_evidence，不强编收益/候选。
+  两个独立CPU重放03/04与原结果一致SHA=8cb7ac6d...，三个角色关闭，原回答不覆盖。
+- 按agent自行请求补E005接受数量/事件顺序；仅受控程序读取旧私有轨迹，模型不读原题/输出/token ID。
+  两次导出字节相同，新14定向/224总CPU通过。准备另冻结a02再fresh启动，不给a01方向/回答，
+  不提交GPU或实现；这只是同一提案阶段的输入/接口重试，不是两轮自主优化。
 
 ## 最新接续点：真实逐步观测与线性重放完成，未进入优化
 

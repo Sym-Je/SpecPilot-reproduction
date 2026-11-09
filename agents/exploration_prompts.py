@@ -17,6 +17,7 @@ DIRECTION=COMMON+'''
 你是direction，处理assigned_direction，不继承其他方向上下文。
 首轮输出：{"schema":"direction-requests-v1","direction_id":"分配的id","evidence_sha256":"输入hash","hypothesis":"你的具体假设","evidence_refs":["E编号"],"tests":[{"name":"工具名","arguments":{}}],"why":"为何这是最便宜的证据"}。
 最多2个CPU工具请求。可用：profile_coverage(无参数，检查shape可识别工作覆盖)；overlap_work(无参数，只算未提交步数份额)；local_prefix_budget(suite=已有suite名,budget=2..8，只算已观察局部链截断后的token数)。这些工具不能直接证明端到端收益。
+还可用：acceptance_history_audit(无参数，对E005做预注册的整请求留一、历史1步对训练请求常数/同suite常数的MAE筛选)；terminal_order_audit(无参数，检查E005已记录worker输出与最后finish提交的顺序，不推断队列时间或无扰动关键路径)。这些是受控CPU程序，不能改其统计口径或访问原始文件。
 如需其他工具，可用空tests，明确缺项并在下一实验计划中列出；不伪造工具执行。
 收到tool_results后输出最终JSON：
 {"schema":"direction-result-v1","direction_id":"分配id","evidence_sha256":"输入hash","status":"proposal|closed|needs_measurement","evidence_refs":["E编号"],"tool_refs":["实际T编号"],"hypothesis":"具体判断","net_headroom_estimate":null,"limitations":["限制"],"next_experiment":{"procedure":"可执行的最小验证流程","budget_gpu_minutes":0,"kill_if":"明确判据"},"proposal":null,"implementation_ready":false}。

@@ -118,6 +118,22 @@ class ExplorationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 checked_response(root,'master-plan',raw+' ',receipt)
 
+    def test_agent_requested_sequence_and_order_tools_use_only_sanitized_counts(self):
+        from agents.exploration import run_cpu_tool
+        packet=self.packet()
+        requests=[]
+        for index,sequence in enumerate(([0,1,1],[7,6,7],[3,3,4])):
+            requests.append(dict(request_group=f'probe-{index+1}',suite='same',rounds=[
+                dict(round=number,accepted_counts=list(sequence),uncommitted_emitted_before_finish=[True]) for number in (1,2)]))
+        packet['evidence']['E005']=dict(kind='count-order',data=dict(requests=requests))
+        history=run_cpu_tool(packet,dict(name='acceptance_history_audit',arguments={}))
+        order=run_cpu_tool(packet,dict(name='terminal_order_audit',arguments={}))
+        self.assertEqual(history['independent_requests'],3)
+        self.assertEqual(history['source_refs'],['E005'])
+        self.assertFalse(order['native_critical_path_available'])
+        self.assertIsNone(history['end_to_end_gain'])
+        self.assertIsNone(order['end_to_end_gain'])
+
 
 if __name__=='__main__':
     unittest.main()
