@@ -6,6 +6,8 @@ from pathlib import Path
 
 from harness.experiment_executor import local_path
 
+CONTRACTS = {'legacy': (1560, 7200), 'stage2-preflight': (600, 3600), 'stage2-research': (1200, 3600)}
+
 
 def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -35,7 +37,12 @@ def validate_allocation(budget, remaining_actions):
         raise ValueError('at least one research action required')
 
 
-def freeze_request(work, action, output, *, attempts):
+def freeze_request(work, action, output, *, attempts, contract='legacy'):
+    if contract not in CONTRACTS:
+        raise ValueError('unknown resource contract')
+    pod_deadline, stage_ceiling = CONTRACTS[contract]
+    if contract == 'stage2-preflight' and attempts != 0:
+        raise ValueError('only one dependency preflight allowed')
     if type(attempts) is not int or not 0 <= attempts < 2:
         raise ValueError('GPU attempt ceiling reached')
     if not isinstance(action, dict) or set(action) != {'kind', 'path', 'acceptance'} or action['kind'] != 'run_gpu_python':
@@ -69,9 +76,11 @@ def freeze_request(work, action, output, *, attempts):
     manifest = dict(schema='agent-gpu-script-v1', script=action['path'], acceptance=action['acceptance'],
         script_sha256=hashlib.sha256(payloads[action['path']]).hexdigest(),
         files={name: hashlib.sha256(content).hexdigest() for name, content in sorted(payloads.items())},
-        attempt=attempts + 1, gpus=1, pod_deadline_seconds=1560, script_wall_seconds=180,
-        total_stage_gpu_seconds_ceiling=7200, reserved_gpu_seconds=(attempts + 1) * 1560,
+        attempt=attempts + 1, gpus=1, pod_deadline_seconds=pod_deadline, script_wall_seconds=180,
+        total_stage_gpu_seconds_ceiling=stage_ceiling, reserved_gpu_seconds=(attempts + 1) * pod_deadline,
         controller_accepted=False, scope='agent-owned screening; not paired performance or promotion')
+    if contract != 'legacy':
+        manifest['resource_contract'] = contract
     (output / 'request.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
     return manifest
 
@@ -79,8 +88,18 @@ def freeze_request(work, action, output, *, attempts):
 def verify_request(directory):
     directory = Path(directory)
     manifest = json.loads((directory / 'request.json').read_text())
-    if manifest['schema'] != 'agent-gpu-script-v1' or manifest['gpus'] != 1 or manifest['pod_deadline_seconds'] != 1560:
+    contract = manifest.get('resource_contract', 'legacy')
+    if contract not in CONTRACTS:
+        raise ValueError('unknown resource contract')
+    deadline, ceiling = CONTRACTS[contract]
+    if manifest['schema'] != 'agent-gpu-script-v1' or manifest['gpus'] != 1 or manifest['pod_deadline_seconds'] != deadline:
         raise ValueError('GPU contract changed')
+    if manifest['total_stage_gpu_seconds_ceiling'] != ceiling or manifest['script_wall_seconds'] != 180:
+        raise ValueError('GPU resource ceiling changed')
+    if type(manifest['attempt']) is not int or not 1 <= manifest['attempt'] <= (1 if contract == 'stage2-preflight' else 2):
+        raise ValueError('GPU attempt ceiling changed')
+    if manifest['reserved_gpu_seconds'] != manifest['attempt'] * deadline or manifest['controller_accepted'] is not False:
+        raise ValueError('GPU reservation or authority changed')
     for name, expected in manifest['files'].items():
         if digest(local_path(directory / 'work', name)) != expected:
             raise ValueError('frozen agent input changed: ' + name)

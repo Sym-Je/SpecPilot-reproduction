@@ -26,18 +26,27 @@ def audit(root, require_gpu=True):
         require(result['status'] == 'completed', 'real autonomy run did not complete')
     require(result['controller_accepted'] is False, 'screening promoted itself')
     authored = {}
-    if (root / 'recovery.json').exists():
-        recovery_record = read(root / 'recovery.json')
+    provenance = root / ('continuation.json' if (root / 'continuation.json').exists() else 'recovery.json')
+    if provenance.exists():
+        recovery_record = read(provenance)
         previous = Path(recovery_record['prior_run'])
         require(previous.name.startswith('gpu-autonomy-run-'), 'unexpected recovery source')
         require(digest(previous / 'result.json') == recovery_record['prior_result_sha256'], 'recovered state changed')
+        if provenance.name == 'continuation.json':
+            require(read(previous / 'result.json')['counters'] == recovery_record['prior_counters'], 'prior phase counters changed')
+            require(all(value == 0 for value in recovery_record['new_phase_counters'].values()), 'new phase counters were not explicit')
+            preflight = Path(recovery_record['preflight_result'])
+            require(digest(preflight) == recovery_record['preflight_sha256'], 'dependency preflight changed')
+            proof = read(preflight)
+            require(proof['status'] == 'completed' and proof['gpu_test_passed'] and proof['boundary_passed'], 'dependency preflight did not pass')
         source_roles = []
         while previous.name.startswith('gpu-autonomy-run-'):
             if (previous / 'master-plan.json').exists() and read(previous / 'master-plan.json')['direction_id'] == read(root / 'master-plan.json')['direction_id']:
                 source_roles.insert(0, previous / 'direction')
-            if not (previous / 'recovery.json').exists():
+            ancestor = previous / ('continuation.json' if (previous / 'continuation.json').exists() else 'recovery.json')
+            if not ancestor.exists():
                 break
-            previous = Path(read(previous / 'recovery.json')['prior_run'])
+            previous = Path(read(ancestor)['prior_run'])
         for source_role in source_roles:
             for record in sorted(source_role.glob('tools-*/action-*')):
                 request = read(record / 'request.json')

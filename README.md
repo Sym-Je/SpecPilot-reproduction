@@ -19,7 +19,7 @@ GitHub：[china-qijizhifeng/SpecPilot-reproduction](https://github.com/china-qij
 | 5 | 真实正确性、噪声与晋升判据 | ✅ dev联合验收完成 | [验收记录](docs/experiments/dev-joint-20261108.md)：30请求、当前前后null、两轮换卡与实际测速输出forcing均通过；作者产物不写晋升账本 |
 | 6 | 建立独立 sealed 验证 | ⬜ 未开始 | 前置验收通过后由 controller 管理，agent 不接触内容 |
 | 7 | 真实 profiling 与成本模型 | 🟡 profiling/线性重放通过 | [stock诊断](docs/experiments/bottleneck-20261109.md)与[真实链重放](docs/experiments/step-replay-20261109.md)完成；完整最佳树/三因子仍缺 |
-| 8 | agent 自主提案与实现 | 🟡 有限GPU失败反馈通过，实验未完成 | Master/direction自主准备脚本、2次真实GPU执行；依赖导入均失败，无有效科学数据或候选；不是完整Phase 1 |
+| 8 | agent 自主提案与实现 | 🟡 GPU执行与自主自诊断通过，筛选未完成 | [第二阶段](docs/experiments/gpu-autonomy-stage2-20261109.md)依赖/权限通过；direction定位自身筛选错误，无有效延迟数据或候选；不是完整Phase 1 |
 | 9 | 多轮真实优化闭环与记忆 | ⬜ 待真实验证 | [mock 闭环](docs/06-gates.md)已跑通，不代表真实引擎闭环完成 |
 | 10 | 对照实验与最终报告 | ⬜ 未开始 | 分析各组件贡献，分别报告架构与数字复现证据 |
 
@@ -71,9 +71,11 @@ GitHub：[china-qijizhifeng/SpecPilot-reproduction](https://github.com/china-qij
 
 **最新进展：**[首轮GPU自治接入](docs/experiments/gpu-autonomy-20261109.md)验证了Master自主立项、direction编写脚本、真实GPU执行及错误反馈、Master授权一次修复重试并最终停止。两任务均在依赖导入时失败：先是缓存写权限，再是CUDA运行库读取权限；**无有效筛选/延迟数据、候选或晋升，不证明假设为假**。
 
-**当前状态：**本阶段已收口，科学实验未完成，下一阶段待批准。最小运行库白名单修复已做，32项定向/293项CPU回归通过，但最新修复尚未GPU复验；两次任务均已终止，不再追加本阶段GPU任务。累计16研究回合/26动作/2CPU运行/2GPU尝试，保守77GPU秒。当前计划见 [PLANS.md](PLANS.md)。
+**最新进展：**[GPU自治第二阶段](docs/experiments/gpu-autonomy-stage2-20261109.md)的依赖预检成功；固定依赖可信预加载在GPU验证，研究代码仍禁止子进程，8类拒绝探针全通过。随后direction自行定位其GQA筛选参考头维度错误；**筛选未完成、没有有效延迟数据，也未证伪研究假设**，主助手没有代写科学修复。
 
-**接下来：**先审核下一阶段的最小运行库复验与原方向接续方案，再由agent继续科学实验；不把失败反馈闭环等同于有效实验或真实模型RSI完成。不恢复旧补采，不由主助手指定优化，不自动进入integration/kernel或sealed。
+**当前状态：**第二阶段已按Master决策和两次研究尝试上限停止。38项定向/299项CPU回归及独立审计通过；1次预检+2次研究共134保守GPU秒，三任务均终止，8角色进程关闭。科学目标未达，无候选或晋升。当前计划见 [PLANS.md](PLANS.md)。
+
+**接下来：**先审核下一阶段方案，由direction自主修复自己的筛选并做CPU自检，再由Master决定是否申请新GPU预算。不由主助手代做研究，不自动进入integration/kernel、sealed或DSH。
 
 **已有基础：**三臂真实 server、dev验收、外部数据审计与mock闭环完成；**尚未复现论文原sealed数字或真实RSI方法结论。**
 

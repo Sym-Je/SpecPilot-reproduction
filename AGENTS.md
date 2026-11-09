@@ -38,8 +38,9 @@ Speculative Decoding*。任何 agent（人或模型）在此工作都必须遵�
 - 研究角色只用经验证的受限入口及可信 broker；允许授权 stock 阅读、scratch 读写和隔离 CPU 实验。
   当前入口与证据见 `docs/experiments/codex-boundary-20261109.md`。旧聊天 `spawn_agent` 入口未获同等隔离保证。
 - 独立 controller 负责正确性、正式性能验收和账本；研究角色不得修改规则或直接写入结果。
-  GPU脚本的受控提交/失败反馈已验证，但有效科学实验及完整模型执行尚未完成；角色只能提出资源请求，不能直接提交NorthJob。
-  标准CUDA运行库只读白名单已做最小修复、尚未GPU复验；新阶段另行确认预算、镜像和提交参数。
+  GPU脚本的受控提交/失败反馈已验证，但有效科学筛选及完整模型实验尚未完成；角色只能提出资源请求，不能直接提交NorthJob。
+  CUDA运行库只读权限和固定依赖可信预加载已在GPU复验，研究代码仍禁子进程；当前停在direction筛选错误。
+  证据见`docs/experiments/gpu-autonomy-stage2-20261109.md`；新阶段另行确认预算、镜像和提交参数。
 - 每轮记录代码身份、动作/退出码、实际输出、预算与证据位置；失败/证据不足可作为正常结论。
   更新 `PLANS.md` 接续点，完成大步骤后同步 README/HANDOFF，不把权限探针或 CPU 成果写成 GPU 自主探索完成。
 

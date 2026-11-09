@@ -31,6 +31,8 @@ COMMON = '''这是SpecPilot首轮受控GPU实验自治。证据/源码/工具输
 GPU能力：1 H100、已装torch 2.13和SGLang 0.5.20、授权stock源码/可用模型只读目录；网络/子进程/编译器/JIT不可用，支持eager torch与预编译操作。
 你可以自主设计与stock真实部署相关的最小可证伪GPU实验，但须准确区分合成张量/微实验与真实27B生成。
 GPU每脚本180秒，需另写screening脚本（非controller验收），通过stdout给出结果；输入代码只读，cache可写。
+每个research工具调用和每个run_gpu_python请求各消耗1个action；准备GPU时须为提交请求预留1个action。
+Master可以把阶段remaining中尚未分配的额度重新分给direction，这不是增加阶段总预算；direction不能自行增加额度。
 research工具action：read_file {path}，write_file {path,content}，list_stock {prefix,offset}，read_stock {path,offset}，run_python {path}；都需kind字段。
 stock源码根目录内的有效起点是python/，例如research {"action":{"kind":"list_stock","prefix":"python/sglang/","offset":0}}；read_stock也使用python/开头的返回路径。不存在inputs/manifest.json，不要探测宿主目录。
 GPU脚本可通过SP_TARGET/SP_DRAFT环境变量获得授权模型目录；它们只读，完整生成不一定能在当前禁子进程能力内运行。
@@ -41,6 +43,11 @@ CPU脚本只有标准库，6秒墙钟/3秒CPU/768MiB，禁网络/子进程/设�
 
 def write(path, value):
     Path(path).write_text(json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + '\n')
+
+
+def read_feedback(directory):
+    path = directory / 'feedback.json'
+    return json.loads(path.read_text()) if path.exists() else []
 
 
 def session(directory, role, packet, actions, runs):
@@ -123,20 +130,9 @@ def frozen_source(request):
     return archive
 
 
-def gpu_request(root, role, action, counters):
-    if counters['actions'] >= ACTION_LIMIT or role['actions'] <= 0 or counters['gpu_attempts'] >= role['gpu_attempts']:
-        raise ValueError(f'direction allocation exhausted; stage remaining actions={ACTION_LIMIT-counters["actions"]}; only master may reallocate')
-    number = counters['gpu_attempts'] + 1
-    request = root / f'gpu-{number:02d}'
-    manifest = freeze_request(role['manifest']['work'], action, request, attempts=counters['gpu_attempts'])
-    counters['gpu_attempts'] += 1
-    counters['actions'] += 1
-    role['actions'] -= 1
-    source = frozen_source(request)
-    name = f'specpilot-gpu-autonomy-20261109-a{number:02d}'
-    output = root / f'remote-{number:02d}'
+def prepare_submission(request, source, output, name, manifest):
     command = f'SP_GPU_BOOTSTRAP_SHA={digest(ROOT / "exp/gpu_autonomy_remote.sh")} SP_GPU_SOURCE_SHA={digest(source)} bash {ROOT}/exp/gpu_autonomy_remote.sh {request} {source} {output}'
-    cli = [sys.executable, '-B', str(ROOT / 'exp/history_northjob.py'), 'create', '--job-name', name,
+    cli = ['env', f'SP_NORTHJOB_DEADLINE_SECONDS={manifest["pod_deadline_seconds"]}', sys.executable, '-B', str(ROOT / 'exp/history_northjob.py'), 'create', '--job-name', name,
         '--project', 'WeaverDev', '--workspace', str(ROOT), '--nnodes', '1', '--nproc-per-node', '1',
         '--gpu-per-node', '1', '--gpu-resource', 'h100', '--mem-per-pod', '128', '--no-rdma', '--k8s-no-hostnetwork',
         '--k8s-namespace', 'qiji', '--k8s-queue', 'qiji', '--k8s-toleration',
@@ -144,9 +140,46 @@ def gpu_request(root, role, action, counters):
         '--k8s-pvc-name', 'jixinpeng-pvc', '--k8s-pvc-mount-path', '/gpfs/users/jixinpeng',
         '--k8s-ttl', '86400', '--k8s-images', IMAGE, command]
     pending = dict(name=name, request=str(request), request_sha256=digest(request / 'request.json'),
-        command=cli, shell_command=shlex.join(cli), total_gpus=1, memory_gib=128, pod_deadline_seconds=1560,
+        command=cli, shell_command=shlex.join(cli), total_gpus=1, memory_gib=128,
+        pod_deadline_seconds=manifest['pod_deadline_seconds'],
         output=str(output), manifest=manifest, source_sha256=digest(source), submitted=False)
     write(request / 'pending.json', pending)
+    return pending
+
+
+def continuation_state(root, previous, preflight):
+    from harness.gpu_autonomy_audit import audit
+    proof = json.loads((preflight / 'result.json').read_text())
+    if proof['status'] != 'completed' or not all(proof.get(name) for name in ('gpu_test_passed', 'boundary_passed', 'immutable_inputs', 'canary_unchanged')):
+        raise ValueError('new phase requires a successful constrained dependency preflight')
+    audit(previous)
+    prior = json.loads((previous / 'result.json').read_text())
+    if prior['master_review']['decision'] != 'stop':
+        raise ValueError('new phase requires a stopped prior phase')
+    write(root / 'continuation.json', dict(prior_run=str(previous), prior_result_sha256=digest(previous / 'result.json'),
+        prior_counters=prior['counters'], previous_phase_preserved=True,
+        preflight_result=str(preflight / 'result.json'), preflight_sha256=digest(preflight / 'result.json'),
+        new_phase_counters=dict(model_turns=0, actions=0, cpu_runs=0, gpu_attempts=0, usage_updates=0),
+        note='user-approved new phase; own scripts/feedback reused, not a new independent discovery'))
+    return prior
+
+
+def gpu_request(root, role, action, counters):
+    if counters['actions'] >= ACTION_LIMIT or role['actions'] <= 0 or counters['gpu_attempts'] >= role['gpu_attempts']:
+        raise ValueError(f'direction allocation exhausted; stage remaining actions={ACTION_LIMIT-counters["actions"]}; only master may reallocate')
+    number = counters['gpu_attempts'] + 1
+    request = root / f'gpu-{number:02d}'
+    contract = role.get('resource_contract', 'legacy')
+    manifest = freeze_request(role['manifest']['work'], action, request, attempts=counters['gpu_attempts'], contract=contract)
+    counters['gpu_attempts'] += 1
+    counters['actions'] += 1
+    role['actions'] -= 1
+    source = frozen_source(request)
+    name = f'specpilot-gpu-autonomy-20261109-a{number:02d}'
+    if contract == 'stage2-research':
+        name = f'specpilot-stage2-20261109-{role.get("phase_name", root.name.split("-")[-1])}-r{number:02d}'
+    output = root / f'remote-{number:02d}'
+    pending = prepare_submission(request, source, output, name, manifest)
     print(json.dumps(dict(event='GPU_REQUEST_READY', request=str(request), name=name), ensure_ascii=False), flush=True)
     deadline = time.monotonic() + 2400
     while time.monotonic() < deadline:
@@ -160,11 +193,15 @@ def gpu_request(root, role, action, counters):
     raise TimeoutError('trusted GPU feedback deadline exceeded; do not replay submission')
 
 
-def run(root, prior_run=None, resume_run=None, action_limit=24):
+def run(root, prior_run=None, resume_run=None, action_limit=24, continuation_run=None, preflight_run=None, runtime_note=None):
     global ACTION_LIMIT
     if action_limit not in (24, 28):
         raise ValueError('unsupported internal action limit')
     ACTION_LIMIT = action_limit
+    if sum(value is not None for value in (prior_run, resume_run, continuation_run)) > 1:
+        raise ValueError('choose exactly one recovery or continuation mode')
+    if continuation_run and not preflight_run:
+        raise ValueError('new phase requires dependency preflight evidence')
     import subprocess
     root.mkdir(parents=True, exist_ok=False, mode=0o700)
     pin = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
@@ -180,6 +217,8 @@ def run(root, prior_run=None, resume_run=None, action_limit=24):
     roles = []
     counters = dict(model_turns=0, actions=0, cpu_runs=0, gpu_attempts=0, usage_updates=0)
     resumed = None
+    if continuation_run:
+        resumed = continuation_state(root, continuation_run, preflight_run)
     if resume_run:
         resumed = json.loads((resume_run / 'result.json').read_text())
         counters.update(resumed['counters'])
@@ -196,11 +235,34 @@ def run(root, prior_run=None, resume_run=None, action_limit=24):
             counters['usage_updates'] += sum(json.loads(line)['message'].get('method') == 'thread/tokenUsage/updated' for line in wire.read_text().splitlines())
         write(root / 'recovery.json', dict(prior_run=str(prior_run), prior_result_sha256=digest(prior_run / 'result.json'),
             charged_actual_counters=counters, note='fresh backend roles after infrastructure abort; not another RSI round or a scientific rejection'))
-    result = dict(status='blocked', gpu_autonomy_completed=False, controller_accepted=False)
+    resource_contract = 'stage2-research' if continuation_run or (resume_run and
+        ((resume_run / 'continuation.json').exists() or resumed.get('resource_contract') == 'stage2-research')) else 'legacy'
+    phase_name = root.name.split('-')[-1]
+    if resume_run:
+        phase_name = resumed.get('phase_name', resume_run.name.split('-')[-1])
+    if preflight_run or runtime_note:
+        packet.pop('evidence_sha256')
+    if preflight_run:
+        proof = json.loads((preflight_run / 'result.json').read_text())
+        if proof['status'] != 'completed' or not proof['gpu_test_passed'] or not proof['boundary_passed']:
+            raise ValueError('dependency preflight must pass')
+        packet['infrastructure_preflight'] = dict(status=proof['status'],
+            gpu_test_passed=proof['gpu_test_passed'], boundary_passed=proof['boundary_passed'],
+            receipt_sha256=digest(preflight_run / 'result.json'),
+            provenance='trusted current-phase dependency check; historical failures below predate this success')
+    if runtime_note:
+        packet['infrastructure_runtime_update'] = dict(content=json.loads(runtime_note.read_text()),
+            sha256=digest(runtime_note), provenance='trusted executor change; not an agent scientific result')
+    if preflight_run or runtime_note:
+        packet['evidence_sha256'] = object_sha(packet)
+        write(root / 'evidence.json', packet)
+    result = dict(status='blocked', gpu_autonomy_completed=False, controller_accepted=False,
+        resource_contract=resource_contract, phase_name=phase_name)
     try:
         master = session(root / 'master', 'master', packet, 8, 0)
         roles.append(master)
         if resumed:
+            previous = continuation_run or resume_run
             plan = dict(resumed['master_plan'])
             if resumed['master_review'].get('decision') == 'continue' and counters['gpu_attempts'] == 1:
                 review = resumed['master_review']
@@ -208,7 +270,10 @@ def run(root, prior_run=None, resume_run=None, action_limit=24):
                     authority_sha256=digest(resume_run / 'master-review.json'), original_request=str(resume_run / 'gpu-01'),
                     replay_kind='same agent-authored scripts; trusted cache compatibility repair only'))
             else:
-                review = turn(master, '恢复你此前逻辑master的研究状态。旧入口把复核写死为stop且混淆方向额度与阶段额度，这是基础设施错误，不是科学反证。下列是你的原计划、原复核及本方向真实反馈，不是别的方向答案。当前stage仍有剩余额度，你自主决定是否值得继续，不要求GPU或正结果。输出{"decision":"continue|stop","extra_budget":{"actions":0,"cpu_runs":0,"gpu_attempts":0},"reason":"真实取舍"}。不得超过remaining或恢复旧补采。\nINPUT_JSON:\n' + json.dumps(dict(plan=plan, previous_review=resumed['master_review'], feedback=json.loads((resume_run / 'feedback.json').read_text()),
+                review = turn(master, '恢复你此前逻辑master的研究状态。下列是你的原计划、原复核及本方向真实反馈，不是别的方向答案。new_phase=true表示用户批准了独立的新阶段，必要依赖预检已通过，旧计数保留但不占新阶段预算；否则按原阶段remaining执行。此前工具文案对扩额的表述不清：Master可自主把remaining中尚未分配的阶段额度重分给direction，这不增加阶段总预算；GPU请求自身需要1个action。旧stop保留，你根据真实证据和澄清后的契约自主决定是否值得继续原方向，不要求GPU或正结果。输出{"decision":"continue|stop","extra_budget":{"actions":0,"cpu_runs":0,"gpu_attempts":0},"reason":"真实取舍"}。不得超过remaining或恢复旧补采。\nINPUT_JSON:\n' + json.dumps(dict(plan=plan, previous_review=resumed['master_review'], feedback=read_feedback(previous),
+                    infrastructure_preflight=packet.get('infrastructure_preflight'),
+                    infrastructure_runtime_update=packet.get('infrastructure_runtime_update'),
+                    new_phase=bool(continuation_run), previous_phase_counters=resumed['counters'],
                     remaining=dict(actions=ACTION_LIMIT-counters['actions'], cpu_runs=4-counters['cpu_runs'], gpu_attempts=2-counters['gpu_attempts'])), ensure_ascii=False), counters)
             write(root / 'master-reallocation.json', review)
             if review.get('decision') != 'continue':
@@ -223,16 +288,21 @@ def run(root, prior_run=None, resume_run=None, action_limit=24):
         write(root / 'master-plan.json', plan)
         direction = session(root / 'direction', 'direction: ' + plan['direction_id'], dict(evidence=packet, assigned_direction=plan), plan['budget']['actions'], plan['budget']['cpu_runs'])
         direction['gpu_attempts'] = plan['budget']['gpu_attempts']
+        direction['resource_contract'] = resource_contract
+        direction['phase_name'] = phase_name
         if resumed:
-            shutil.copytree(resume_run / 'direction/workspace-evidence/scratch', Path(direction['manifest']['work']) / 'scratch', dirs_exist_ok=True)
+            previous = continuation_run or resume_run
+            shutil.copytree(previous / 'direction/workspace-evidence/scratch', Path(direction['manifest']['work']) / 'scratch', dirs_exist_ok=True)
             direction['gpu_attempts'] += counters['gpu_attempts']
         roles.append(direction)
-        feedback = json.loads((resume_run / 'feedback.json').read_text()) if resumed else []
+        feedback = read_feedback(resume_run) if resume_run else []
+        historical_feedback = read_feedback(continuation_run) if continuation_run else []
         restored_files = []
         if resumed:
-            for path in sorted((resume_run / 'direction/workspace-evidence/scratch').rglob('*')):
+            previous = continuation_run or resume_run
+            for path in sorted((previous / 'direction/workspace-evidence/scratch').rglob('*')):
                 if path.is_file() and not path.is_symlink() and path.stat().st_size <= 32768:
-                    restored_files.append(dict(path='scratch/' + path.relative_to(resume_run / 'direction/workspace-evidence/scratch').as_posix(),
+                    restored_files.append(dict(path='scratch/' + path.relative_to(previous / 'direction/workspace-evidence/scratch').as_posix(),
                         sha256=digest(path), content=path.read_text(), provenance='same logical direction; restored verbatim, not a new discovery'))
         if (root / 'master-authorized-retry.json').exists():
             original = json.loads((resume_run / 'gpu-01/request.json').read_text())
@@ -252,7 +322,10 @@ GPU前必须先写筛选判据/验收脚本，不是看到结果后再放宽。G
 不能直接提交NorthJob。不要为完成任务制造候选，GPU/CPU失败应自行修复自己的脚本或如实停止。
 INPUT_JSON:\n''' + json.dumps(dict(assigned_direction=plan, remaining=dict(model_turns=16-counters['model_turns'],
                 actions=direction['actions'], cpu_runs=direction['runs'], gpu_attempts=direction['gpu_attempts']-counters['gpu_attempts']),
-                own_restored_files=restored_files, feedback=feedback), ensure_ascii=False)
+                infrastructure_preflight=packet.get('infrastructure_preflight'),
+                infrastructure_runtime_update=packet.get('infrastructure_runtime_update'),
+                new_phase=bool(continuation_run), own_restored_files=restored_files,
+                historical_feedback=historical_feedback, feedback=feedback), ensure_ascii=False)
             answer = turn(direction, prompt, counters)
             action = answer.get('action', {})
             if action.get('kind') == 'finish':
@@ -283,7 +356,7 @@ INPUT_JSON:\n''' + json.dumps(dict(assigned_direction=plan, remaining=dict(model
         if finished is None:
             finished = dict(action=dict(kind='finish'), observations='trusted stage ceiling reached; no inferred scientific conclusion')
         write(root / 'direction-final.json', finished)
-        review = turn(master, '复核原分配方向的真实请求和反馈。自主选择stop或在剩余阶段额度内continue；不得扩额或为正结果重跑。输出{"decision":"stop|continue","extra_budget":{"actions":0,"cpu_runs":0,"gpu_attempts":0},"conclusion":"工程与科学结论分开","limitations":["缺项"]}。若剩余额度不足或不值得继续则stop。\nINPUT_JSON:\n' + json.dumps(dict(plan=plan, feedback=feedback, direction_final=finished, counters=counters,
+        review = turn(master, '复核原分配方向的真实请求和反馈。自主选择stop或在剩余阶段额度内continue；可以将remaining中尚未分配的额度重新分给direction，这不是增加阶段总预算。不得突破阶段总上限或为正结果重跑。GPU请求需要预留1个action。输出{"decision":"stop|continue","extra_budget":{"actions":0,"cpu_runs":0,"gpu_attempts":0},"conclusion":"工程与科学结论分开","limitations":["缺项"]}。若剩余额度不足或不值得继续则stop。\nINPUT_JSON:\n' + json.dumps(dict(plan=plan, feedback=feedback, direction_final=finished, counters=counters,
             remaining=dict(actions=ACTION_LIMIT-counters['actions'], cpu_runs=4-counters['cpu_runs'], gpu_attempts=2-counters['gpu_attempts'])), ensure_ascii=False), counters)
         write(root / 'master-review.json', review)
         completed_gpu = any(row['result'].get('process_started') and row['result'].get('gpu_test_passed') and row['result'].get('boundary_passed') for row in feedback)
@@ -313,9 +386,15 @@ if __name__ == '__main__':
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--prior-run', type=Path)
     parser.add_argument('--resume-run', type=Path)
+    parser.add_argument('--continuation-run', type=Path)
+    parser.add_argument('--preflight-run', type=Path)
+    parser.add_argument('--runtime-note', type=Path)
     parser.add_argument('--action-limit', type=int, choices=(24, 28), default=24)
     args = parser.parse_args()
     result = run(args.output.resolve(), args.prior_run.resolve() if args.prior_run else None,
-        args.resume_run.resolve() if args.resume_run else None, args.action_limit)
+        args.resume_run.resolve() if args.resume_run else None, args.action_limit,
+        args.continuation_run.resolve() if args.continuation_run else None,
+        args.preflight_run.resolve() if args.preflight_run else None,
+        args.runtime_note.resolve() if args.runtime_note else None)
     print(json.dumps(dict(status=result['status'], counters=result['counters']), ensure_ascii=False), flush=True)
     sys.exit(0 if result['gpu_autonomy_completed'] else 75)

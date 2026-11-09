@@ -1,6 +1,8 @@
 """Run agent code only after actual file, network and process denial probes."""
 
 import ctypes
+import hashlib
+import importlib
 import json
 import os
 from pathlib import Path
@@ -14,6 +16,15 @@ from controller.landlock import Policy, READ, READ_FILE, WRITE, WRITE_FILE
 from harness.research_boundary import syscall_boundary
 
 GPU_RUNTIME_PATHS = ('/usr/local/cuda',)
+
+
+def preload_gpu_runtime():
+    module = importlib.import_module('sgl_kernel.flash_attn')
+    origin = Path(module.__file__).resolve()
+    if not origin.is_relative_to(Path(sys.prefix).resolve()):
+        raise RuntimeError('GPU runtime must come from the trusted installed environment')
+    return dict(module='sgl_kernel.flash_attn', origin=str(origin),
+        sha256=hashlib.sha256(origin.read_bytes()).hexdigest())
 
 
 def deny_processes():
@@ -105,6 +116,7 @@ def main(payload):
     code = program.read_bytes()
     gpu = not payload.get('cpu_probe', False)
     device = None
+    preloaded = None
     if gpu:
         import torch
         torch.set_num_threads(1)
@@ -115,11 +127,12 @@ def main(payload):
         torch.cuda.synchronize()
         device = dict(name=torch.cuda.get_device_name(0), torch_version=torch.__version__)
         del warm
+        preloaded = preload_gpu_runtime()
     os.chdir(work)
     restrict(work, payload['stock'], payload['models'], gpu)
     checks = probes(work, payload['canary'])
     os.write(2, (json.dumps(dict(kernel_boundary_applied=True, boundary_checks=checks,
-        gpu=gpu, device=device)) + '\n').encode())
+        gpu=gpu, device=device, trusted_runtime_preload=preloaded)) + '\n').encode())
     sys.argv = [str(program)]
     sys.path = [str(work / 'scratch'), *[entry for entry in sys.path if 'SpecPilot' not in entry]]
     if payload['stock']:
