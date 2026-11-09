@@ -1,9 +1,36 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 UTC（stock瓶颈分析已批准，200项CPU通过，待远程执行）。
+> 最后更新：2026-11-09 UTC（stock瓶颈诊断/重放/归档完成，无运行任务）。
 
-## 最新接续点：stock瓶颈分析执行中，不进入优化或RSI
+## 最新接续点：stock瓶颈诊断完成，完整成本模型未完成
+
+- 唯一记录`docs/experiments/bottleneck-20261109.md`。原5suite各2题共10独立公开dev/2048cap/自然EOS；
+  原20pair/40臂行fresh换卡计时保留，独立profile补采20/20窗口，202项CPU回归及两次重放通过。
+- 计时pin=a102b64c0173aa9b72e126778005a137bad174fc，tar SHA=6c6d11a5...；
+  profile-only pin=5ed0302e123ae51af3c669ffc6bf1350a64672e4，tar SHA=17afdc16...。
+  两者完整SHA与命令、模型config/stock canonical hash和任务身份见阶段文档及prep。
+- 原a01 UUID=`job-fa7aeb0532ed-20261109083627`，18分18秒，计时通过/profile仅4/20；
+  a02 UUID=`job-46790c2ece9b-20261109090434`，14分3秒，仅补profile，不重跑计时。
+  stop在自动结束后返回500；以该次新原生日志切片偏移/长度/SHA证明“未在采集”，不翻绿HTTP。
+  原失败/16条隔离保留；补采12次500仍计为错误，全部有原生状态证明。
+- 20窗口按请求等权累计kernel工作：VERIFY89.5782%、DRAFT8.2852%、EXTEND0.9770%、未知1.1596%。
+  这不是整请求墙钟占比。12窗口只含127个VERIFY标签；另8窗口标签数比原生verify_ct多1，不能混称步数。
+- 接受计数36/40行满足全部约束；另外4行是同一HumanEval题两卡两轮，实际1726比1312+413多1。
+  原生直方图/别名可对齐，bonus/末尾裁切条件未解释，不改判据或宣称引擎错误。
+- BF16 mm形状可识别4216项，但仅覆盖累计kernel工作0.5111%；名义冷I/O情景不是实测DRAM。
+  真实lattice/replay API、全kernel-class工作量及匹配无干扰step时间未提供；三因子/ceiling均null。
+- 私有`logs/bottleneck-run-20261109-a01/`与a02不手工读题/答案；只看对应public聚合。
+  a01两CPU重放SHA=81b347f7...，a02两重放SHA=0300ac0b...，均与各自远程result逐字节一致。
+  新393文件/181717264逻辑字节SHA全过，清单`logs/bottleneck-evidence-20261109-a01.sha256`，
+  SHA=`05cafb7ebff1a06eb44664321a282cb59a43f0dfc9046c2da0b1d4eb98b719c3`；前阶段2970项亦复验通过。
+- 两任务均node244/Completed/Pod Succeeded/容器与脚本exit0；38/29监控快照各单Pod/restart0，
+  Job retryCount未设置。总1.078333GPU小时/2预算，两卡0MiB/利用率0–1%，端口释放，全部会话结束。
+- 不改controller/作者实现/旧floors，不碰sealed/ledger/memory，不实施优化或真实RSI。
+  下一大步骤先报最小逐步计数/lattice及无profiler步计时接口方案，获用户/维护者授权后再做。
+  不自动扩大样本、重跑final、填三因子或开始搜索；这是诊断能力完成，不是完整论文成本模型完成。
+
+## 本阶段准备与补采历史（已完成，不再作为下一步）
 
 - 用户已批准本阶段内自主执行，唯一记录`docs/experiments/bottleneck-20261109.md`。
   原5suite前2题共10公开dev/2048cap/自然EOS；先stock/stock两轮fresh换卡，20pair/40臂行，
@@ -23,6 +50,9 @@
 - 已先红后绿修复该次新日志切片绑定，只以精确原生异常证明未在采集，不把500改200。
   准备a02 profile-only补采同20探针，不重跑/覆盖计时，35分钟加a01仍在总2GPU小时预算。
   a02独立pin/tar/UUID/日志待登记；只看公开聚合，不读私有逐题输出，结束重放归档后停止。
+- a02已提交一次code200/精确UUID=`job-46790c2ece9b-20261109090434`，pin5ed0302，
+  source.tar SHA=17afdc16...，202回归通过，前台监控`logs/bottleneck-prep-20261109-a02/lifecycle.*`。
+  不再create、不改执行源码或commit，结束后受控重放两次/归档/收尾；计时仍归a01源码。
 
 ## 最新接续点：真实candidate启动option接入完成，不自动开始自主搜索
 

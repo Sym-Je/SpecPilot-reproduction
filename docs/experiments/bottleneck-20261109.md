@@ -1,7 +1,8 @@
 # Stock 真实瓶颈、计数审计与部分成本模型
 
 日期：2026-11-09 UTC。基准 `a04972c2bc96c11e78816255cc5bafce610f3b09`。
-状态：用户批准执行，先验收后实现；不实施优化，不修改controller或作者引擎。
+状态：远程执行及两次独立重放完成；本阶段诊断验收通过，完整三因子成本模型仍未完成。
+不实施优化，不修改controller或作者引擎。
 
 ## 目标和预声明协议
 
@@ -97,3 +98,95 @@ CPU准备完成，远程待执行。准备目录`logs/bottleneck-prep-20261109-a
 - 补采实现CPU验收202项通过（a02/final-source-tests.log）；红测试确实捕获500隔离问题。
   首次全回归仅新repair测试fixture遗漏ports失败，修正fixture后全绿；不修改生产判据。
   profile-only入口保留原计时manifest/result/source pin及tar hash，审计仍核对原始HTTP/换卡。
+- a02冻结pin=`5ed0302e123ae51af3c669ffc6bf1350a64672e4`，源码tar SHA=
+  `17afdc16a78a30185ad375fb756f147c547ef052b3b0807d7d994fe45c835d47`。
+  prep/public/private分别为`logs/bottleneck-{prep,public,run}-20261109-a02/`。
+  新任务名查重0，完整命令展示后仅create一次code200/dataNone，精确查名UUID=
+  `job-46790c2ece9b-20261109090434`，WeaverDev/实际proj-31；35分钟限时，未重跑计时。
+
+## 实测结论
+
+### 1. 当前优先分析VERIFY，不等于已找到可实现的优化
+
+10个独立请求、两物理卡重复，共20个窗口，按请求等权的**窗口内累计kernel工作时间**：
+
+| 明确阶段标签 | 份额 |
+|---|---:|
+| VERIFY | 89.5782% |
+| DRAFT | 8.2852% |
+| EXTEND | 0.9770% |
+| DECODE | 0%（未观察到该标签） |
+| 未归因 | 1.1596% |
+
+全部窗口累计kernel时间58.7568秒，各窗口单设备kernel区间并集累计49.7258秒。
+二者不可混称墙钟，区间并集亦不含独立copy/memset。不得用89.6%推断整请求收益上限或CPU开销。
+12个窗口只有127个VERIFY标签，对应早期采集；另外8个窗口标签数比原生verify_ct多1。
+因此128个公开profiling步、标签数、原生验证计数不是可直接互换的三个单位。
+没有将长请求的早期窗口外推到2048完整请求，也没有将两卡重复当20个独立样本。
+
+### 2. 接受计数：36/40行满足全部预声明代数约束，一题仍未解释
+
+失败4行属于同一HumanEval题的两卡×两轮，不是4个独立反例：
+实际输出1726、报告正确草稿1312、报告验证413，后两者相加1725，少1。
+直方图总数/加权数和原生别名能对齐，但“每次验证加1再只做末尾裁切”的条件关系不成立。
+原记录与判据不改，不能声称已审计每步接受路径，也不能据此断言引擎生成错误。
+
+同源无profiler计时每suite仅2独立请求；以下仅描述该诊断，不是新正式性能CI：
+
+| suite | 请求耗时中位数ms（8臂行） | 实际输出均值token | stop / length臂行 | 全代数约束通过 |
+|---|---:|---:|---:|---:|
+| gsm8k | 1582.76 | 367.0 | 8 / 0 | 8 / 8 |
+| math500 | 6409.65 | 1252.5 | 4 / 4 | 8 / 8 |
+| humaneval | 6890.64 | 1242.5 | 8 / 0 | 4 / 8 |
+| mbpp | 9686.00 | 1852.5 | 4 / 4 | 8 / 8 |
+| mt-bench | 7545.61 | 1160.0 | 4 / 4 | 8 / 8 |
+
+### 3. 成本模型：只得到很小的可识别子集，不能计算完整headroom
+
+- 可无歧义关联BF16 mm/bmm共4216项，其累计kernel仅300.332ms，约占全部累计kernel的0.5111%。
+  该子集的名义冷内存roofline情景272.892ms；不是实测DRAM、全验证pass下限或全局kernel效率。
+- CUDA graph隐藏的形状及其他kernel仍未知，不能从kernel名称倒猜FLOP/byte。
+- 当前公开schema无真实token lattice/replay导出路径，metadata直方图不能恢复候选token和目标判断。
+  没有拿block8或TinyLM替代真实tau_best。
+- tau/kernel/overhead与ceiling全部null，complete=false；缺项是本次明确核查的能力边界，
+  不是可填1消除的实现错误。架构观察层已接入，不等于论文完整成本模型或数字复现。
+
+## 最终验收、资源与决策
+
+- 202项CPU回归通过；两个attempt的原始生成/预热/时序/换卡/进程/源码tar及模型config绑定验证通过。
+  a01为4个测量server+2个profile server；a02仅2个fresh profile server，未重跑无profiler计时。
+- a01只有4/20 profile，失败与隔离全部保留；a02为20/20，12次stop HTTP500仍计为错误，
+  均有该次新原生日志切片的偏移/长度/SHA证明采集已停止，后续start才获准。未修改引擎或HTTP状态。
+- a02两次独立CPU重放与远程result逐字节一致，SHA=
+  `0300ac0bbc18a241ffcd6bc74a67bc2cd751474cb4db8e9a2e2503d866085ab1`。
+  a01两次重放同样一致，SHA=`81b347f726e2e4409c7924a75397211f7b60a2fc2294cd9652e600929121ff33`。
+  a01重放使用a102b64，a02使用5ed0302；未来源码变化时需用相应冻结源码受控重放，不覆盖当前checkout。
+- 两任务均node244、Job Completed/Pod Succeeded、容器与脚本exit0；实际镜像digest、2H100/256Gi、
+  模型只读挂载、无hostNetwork/privileged均核对，两个任务不重叠。
+  a01 00:36:55–00:55:13 UTC（1098秒），a02 01:04:58–01:19:01 UTC（843秒），
+  合计32分21秒、按容器时长折算1.078333 GPU小时，原2预算内。
+- 监控38/29个快照各只见1个Pod UID、容器restart0；Job retryCount未设置，不扩称服务端保证零重试。
+  两卡0MiB/利用率0–1%，端口释放，监控结束；profile补采证据141173413字节，低于4GiB。
+- `promoted=false/ledger_eligible=false`；无候选、sealed、真实RSI、账本或记忆写入，无lossless声明。
+
+**下一大步骤建议（另获批准）：**先由维护者提供最小只读逐步计数/lattice导出与匹配无profiler步计时，
+在相同10题中解释原生计数和标签偏移，再补VERIFY主要kernel-class的工作量/byte来源。
+不扩测试集或重跑final来替代这些接口，不在缺依据时强行输出三因子或启动自主搜索。
+
+### 归档与复核入口
+
+新393文件、181717264逻辑字节，清单`logs/bottleneck-evidence-20261109-a01.sha256`，SHA=
+`05cafb7ebff1a06eb44664321a282cb59a43f0dfc9046c2da0b1d4eb98b719c3`；全项通过，
+日志`logs/bottleneck-evidence-verification-20261109-a01.log`。前阶段candidate的2970项也全部复验通过。
+原始逐题数据/trace只持久归档，不上传Git；Git追踪源码、脱敏汇总与两任务索引。
+补采聚合`logs/bottleneck-public-20261109-a02/analysis.json`，完整验收入口为
+`logs/bottleneck-prep-20261109-a02/acceptance.sh`，输出`acceptance-final.log`，exit0。
+未来重放必须指定新输出路径；源码变化时先建立相应冻结版本的受控环境，不能绕过源码hash检查。
+
+```bash
+sudo -n sha256sum -c logs/bottleneck-evidence-20261109-a01.sha256
+git diff --exit-code 5ed0302 -- controller exp harness costmodel assets/upstream
+git diff --check
+```
+
+本阶段完成，无运行任务；完整成本模型缺项单独报告，未自动进入下一阶段。
