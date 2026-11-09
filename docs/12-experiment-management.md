@@ -41,9 +41,13 @@ Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果
 
 ## 4. 当前阶段索引
 
-正在执行：[首轮真实agent探索](experiments/exploration-20261109.md)。用户已批准master自主选方向，
-direction用受控CPU实验形成提案；不预设VERIFY，不接作者final/旧对话/固定registry。
-工具后端继承默认模型，未暴露精确模型ID；本轮记录限制，不冒充完整模型配置或自主优化闭环。
+最新完成：[首轮真实agent探索工程接入与证据分析](experiments/exploration-20261109.md)。
+真实master自主选方向，direction实际完成2项CPU实验；科学结论needs_more_evidence，无可实施提案。
+a01接口不足保留，按agent需求补证据后a02 fresh重试，不算两轮优化；两attempt共6角色已关闭。
+执行pin8195964/b0b89d0，224回归/a02两次独立重放/5类篡改拒绝/118项SHA通过，0GPU。
+预测MAE改善不是收益；终止顺序不是关键路径。未提供final答案，不改controller，不实现或晋升。
+后端继承默认模型，精确模型ID/用量不可得；不冒充完整论文agent配置、物理隔离或真实多轮RSI。
+下一阶段需先获批最小独立证据确认；没有合格记录则等待或另申请采集，不指定VERIFY优化。
 
 最新完成：[stock逐步观测与线性链重放](experiments/step-replay-20261109.md)。
 用户批准必要stock阅读/默认关闭钩子；3题on/off两轮换卡12pair/24臂行均匹配原stock，
@@ -99,6 +103,7 @@ node208/2H100已释放。中文1题辅助质量格式缺测不删性能题；无
 | 真实candidate外围接入 | 首版验收完成，仅启动option | [no-op烟测结果](experiments/candidate-20261109.md)；184回归/20pair/40评分/两重放/2970项SHA通过，无正式晋升 |
 | stock真实profiling/部分成本观察 | 诊断能力完成，完整成本模型未完成 | [瓶颈及缺项](experiments/bottleneck-20261109.md)；202回归/20pair/20窗口/两重放/393项SHA，窗口VERIFY约89.6%，三因子null |
 | stock逐步钩子与真实线性重放 | 完成有限3题工程验收，非最佳树/完整成本模型 | [真实链与计数解释](experiments/step-replay-20261109.md)；210回归/12pair/6链/24故障拒绝/两重放/5598项SHA，已释放GPU |
+| 真实agent探索接入与首轮分析 | 工程验收通过，科学结论待证据 | [真实探索记录](experiments/exploration-20261109.md)；自主选2方向/实际2项CPU实验/224回归/两独立重放/5类篡改拒绝/118项SHA；无可实施提案、0GPU、无晋升 |
 | 作者final外部数据泛化审计 | 执行/归档完成，部分泛化且有反例 | [完整结果](experiments/generalization-20261108.md)：200题1.8230×，原5类2.1718×/新5类1.5302×；中文0.5133×，摘要质量代理告警。a02 Completed/exit0，137回归/两次重放/10312文件校验通过；不改final/controller，不冒充论文sealed |
 
 本次仅按已有清单复核真实裁判、dev、泛化、反例确认、诊断五阶段的25319项；

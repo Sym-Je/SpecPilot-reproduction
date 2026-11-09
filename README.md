@@ -17,7 +17,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 | 5 | 真实正确性、噪声与晋升判据 | ✅ dev联合验收完成 | [验收记录](docs/experiments/dev-joint-20261108.md)：30请求、当前前后null、两轮换卡与实际测速输出forcing均通过；作者产物不写晋升账本 |
 | 6 | 建立独立 sealed 验证 | ⬜ 未开始 | 前置验收通过后由 controller 管理，agent 不接触内容 |
 | 7 | 真实 profiling 与成本模型 | 🟡 profiling/线性重放通过 | [stock诊断](docs/experiments/bottleneck-20261109.md)与[真实链重放](docs/experiments/step-replay-20261109.md)完成；完整最佳树/三因子仍缺 |
-| 8 | agent 自主提案与实现 | 🟡 候选接入通过，未搜索 | 启动option的no-op真实配对/评分接入通过；真实agent提案、源码机制与晋升尚缺 |
+| 8 | agent 自主提案与实现 | 🟡 真实探索接通，待证据 | no-op候选接口通过；真实master自主选方向并完成2项CPU实验，尚无可实施候选或晋升 |
 | 9 | 多轮真实优化闭环与记忆 | ⬜ 待真实验证 | [mock 闭环](docs/06-gates.md)已跑通，不代表真实引擎闭环完成 |
 | 10 | 对照实验与最终报告 | ⬜ 未开始 | 分析各组件贡献，分别报告架构与数字复现证据 |
 
@@ -53,9 +53,11 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 
 **观测边界：**每份真实链均额外执行1个未提交overlap尾步，不能算进实际接受量；未逐条对齐旧profile标签。观测耗时不是无干扰步计时，线性重放不等于最佳树或完整成本模型。
 
-**正在做：**已获批准接通[首轮真实agent探索](docs/experiments/exploration-20261109.md)。master独立选方向，direction通过受控CPU证据提出方案；不预设VERIFY、不提供final答案、不实施候选或提交GPU。旧固定registry/mock入口保留，不冒充真实提案。
+**最新完成：**[首轮真实agent探索接入与证据分析](docs/experiments/exploration-20261109.md)：master自行选择接受历史预算、终止重叠关键路径两个方向；实际完成2项CPU实验。224回归、两次独立审计重放、5类篡改拒绝及118文件SHA通过；0个GPU提交，无候选实现或晋升。
 
-**接下来：**先报VERIFY主要kernel-class工作量/byte来源及匹配无干扰步计时方案，获批后补成本模型；不靠扩题或重跑final绕过缺项。第一版candidate仅启动option，真实proposer与正式晋升/账本集成未就绪；不自动启动RSI或sealed。
+**正在做：**本阶段已收口，等待下一阶段授权。科学结论为`needs_more_evidence`：3个诊断请求上，接受数历史预测MAE为2.2114，训练均值基线为2.4203；这是预测误差，不是加速比、净收益或泛化证明。终止事件顺序也不足以证明可节省延迟。
+
+**接下来：**按agent提出的最小证据需求，先规划独立dev计数记录的固定规则确认，以及已有终止时间关联核查；没有合格记录则另报最小采集方案。主助手不指定VERIFY优化；不自动提交GPU、实现候选、晋升、启动RSI或sealed。完整成本模型仍缺，正式晋升仍由controller负责。
 
 **已有基础：**三臂真实 server、dev验收、外部数据审计与mock闭环完成；**尚未复现论文原sealed数字或真实RSI方法结论。**
 

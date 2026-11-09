@@ -1,25 +1,34 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 北京时间（首轮真实agent探索已批准，CPU接口准备中）。
+> 最后更新：2026-11-09 北京时间（首轮真实agent探索接入验收完成，科学结论待更多证据）。
 
-## 最新接续点：接通真实探索agent，不预设优化方向
+## 最新接续点：真实agent探索已接通，尚无可实施候选
 
-- 用户已批准本阶段内自主：整理证据→真实master选择方向→真实direction请求便宜证据→master汇总提案。
-  唯一记录`docs/experiments/exploration-20261109.md`。不预设VERIFY，不提供final实现/作者机制列表/旧对话。
-- 新`agents/exploration*.py`与`exp/exploration.py`管理四个公开聚合证据、fresh角色提示、响应回执与CPU工具。
-  使用本会话真实子agent工具，继承用户默认模型，不擅改模型；精确模型ID/用量未暴露则保持null与限制。
-  只做可见输入/输出/调用审计，不冒充后端签名或Landlock物理隔离。子agent只处理inline JSON，不读文件或直接用工具。
-- master最多2个方向；direction各最多2个白名单CPU实验。初步9定向测试通过；未知工具/任意shell/GPU拒绝。
-  缺因子不填1；不能把局部prefix或kernel份额当端到端收益。implementation_ready固定false，晋升权仍归controller。
-- 下一内部动作：全回归→冻结源码与证据包→fresh真实master选方向，运行期间本地做非重叠验收/审计工作。
-  不运行旧mock/registry，不修改controller，不提交GPU、候选实现、sealed或正式晋升。
-- a01源码pin8195964、tar df438f2b...，实际3个fresh角色/6响应，master自选接受历史块长与终止overlap方向；
-  两direction均tests=[]、needs_measurement，master也needs_more_evidence，不强编收益/候选。
-  两个独立CPU重放03/04与原结果一致SHA=8cb7ac6d...，三个角色关闭，原回答不覆盖。
-- 按agent自行请求补E005接受数量/事件顺序；仅受控程序读取旧私有轨迹，模型不读原题/输出/token ID。
-  两次导出字节相同，新14定向/224总CPU通过。准备另冻结a02再fresh启动，不给a01方向/回答，
-  不提交GPU或实现；这只是同一提案阶段的输入/接口重试，不是两轮自主优化。
+- 用户批准的本阶段已完成工程接入与首轮分析，唯一记录`docs/experiments/exploration-20261109.md`。
+  不预设VERIFY，不提供作者final实现/机制列表/旧对话；不实现候选、不提交GPU、不改controller或晋升。
+- 新`agents/exploration*.py`、`exp/exploration.py`管理中立证据、角色提示、实际回执与受控CPU实验。
+  真实子agent均fresh context、继承默认模型，仅处理inline JSON；精确模型ID/用量不可得，保持null。
+  记录的是可见调用，不是后端签名或文件系统物理隔离；旧mock/registry未冒充本轮真实推理。
+- a01 pin8195964/tar df438f2b...：3角色/6响应、0实验，agent指出接口不足，原始回答保留。
+  原独立重放03/04与冻结源码隔离重放05/06均通过；不能用变化后的源码绕过hash。
+- 按agent需求受控补E005匿名接受数量/事件顺序，3独立诊断请求×2物理重复；无原题/输出/token ID。
+  a02 pin=`b0b89d0b876e77ce26d5c75a61dbf2ef5e418201`，tar SHA=e031783e...；两次额外导出字节一致。
+  fresh master自行选history-conditioned-draft-budget、terminal-overlap-critical-path，实际执行T001/T002。
+- T001等请求MAE：历史1步2.211373、训练均值2.420281、训练中位数2.457883。
+  只支持继续核验预测信号，不是预算收益/加速比/泛化证明；重复轮次不算独立请求。
+  T002每份记录1个未提交worker输出早于finish，但缺入队时间/无扰动关键路径，不能推算延迟节省。
+- 两direction均needs_measurement/proposal=null；master-final=needs_more_evidence。
+  工程验收通过不代表候选发现成功、方向已淘汰或真实RSI完成；不为得出提案换agent/改规则。
+  每题MAE均改善与3%目标是探索筛选设想，不是新论文硬门槛或controller判据。
+- 14定向/224总CPU测试、a02两次独立重放与5类篡改拒绝通过；a02结果SHA=
+  `75f79c7fd62cfcbfad827238d48df4847637cfe39f87e8a5e5daf1f2e3c57915`。
+  新118文件/2438743逻辑字节全SHA通过，清单`logs/exploration-evidence-20261109-a01.sha256`，
+  SHA=`887ccc599fa87433465e75c21326689befba40d141b5dcd03a269862f2d927e0`；前阶段5598项亦复验。
+  两attempt共6个模型角色均关闭，本阶段0GPU任务；controller/原stock/ledger/memory等保护目录不变。
+- 下一大步骤先报最小独立证据确认方案获批：优先核查已有授权的未参与诊断dev计数记录，
+  冻结预测及训练专属基线；已有终止产物仅核因果时间关联。没有合格记录则等待或申请最小采集。
+  不自动实现/采集GPU/晋升/RSI/sealed，不再由主助手指定VERIFY优化；下面均是历史记录，不是待执行动作。
 
 ## 最新接续点：真实逐步观测与线性重放完成，未进入优化
 
