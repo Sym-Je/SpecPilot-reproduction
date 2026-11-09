@@ -53,7 +53,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 
 **观测边界：**每份真实链均额外执行1个未提交overlap尾步，不能算进实际接受量；未逐条对齐旧profile标签。观测耗时不是无干扰步计时，线性重放不等于最佳树或完整成本模型。
 
-**正在做：**本阶段已收口，无运行任务；两卡已释放，约0.528GPU小时，未实施优化或晋升。前述36/40是旧条件公式当时的诊断结果，保留原样，不再当作当前尚未解释的生成错误。
+**正在做：**已获批准接通[首轮真实agent探索](docs/experiments/exploration-20261109.md)。master独立选方向，direction通过受控CPU证据提出方案；不预设VERIFY、不提供final答案、不实施候选或提交GPU。旧固定registry/mock入口保留，不冒充真实提案。
 
 **接下来：**先报VERIFY主要kernel-class工作量/byte来源及匹配无干扰步计时方案，获批后补成本模型；不靠扩题或重跑final绕过缺项。第一版candidate仅启动option，真实proposer与正式晋升/账本集成未就绪；不自动启动RSI或sealed。
 

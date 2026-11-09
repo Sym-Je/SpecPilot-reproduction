@@ -41,6 +41,10 @@ Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果
 
 ## 4. 当前阶段索引
 
+正在执行：[首轮真实agent探索](experiments/exploration-20261109.md)。用户已批准master自主选方向，
+direction用受控CPU实验形成提案；不预设VERIFY，不接作者final/旧对话/固定registry。
+工具后端继承默认模型，未暴露精确模型ID；本轮记录限制，不冒充完整模型配置或自主优化闭环。
+
 最新完成：[stock逐步观测与线性链重放](experiments/step-replay-20261109.md)。
 用户批准必要stock阅读/默认关闭钩子；3题on/off两轮换卡12pair/24臂行均匹配原stock，
 6真实链/24故障副本拒绝/两次CPU重放/210回归/5598项SHA通过，原stock不变。

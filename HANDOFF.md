@@ -1,7 +1,19 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 UTC（真实stock逐步观测/重放/故障自检/归档完成，无运行任务）。
+> 最后更新：2026-11-09 北京时间（首轮真实agent探索已批准，CPU接口准备中）。
+
+## 最新接续点：接通真实探索agent，不预设优化方向
+
+- 用户已批准本阶段内自主：整理证据→真实master选择方向→真实direction请求便宜证据→master汇总提案。
+  唯一记录`docs/experiments/exploration-20261109.md`。不预设VERIFY，不提供final实现/作者机制列表/旧对话。
+- 新`agents/exploration*.py`与`exp/exploration.py`管理四个公开聚合证据、fresh角色提示、响应回执与CPU工具。
+  使用本会话真实子agent工具，继承用户默认模型，不擅改模型；精确模型ID/用量未暴露则保持null与限制。
+  只做可见输入/输出/调用审计，不冒充后端签名或Landlock物理隔离。子agent只处理inline JSON，不读文件或直接用工具。
+- master最多2个方向；direction各最多2个白名单CPU实验。初步9定向测试通过；未知工具/任意shell/GPU拒绝。
+  缺因子不填1；不能把局部prefix或kernel份额当端到端收益。implementation_ready固定false，晋升权仍归controller。
+- 下一内部动作：全回归→冻结源码与证据包→fresh真实master选方向，运行期间本地做非重叠验收/审计工作。
+  不运行旧mock/registry，不修改controller，不提交GPU、候选实现、sealed或正式晋升。
 
 ## 最新接续点：真实逐步观测与线性重放完成，未进入优化
 
