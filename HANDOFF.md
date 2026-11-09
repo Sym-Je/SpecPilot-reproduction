@@ -1,7 +1,34 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 北京时间（用户停止人工补采支线；下一主线只给自主实验能力方案，待审核）。
+> 最后更新：2026-11-09 北京时间（真实CPU自治回路验收完成，三角色关闭；下一阶段先报方案，GPU预算0）。
+
+## 当前接续点：真实CPU实验自治首阶段通过，不接管科学实验
+
+- 用户已批准“下一轮目标和流程”并说“开始”；只建设/验收CPU实验自治，不授权GPU、旧补采或完整RSI。
+  唯一记录`docs/experiments/agent-autonomy-plan-20261109.md`。controller/ledger/memory/作者资源不变。
+- 新通用write/read/list_stock/read_stock/run_python，Landlock+seccomp真实限制脚本：
+  只读工作区/运行库，禁宿主越界读写/网络/子进程/设备，6s墙钟/3sCPU/768MiB/每流64KiB。
+  脚本写入经broker，原样来自direction响应；不是主助手写科学实验。模型后端本身仅提示约束，不宣称物理隔离。
+- 11原定向+3独立完整性/249总回归通过，执行pin=ff96c81535d035d06409b38e80fb099530e70a37，tar SHA=
+  9f9e2d06426f6ca9fb21301b87718a3bd180e9636fab65dfed50ff7a540ae09b。
+  `logs/autonomy-prep-20261109-a01/driver.js`为通用transport，运行cell1004已结束，不另开重复运行。
+- fresh master已自主选boundary-accounting-invariants、prefix-distribution-ordering，各10actions/3runs，
+  留4actions/2runs；direction自行编写并请求执行，主助手只做非重叠验收/归档工作。
+  实际12模型回包、8计费actions/4 CPU runs（3成功、1失败），另2次finish不计研究动作。
+  T004为direction本地模块导入失败，T005由它自行修复，T006成功，主助手未代改实验。
+  状态/请求/回执/原代码/真实输出在`logs/autonomy-{prep,run,public}-20261109-a01/`。
+- 原master R012根据反馈停止两方向、追加0预算。计数代数相容并非执行正确性，筛选后suite直方图统一排序被反例否定；
+  都只限已有/合成CPU证据，不是优化发现/模型新测量。真实运行没有追加预算，追加能力只在fixture测试过。
+- 两独立CLI审计与原结果字节一致，SHA=dcd8cf7cfdad9ca2e4d1c3d88ee68f57518aa527512a0c405aa0b2af2ef8a18f；
+  5类篡改拒绝。后置独立只读integrity验证2工作区输入、3最终脚本、4内核bootstrap，另3测试通过，未修改已执行源码。
+  三模型角色已关闭，无活动CPU会话/本阶段GPU任务；controller/作者资源/ledger/memory不变。
+  新109文件/3200858字节全SHA通过，清单`logs/autonomy-evidence-20261109-a01.sha256`，
+  SHA=53c82d863f8354945969d9fe42d5311963fb83b03bd36c89e981547f91f5ffa5；后置校验器代码SHA单列integrity-source.sha256。
+- 后端仍为Codex工具，精确模型ID/token用量不可得，客户端回执非后端签名；模型后端工具仅提示约束，
+  不宣称模型物理隔离。真正被Landlock/seccomp限制的是实验CPU子进程；没有独立LLM服务或GPU工具接通声明。
+- 下一大步骤先报通用GPU执行/资源审批及候选到controller交接方案获批；不由主助手接管已停止的研究，
+  不恢复四题GPU提交、不优化指定VERIFY、不自动进RSI/sealed。以下全部是历史。
 
 ## 当前唯一接续点：停止补采，先审核实验自治方案
 
