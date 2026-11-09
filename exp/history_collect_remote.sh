@@ -19,5 +19,5 @@ assert metadata.version('sglang')=='0.5.20' and metadata.version('torch')=='2.13
 assert torch.cuda.device_count()==1 and 'H100' in torch.cuda.get_device_name(0)
 print('PASS: pinned runtime and exactly one H100')
 PY
-timeout --signal=TERM --kill-after=60s 1700 "$SP_PY" -B "$ROOT/exp/history_collect.py" run \
+timeout --signal=TERM --kill-after=60s 1440 "$SP_PY" -B "$ROOT/exp/history_collect.py" run \
   --directory "$PRIVATE" --public "$PUBLIC"

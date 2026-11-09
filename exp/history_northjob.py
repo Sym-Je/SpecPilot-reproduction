@@ -18,8 +18,9 @@ def with_model_mount(template):
         raise ValueError('model mount already exists')
     volumes.append(dict(name='specpilot-models',persistentVolumeClaim=dict(claimName='share-readonly',readOnly=True)))
     mounts.append(dict(name='specpilot-models',mountPath='/gpfs/models',subPath='models',readOnly=True))
-    pod['activeDeadlineSeconds']=1800
+    pod['activeDeadlineSeconds']=1560
     result['spec']['maxRetry']=0
+    result['spec']['policies']=[dict(events=['PodEvicted','PodFailed'],action='AbortJob')]
     return result
 
 

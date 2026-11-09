@@ -258,7 +258,7 @@ def run(directory,public):
                             cap=32 if filename=='warmup.jsonl' and index==0 else 2048
                             value=client.step(request['input_ids'],cap,rid=f'history-{number}|{filename}|{index}')
                             append_json(destination,result_row(value,request,manifest['arm'],gpu,number-1,cap))
-                            event(public,'request-complete',round=number,phase=filename,index=index+1)
+                            event(public,'request-complete',round=number,stage=filename,index=index+1)
             finally:
                 server.stop()
             wait_for_idle([0])

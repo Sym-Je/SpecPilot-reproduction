@@ -40,4 +40,34 @@ git diff --check
 
 ## 当前状态
 
-准备实现与CPU验收；尚未提交GPU，尚无独立预测结果。
+执行源码pin=`6d0676b618bd73d9a55cda6e569780fac042191e`，source.tar SHA=
+`327a6f40a235384f8f9fa2d4dfb7a561ca872ccff8bb36db2cf8e056cbd925c8`。
+10项定向/234项CPU回归通过；原5598项真实链归档复验通过。manifest在提交前冻结，SHA=
+`c52c30e0494bf4f925a71e716f5cf321c77d9ab2882c331830f4b7ff63b25272`。
+新4题输入长度111/109/231/338；不含旧诊断ID/token输入及可关联规范文本重复。
+
+已create一次code200/dataNone；精确查名解析服务端`name`字段UUID=
+`job-a0d49c75347b-20261109123806`。最初解析器只找job_uuid/job_name而失败，未再次create；原查询保留。
+当前node233/实际queue=proj-31，1H100/128Gi、原镜像digest/只读模型挂载/1800秒Pod期限已核对。
+预检sglang0.5.20/torch2.13.0/恰好1H100通过；仍在采集，未得到确认结果。
+
+**调度偏差：**提交YAML明确请求maxRetry=0，但服务端返回spec不含该字段，且保留PodEvicted/PodFailed→RestartJob策略。
+不能宣称服务端已禁重试；没有静默修改在线Job或重复提交。增加本机前台budget_guard，监控原Pod UID/
+容器重启/可见Job重试；发现替换/重启则终止这个精确UUID，或最迟自创建1700秒时终止，以保守守住30GPU分钟。
+该有依据的停止只针对本次自有任务，正常结束不删除。原生Pod1800秒期限同时保留。
+最终报告必须区分请求配置、实际返回配置与观察到的生命周期，不用缺失retryCount冒充零重试证明。
+
+## a01失败与已批准的a02修复
+
+a01单次create已明确Failed/exit1。04:38:29–04:41:25 UTC共176秒，容器折算2.9333 GPU分钟；
+为总预算保守按创建04:38:06至结束199秒计费，剩1601秒，约26.7分钟。
+单Pod UID、容器restart0；Job retryCount最终为1，不能称其为零，也没有观察到第二个Pod或容器启动。
+原server已成功就绪并完成1次32token短预热，但事件调用`phase`关键字与位置参数重名引发TypeError；
+不是模型/引擎故障，尚无正式四题采集。原输出/日志/失败目录保留，不作确认数据。
+
+用户已明确批准修复验收后再提交一次，镜像/四题/1H100及总30GPU分钟不变。
+新增CPU生命周期回归真实走两轮18次请求的外层逻辑，已先重现相同TypeError，再只改日志字段为stage；
+fake server/client结果只用于工程测试，不是实际采集。新模板明确PodFailed/PodEvicted→AbortJob，
+不依赖maxRetry=0是否被服务端省略；a02须核对实际返回策略。新Pod期限1560秒、runner1440秒+
+60秒清理，外部监控自创建1500秒停止；即使算上a01的199秒，仍在1800秒总预算内。
+新任务用a02独立pin/tar/目录/UUID；原预登记选择、预测和两轮契约均不改，不合并失败预热数据。

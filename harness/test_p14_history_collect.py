@@ -1,4 +1,6 @@
 import copy
+from contextlib import ExitStack,nullcontext
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -7,6 +9,35 @@ from unittest.mock import patch
 
 
 class HistoryCollectionTests(unittest.TestCase):
+    def test_cpu_lifecycle_drives_both_fresh_rounds_and_all_progress_events(self):
+        from exp.history_collect import run
+        from exp.diagnosis import digest
+        gpu=dict(index=0,uuid='fixture-gpu')
+        with tempfile.TemporaryDirectory() as name,ExitStack() as stack:
+            root=Path(name)/'private'
+            public=Path(name)/'public'
+            root.mkdir();public.mkdir()
+            requests=self.pool()[:2]+self.pool()[6:8]
+            manifest=dict(source_pin='fixture-pin',stock_spec=dict(target='fixture-target',draft='fixture-draft'),
+                arm=dict(tree_sha='fixture-tree'),requests=requests,port=30240)
+            (root/'manifest.json').write_text(json.dumps(manifest))
+            stack.enter_context(patch.dict(os.environ,HISTORY_MANIFEST_SHA256=digest(root/'manifest.json')))
+            overrides=dict(check_sources=None,clean_environment={},wait_for_idle=[gpu],check_ports=None,
+                result_row=dict(fixture=True),audit=(dict(disposition='fixture-only'),dict(fixture=True)))
+            for function,result in overrides.items():stack.enter_context(patch('exp.history_collect.'+function,return_value=result))
+            stack.enter_context(patch('exp.history_collect.subprocess.check_output',return_value='fixture-pin'))
+            stack.enter_context(patch('exp.history_collect.gpu_lock',return_value=nullcontext()))
+            server=stack.enter_context(patch('exp.history_collect.ObservationServer'))
+            client=stack.enter_context(patch('exp.history_collect.CapturedArm'))
+            run(root,public)
+            self.assertEqual(server.call_count,2)
+            self.assertEqual(server.return_value.stop.call_count,2)
+            self.assertEqual(client.return_value.step.call_count,18)
+            events=[json.loads(line) for line in (public/'events.jsonl').read_text().splitlines()]
+            self.assertEqual(sum(row['phase']=='request-complete' for row in events),18)
+            self.assertEqual(sum(row['phase']=='round-complete' for row in events),2)
+            self.assertEqual(events[-1]['phase'],'gpu-work-complete')
+
     def pool(self):
         from controller.http_transport import sha_ids
         return [dict(id=f'{suite}-{index}',suite=suite,turn=0,input_ids=[index+offset],
@@ -95,8 +126,9 @@ class HistoryCollectionTests(unittest.TestCase):
         updated=with_model_mount(original)
         self.assertEqual(original,self.template())
         self.assertEqual(updated['spec']['maxRetry'],0)
+        self.assertEqual(updated['spec']['policies'],[dict(events=['PodEvicted','PodFailed'],action='AbortJob')])
         pod=updated['spec']['tasks'][0]['template']['spec']
-        self.assertEqual(pod['activeDeadlineSeconds'],1800)
+        self.assertEqual(pod['activeDeadlineSeconds'],1560)
         self.assertTrue(pod['containers'][0]['volumeMounts'][0]['readOnly'])
         self.assertTrue(pod['volumes'][0]['persistentVolumeClaim']['readOnly'])
 
