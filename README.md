@@ -6,6 +6,15 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 
 GitHub：[china-qijizhifeng/SpecPilot-reproduction](https://github.com/china-qijizhifeng/SpecPilot-reproduction)（用户管理的公开组织仓库）。
 
+## 当前本地 Ascend 阶段
+
+用户已授权以V4 Flash W8A8、8卡910B2C和dev60/validation40运行DSH＋Claude 5.5自主研究，API总额上限500美元，MRV2不是要求。
+预算/真实工具边界验收及22项定向测试通过；MRV1同步调度的9组baseline进行中，研究调度器已启动并等待baseline审计。validation仍保留到候选冻结后的最后独立测量。
+代码与范围见[Ascend适配器](harness/ascend_dsh/README.md)、[阶段记录](docs/experiments/ascend-ctrip-dsh-20261109.md)及[当前计划](PLANS.md)。尚无本轮优化收益或正式晋升结论。
+本容器缺少旧H100工作路径且不支持Landlock，既有278项回归未全过；新适配器采用经实测的chroot/降权/seccomp，不宣称仓库全量通过。
+
+以下为此前H100复现阶段的结果；不与当前Ascend绝对性能混算。
+
 ## 当前进度（2026-11-09，UTC+08）
 
 图例：✅ 已完成 · 🟡 初步完成 · 🔵 正在推进 · ⬜ 待完成。只有完成该阶段验收才标 ✅。
