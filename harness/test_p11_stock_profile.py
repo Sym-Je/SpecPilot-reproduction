@@ -4,6 +4,72 @@ import hashlib
 
 
 class StockProfileTests(unittest.TestCase):
+    def test_500_requires_fresh_bound_native_inactive_log_not_status_relabel(self):
+        from pathlib import Path
+        import tempfile
+        from exp.stock_profile import control_status,profile_state
+        payload=b'Internal Server Error'
+        packet=dict(http_status=500,response_bytes_base64=base64.b64encode(payload).decode(),
+                    response_bytes_sha256=hashlib.sha256(payload).hexdigest())
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary)
+            log=root/'stock.server.log'
+            native=b'RuntimeError: Profiling is not in progress. Call /start_profile first.\n'
+            log.write_bytes(native+b'new call\n'+native)
+            offset=len(native)+len(b'new call\n')
+            proof=dict(path=str(log),offset=offset,length=len(native),sha256=hashlib.sha256(native).hexdigest())
+            state=profile_state(packet,proof,root)
+            self.assertFalse(state['http_success'])
+            self.assertFalse(control_status(packet)['explicitly_not_running'])
+            self.assertTrue(state['native_inactive_log_verified'])
+            self.assertFalse(profile_state(packet,None,root)['native_inactive_log_verified'])
+            other=b'RuntimeError: out of memory\n'
+            log.write_bytes(other)
+            unrelated=dict(path=str(log),offset=0,length=len(other),sha256=hashlib.sha256(other).hexdigest())
+            self.assertFalse(profile_state(packet,unrelated,root)['native_inactive_log_verified'])
+            log.write_bytes(b'x'*log.stat().st_size)
+            with self.assertRaises(ValueError):
+                profile_state(packet,proof,root)
+
+    def test_profile_only_repair_binds_original_and_never_retimes(self):
+        from contextlib import nullcontext
+        import json
+        import os
+        from pathlib import Path
+        import tempfile
+        from unittest.mock import patch
+        from exp.stock_profile import repair_profiles,digest
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary)
+            original=root/'original'
+            original.mkdir()
+            manifest=dict(source_pin='original-pin',arms=[dict(engine='/stock')],ports=[1,2],profile_port=3)
+            (original/'manifest.json').write_text(json.dumps(manifest))
+            (original/'result.json').write_text('{}')
+            before=digest(original/'manifest.json')
+            archive=root/'source.tar'
+            archive.write_bytes(b'fixture')
+            public=root/'public'
+            public.mkdir()
+            output=root/'repair'
+            with patch.dict(os.environ,dict(BOTTLENECK_SOURCE_TAR=str(archive),BOTTLENECK_SOURCE_SHA256=digest(archive))), \
+                    patch('exp.stock_profile.clean_environment',return_value={}), \
+                    patch('exp.stock_profile.signal.signal'),patch('exp.stock_profile.sources',return_value={}), \
+                    patch('exp.stock_profile.check_tree'),patch('exp.stock_profile.check_ports'), \
+                    patch('exp.stock_profile.wait_for_idle',return_value=[dict(uuid='gpu')]), \
+                    patch('exp.stock_profile.gpu_lock',return_value=nullcontext()), \
+                    patch('exp.stock_profile.run_timings',side_effect=AssertionError('must not retime')), \
+                    patch('exp.stock_profile.run_profiles') as profiles, \
+                    patch('exp.stock_profile.audit',return_value=dict(profile_requests_usable=20)):
+                repair_profiles(output,public,original,'repair-pin')
+            self.assertEqual(profiles.call_count,1)
+            repaired=json.loads((output/'manifest.json').read_text())
+            self.assertEqual(repaired['source_pin'],'repair-pin')
+            self.assertEqual(repaired['timing_origin']['source_pin'],'original-pin')
+            self.assertEqual(repaired['timing_origin']['manifest_sha256'],before)
+            self.assertEqual(digest(original/'manifest.json'),before)
+            self.assertFalse((output/'timing').exists())
+
     def test_profile_window_is_not_a_shorter_generation_budget(self):
         from exp.stock_profile import profile_request,sampling
         schema=dict(components=dict(schemas=dict(ProfileReq=dict(properties={
@@ -182,6 +248,8 @@ class StockProfileTests(unittest.TestCase):
             def start(self):
                 if self.port!=port:
                     raise ValueError('profile did not use the explicitly bound endpoint')
+                server_log=self.root/'stock.server.log'
+                server_log.write_bytes(b'')
                 class Handler(BaseHTTPRequestHandler):
                     def log_message(self,*args):
                         pass
@@ -204,7 +272,10 @@ class StockProfileTests(unittest.TestCase):
                                 dict(ph='X',cat='kernel',name='arbitrary',ts=4,dur=10,args=dict(correlation=7,device=0))]
                             write_json(self.server.profile_directory/'trace.json',dict(traceEvents=events))
                             stops.append(len(stops)+1)
-                            self.send(b'Profiler is not running.' if len(stops)%2 else b'Stop profiling.\n',400 if len(stops)%2 else 200)
+                            if len(stops)%2:
+                                with server_log.open('ab') as output:
+                                    output.write(b'RuntimeError: Profiling is not in progress. Call /start_profile first.\n')
+                            self.send(b'Internal Server Error' if len(stops)%2 else b'Stop profiling.\n',500 if len(stops)%2 else 200)
                         else:
                             self.send(dict(output_ids=[9,10],meta_info=dict(completion_tokens=2,spec_verify_ct=1,finish_reason=dict(type='stop'))))
                 self.http=ThreadingHTTPServer(('127.0.0.1',self.port),Handler)
@@ -232,6 +303,7 @@ class StockProfileTests(unittest.TestCase):
             self.assertEqual(sum(row['status']=='captured_with_control_error' for row in records),10)
             self.assertEqual(sum(row['status']=='captured' for row in records),10)
             self.assertEqual(len(stops),20)
+            self.assertEqual(sum('stop_state_log' in row for row in records),10)
             self.assertTrue(all(row['traces'][0]['observation']['stages']['kernel_us']['VERIFY']==10 for row in records))
 
 

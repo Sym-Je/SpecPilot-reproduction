@@ -22,4 +22,8 @@ assert all('H100' in torch.cuda.get_device_name(index) for index in (0,1))
 print('PASS: two H100 and pinned runtime versions')
 PY
 CUDA_VISIBLE_DEVICES='' "$SP_PY" -B -m unittest harness.test_p11_observations harness.test_p11_stock_profile
-timeout --signal=TERM --kill-after=120s 3600 "$SP_PY" -B "$ROOT/exp/stock_profile.py" run --directory "$OUTPUT" --public "$PUBLIC"
+OPTIONS=()
+if [[ -n "${BOTTLENECK_ORIGINAL:-}" ]]; then
+  OPTIONS+=(--original "$BOTTLENECK_ORIGINAL")
+fi
+timeout --signal=TERM --kill-after=120s "${BOTTLENECK_TIMEOUT:-3600}" "$SP_PY" -B "$ROOT/exp/stock_profile.py" run --directory "$OUTPUT" --public "$PUBLIC" "${OPTIONS[@]}"

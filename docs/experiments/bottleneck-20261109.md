@@ -66,3 +66,34 @@ CPU准备完成，远程待执行。准备目录`logs/bottleneck-prep-20261109-a
 新增16项、全200项CPU回归通过，日志`final-source-tests.log`；shell语法及diff检查通过。
 相对基准，controller、patches、agents、orchestrator、作者资源和旧floors均未修改。
 已保存历史公开schema与metadata形状探针，仅用于接口设计；不能冒充本次实时能力与测量。
+
+### a01提交与版本身份
+
+- 执行pin=`a102b64c0173aa9b72e126778005a137bad174fc`；源码tar位于准备目录，SHA=
+  `6c6d11a53f6b20971ab3304f670540b04a2536a66b61cc56519e4a1da72ee2a9`。
+- 当前help/凭据非空/源码快照核对通过，精确任务名查重为0；完整命令`create-command.txt`。
+  仅create一次，code200/dataNone后精确查名取得UUID=`job-fa7aeb0532ed-20261109083627`。
+  项目WeaverDev，namespace与请求queue=qiji，实际queue=proj-31；未使用默认项目。
+- YAML=`RUN/specpilot-stock-profile-20261109-a01/specpilot-stock-profile-20261109-a01.yaml`，
+  saved_json_path=None。1节点×2H100/256Gi/原镜像digest，模型只读挂载。
+- 私有原始目录`logs/bottleneck-run-20261109-a01/`；公开聚合目录
+  `logs/bottleneck-public-20261109-a01/`；监控保存准备目录`lifecycle.*`。
+  已见node244及两H100/版本预检通过；提交成功与科学验收分开，结果仍待完成。
+
+### a01发现与补采验收（实现前）
+
+- 原任务Completed/exit0，20pair/40臂行通过，但只有4/20 profile，16条被安全隔离，不算完成。
+  两次CPU重放与原result字节一致。500原始响应保留，原生server日志明确报告
+  `RuntimeError: Profiling is not in progress. Call /start_profile first.`，不是仍在采集。
+- 修复只增加停止调用前后**新日志切片**的路径/偏移/长度/SHA绑定；只有500且该次切片精确含上述
+  原生异常才允许下一次start，HTTP500仍为失败。旧日志、坏hash、其他500不得获得此状态证明。
+  不改引擎，也不把500改成200。先红测试，再实现。
+- 独立profile-only新attempt，两fresh stock重新采同20探针；不重跑或覆盖原计时。
+  128步/2048cap/全尺度预热及4GiB预算不变，计时仍绑定原pin，补采单独pin/UUID。
+  补采最多35分钟，加原18分18秒不超过总1小时/2GPU小时预算。
+- 验收：新日志证据测试与全CPU回归、原计时原始绑定验证、20探针实际覆盖、补采独立重放两次、SHA及清理。
+  计数36/40代数一致；4条来自同一HumanEval题，输出比“正确草稿+验证步”多1，
+  先保留为未解释，不修改引擎或放宽计数判据追绿。
+- 补采实现CPU验收202项通过（a02/final-source-tests.log）；红测试确实捕获500隔离问题。
+  首次全回归仅新repair测试fixture遗漏ports失败，修正fixture后全绿；不修改生产判据。
+  profile-only入口保留原计时manifest/result/source pin及tar hash，审计仍核对原始HTTP/换卡。

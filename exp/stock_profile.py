@@ -70,6 +70,55 @@ def control_status(packet):
         raw_response_bytes_verified=True)
 
 
+def profile_state(packet,proof,root):
+    state=control_status(packet)
+    state['native_inactive_log_verified']=False
+    if proof is None:
+        return state
+    path=Path(proof['path']).resolve()
+    if path!=(Path(root)/'stock.server.log').resolve():
+        raise ValueError('profile state proof is not this server log')
+    offset,length=proof['offset'],proof['length']
+    if type(offset) is not int or type(length) is not int or offset<0 or not 0<length<=1024**2:
+        raise ValueError('invalid profile-state log slice')
+    with path.open('rb') as source:
+        source.seek(offset)
+        content=source.read(length)
+    if len(content)!=length or hashlib.sha256(content).hexdigest()!=proof['sha256']:
+        raise ValueError('profile-state log evidence changed')
+    state['native_inactive_log_verified']=(packet['http_status']==500 and
+        b'RuntimeError: Profiling is not in progress. Call /start_profile first.' in content.splitlines())
+    return state
+
+
+def stop_profile(control,root,record):
+    path=root/'stock.server.log'
+    offset=path.stat().st_size if path.exists() else None
+    try:
+        control.post('/stop_profile',{})
+    except Exception as error:
+        record['stop_error']=type(error).__name__
+    record['stop_control']=dict(control.last_evidence)
+    packet=read_reference(record['stop_control'],root)
+    if packet['http_status']==500 and offset is not None:
+        deadline=time.monotonic()+2
+        while True:
+            with path.open('rb') as source:
+                source.seek(offset)
+                content=source.read(1024**2)
+            if content:
+                proof=dict(path=str(path),offset=offset,length=len(content),sha256=hashlib.sha256(content).hexdigest())
+                if profile_state(packet,proof,root)['native_inactive_log_verified']:
+                    record['stop_state_log']=proof
+                    break
+            if time.monotonic()>=deadline:
+                break
+            time.sleep(.05)
+    state=profile_state(packet,record.get('stop_state_log'),root)
+    return ((state['http_success'] and 'stop_error' not in record) or
+            state['explicitly_not_running'] or state['native_inactive_log_verified'])
+
+
 def validate_order(rounds,*,profile_start):
     if len(rounds)!=2 or not math.isfinite(profile_start):
         raise ValueError('two timing rounds and separate profiling required')
@@ -256,13 +305,7 @@ def run_profiles(directory,manifest,environment,public):
                         generated=client.step(request['input_ids'],2048,rid='profile-'+request['id'])
                         record['row']=result_row(generated,request,arm,gpu,number,2048)
                     finally:
-                        try:
-                            control.post('/stop_profile',{})
-                        except Exception as error:
-                            record['stop_error']=type(error).__name__
-                        record['stop_control']=dict(control.last_evidence)
-                    stop=control_status(read_reference(record['stop_control'],directory))
-                    session_usable=(stop['http_success'] and 'stop_error' not in record) or stop['explicitly_not_running']
+                        session_usable=stop_profile(control,root,record)
                     record['traces']=ready_traces(output)
                     record['status']='captured_with_control_error' if 'stop_error' in record else 'captured'
                 except Exception as error:
@@ -270,8 +313,9 @@ def run_profiles(directory,manifest,environment,public):
                     session_usable=False
                     if 'stop_control' in record:
                         try:
-                            state=control_status(read_reference(record['stop_control'],directory))
-                            session_usable=(state['http_success'] and 'stop_error' not in record) or state['explicitly_not_running']
+                            state=profile_state(read_reference(record['stop_control'],directory),record.get('stop_state_log'),root)
+                            session_usable=((state['http_success'] and 'stop_error' not in record) or
+                                            state['explicitly_not_running'] or state['native_inactive_log_verified'])
                         except (KeyError,ValueError):
                             pass
                     if 'stop_control' not in record:
@@ -291,12 +335,12 @@ def run_profiles(directory,manifest,environment,public):
     write_json(profiles/'records.json',records)
 
 
-def summarize_evidence(directory,manifest,records,timing_rows):
+def summarize_evidence(directory,manifest,records,timing_rows,timing_root=None):
     timing=defaultdict(list)
     counters=[]
     for row in timing_rows:
         timing[row['suite']].append(row)
-        metadata=read_reference(row['raw_evidence'],directory)['response']['meta_info']
+        metadata=read_reference(row['raw_evidence'],timing_root or directory)['response']['meta_info']
         counters.append(dict(suite=row['suite'],**counter_observation(metadata)))
     observations=[]
     for record in records:
@@ -337,6 +381,7 @@ def summarize_evidence(directory,manifest,records,timing_rows):
                                            for trace in record['traces'])/total)
     complete=usable==20
     return dict(protocol=PROTOCOL,source_pin=manifest['source_pin'],independent_requests=10,
+        timing_origin=manifest.get('timing_origin'),
         timing_pairs=len(timing_rows)//2,timing_arm_rows=len(timing_rows),profile_requests_expected=20,
         profile_requests_usable=usable,profile_capture_complete=complete,
         profile_control_errors=sum('stop_error' in record for record in records),
@@ -375,12 +420,32 @@ def audit(directory):
                 raise ValueError('source snapshot differs from execution')
     timing_rows=[]
     fingerprints=[]
+    timing_root=directory
+    timing_manifest=manifest
+    if 'timing_origin' in manifest:
+        origin=manifest['timing_origin']
+        timing_root=Path(origin['directory']).absolute()
+        if digest(timing_root/'manifest.json')!=origin['manifest_sha256'] or digest(timing_root/'result.json')!=origin['result_sha256']:
+            raise ValueError('original timing evidence changed')
+        timing_manifest=json.loads((timing_root/'manifest.json').read_text())
+        if origin['source_pin']!=timing_manifest['source_pin']:
+            raise ValueError('original timing source pin changed')
+        for key in ('requests','arms','stock_spec','launch_protocol','model_configs'):
+            if manifest[key]!=timing_manifest[key]:
+                raise ValueError('profile repair changed the timed protocol')
+        original_archive=timing_manifest['source_archive']
+        if digest(original_archive['path'])!=original_archive['sha256']:
+            raise ValueError('original timing source archive changed')
+        with tarfile.open(original_archive['path']) as snapshot:
+            for name,expected in timing_manifest['source_sha256'].items():
+                if hashlib.sha256(snapshot.extractfile(name).read()).hexdigest()!=expected:
+                    raise ValueError('original timing source snapshot differs')
     for number in (0,1):
-        pairs,processes=validate_timing_round(directory,manifest,number)
+        pairs,processes=validate_timing_round(timing_root,timing_manifest,number)
         fingerprints.extend(processes)
         timing_rows.extend(pair[key] for pair in pairs for key in ('a','b'))
     started=json.loads((directory/'profiles/started.json').read_text())['started_unix']
-    validate_order(json.loads((directory/'timing/sessions.json').read_text()),profile_start=started)
+    validate_order(json.loads((timing_root/'timing/sessions.json').read_text()),profile_start=started)
     records=json.loads((directory/'profiles/records.json').read_text())
     expected=[(number,request['id']) for number in (1,2) for request in requests]
     if [(record['round'],record['id']) for record in records]!=expected:
@@ -402,6 +467,7 @@ def audit(directory):
             validate_packet(row['row'],request,assignment,32 if phase=='short' else 2048,directory,manifest['launch_protocol'])
         warm_completed=json.loads((root/'warmup-complete.json').read_text())['completed_unix']
         selected=[record for record in records if record['round']==number+1]
+        previous_log_end=0
         for record,request in zip(selected,requests):
             schema=read_reference(record['schema'],directory)['response']
             if 'row' in record:
@@ -418,7 +484,12 @@ def audit(directory):
                 stop=read_reference(record['stop_control'],directory)
                 if not stop['url'].endswith('/stop_profile') or stop['request']!={}:
                     raise ValueError('profile stop evidence came from a different endpoint')
-                control_status(stop)
+                profile_state(stop,record.get('stop_state_log'),root)
+                if 'stop_state_log' in record:
+                    proof=record['stop_state_log']
+                    if proof['offset']<previous_log_end:
+                        raise ValueError('profile state reused an earlier stop log')
+                    previous_log_end=proof['offset']+proof['length']
                 if (stop['http_status']!=200)!=('stop_error' in record):
                     raise ValueError('profile stop HTTP error was hidden')
                 if not record['traces']:
@@ -432,16 +503,18 @@ def audit(directory):
     if ({gpu['uuid'] for gpu in cleanup}!={gpu['uuid'] for gpu in manifest['gpus']} or
             any(gpu['memory_used_mib']!=0 or gpu['utilization']>10 for gpu in cleanup)):
         raise ValueError('GPU cleanup failed')
-    return summarize_evidence(directory,manifest,records,timing_rows)
+    return summarize_evidence(directory,manifest,records,timing_rows,timing_root)
 
 
-def run(directory,public):
+def run(directory,public,original=None):
     from transformers import AutoTokenizer
     expected=os.environ['BOTTLENECK_EXPECTED_COMMIT']
     actual=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     if actual!=expected:
         raise ValueError('live checkout is not frozen')
     subprocess.run(['git','diff','--exit-code',expected,'--','controller','exp','harness','costmodel','assets/upstream'],cwd=ROOT,check=True)
+    if original is not None:
+        return repair_profiles(directory,public,Path(original).absolute(),expected)
     directory.mkdir(mode=0o700,parents=True,exist_ok=False)
     environment=clean_environment()
     signal.signal(signal.SIGTERM,interrupted)
@@ -480,18 +553,47 @@ def run(directory,public):
         event(public,'gpu-work-complete',profile_requests_usable=result['profile_requests_usable'])
 
 
+def repair_profiles(directory,public,original,expected):
+    directory.mkdir(mode=0o700,parents=True,exist_ok=False)
+    environment=clean_environment()
+    signal.signal(signal.SIGTERM,interrupted)
+    manifest=json.loads((original/'manifest.json').read_text())
+    manifest['timing_origin']=dict(directory=str(original),manifest_sha256=digest(original/'manifest.json'),
+        result_sha256=digest(original/'result.json'),source_pin=manifest['source_pin'])
+    manifest.update(source_pin=expected,source_sha256=sources())
+    archive=Path(os.environ['BOTTLENECK_SOURCE_TAR'])
+    if digest(archive)!=os.environ['BOTTLENECK_SOURCE_SHA256']:
+        raise ValueError('profile repair source archive differs')
+    manifest['source_archive']=dict(path=str(archive),sha256=digest(archive))
+    check_tree(manifest['arms'][0]['engine'],FROZEN_STOCK_SHA)
+    with ExitStack() as resources:
+        manifest['gpus']=wait_for_idle([0,1])
+        for gpu in manifest['gpus']:
+            resources.enter_context(gpu_lock(gpu))
+        write_json(directory/'manifest.json',manifest)
+        event(public,'profile-only-repair-start',timing_source_pin=manifest['timing_origin']['source_pin'])
+        run_profiles(directory,manifest,environment,public)
+        check_ports(manifest['ports']+[manifest['profile_port']])
+        write_json(directory/'cleanup.json',wait_for_idle([0,1]))
+        result=audit(directory)
+        write_json(directory/'result.json',result)
+        publish(public/'result.json',result)
+        event(public,'gpu-work-complete',profile_requests_usable=result['profile_requests_usable'])
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     commands=parser.add_subparsers(dest='command',required=True)
     execute=commands.add_parser('run')
     execute.add_argument('--directory',type=Path,required=True)
     execute.add_argument('--public',type=Path,required=True)
+    execute.add_argument('--original',type=Path)
     check=commands.add_parser('audit')
     check.add_argument('--directory',type=Path,required=True)
     check.add_argument('--out',type=Path,required=True)
     args=parser.parse_args()
     if args.command=='run':
-        run(args.directory.absolute(),args.public.absolute())
+        run(args.directory.absolute(),args.public.absolute(),args.original)
     else:
         result=audit(args.directory)
         publish(args.out,result)

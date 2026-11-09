@@ -16,6 +16,13 @@
   沿用原确认digest、WeaverDev/qiji/toleration，1节点×2H100/256Gi，最长1小时/2GPU小时。
 - 远程结束后两次CPU受控重放、SHA归档、资源清理、README/交接/阶段提交推送后停止。
   真实candidate前阶段已完成，不重跑；不自动优化、晋升、RSI或sealed。
+- 已提交一次：pin=a102b64，source.tar SHA=6c6d11a5...，code200/dataNone后精确查名UUID=
+  `job-fa7aeb0532ed-20261109083627`，node244/实际proj-31，已见双H100版本预检通过。
+  a01已Completed/exit0（00:36:55–00:55:13 UTC），原计时20pair及两CPU重放通过，profile仅4/20。
+  两次stop返回500，原生server报告“Profiling is not in progress”；其余16探针被安全隔离。
+- 已先红后绿修复该次新日志切片绑定，只以精确原生异常证明未在采集，不把500改200。
+  准备a02 profile-only补采同20探针，不重跑/覆盖计时，35分钟加a01仍在总2GPU小时预算。
+  a02独立pin/tar/UUID/日志待登记；只看公开聚合，不读私有逐题输出，结束重放归档后停止。
 
 ## 最新接续点：真实candidate启动option接入完成，不自动开始自主搜索
 
