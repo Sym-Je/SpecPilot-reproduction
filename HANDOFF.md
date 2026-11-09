@@ -1,6 +1,9 @@
 # HANDOFF — 交接给新 session
 
-## 当前接续点：本地 Ascend 开发集 baseline → DSH＋Claude 5.5 自主研究
+本文件是唯一入口。仓库并行记录H100/Codex与Ascend/DSH；先按本次用户授权选择轨道，权限、预算、数据和待办不互通。
+H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend部分保留远端会话既有记录，本次H100会话未重跑或复核其科学实验。
+
+## Ascend轨道接续点：本地开发集 baseline → DSH＋Claude 5.5 自主研究
 
 用户已授权：选定100条本地agent数据（dev60/validation40），先baseline，再DSH＋Claude 5.5运行SpecPilot；Claude总额上限200美元，预算保护触发后用`gpt-6.1-sol`接续，GPT独立上限500美元。不得使用`gpt-5.5`；MRV2不是要求。
 唯一阶段记录：[Ascend执行计划与验收](docs/experiments/ascend-ctrip-dsh-20261109.md)。当前源码归档在`harness/ascend_dsh/`，真实运行目录在部署工作区`profiling/specpilot-ctrip-dsh-20261109/`。
@@ -24,13 +27,36 @@
 - 合并最新H100提交后，仓库303项回归在此容器未全过：12失败/29错误，涉及缺失旧H100固定路径和Landlock不可用。不要将新22项定向通过写成仓库全绿；未修改旧controller/eval/ledger/memory。
 - 上述串行实验不写论文配对晋升账本，不承诺正确率/无损。公开提交不含数据内容、原生研究轨迹、权重、密钥或计费原始日志。
 
-## 以下为历史交接，不恢复旧阶段的资源指令
+## 以下为H100独立轨道，不混用Ascend资源授权
 
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 北京时间（第三阶段自主修复及合成算子微实验通过，Master主动停止；真实模型RSI未完成）。
+> 最后更新：2026-11-10 北京时间（真实stock参数探索与两份dev联合验收通过，Master主动停止；完整RSI未完成）。
 
-## H100阶段接续点：第三阶段微实验已收口，下一阶段先提案
+## H100接续点：真实stock参数探索已收口，下一阶段先提案
+
+- 用户批准累计64 H100 GPU小时、最长24小时、最多并发8卡；失败和冷启动计入，上限非使用目标。
+- 沿用已确认镜像digest、WeaverDev、qiji、toleration及只读模型挂载。范围/先行验收见
+  `docs/experiments/engine-autonomy-20261109.md`，执行进度见PLANS。
+- 已接通受限startup option真实server研究，12通过原controller dev联合验收：1.085260 [1.062888,1.109728]，
+  输出与stock一致；noise=0.00289225。无sealed、晋升、源码/算法新发现或完整Phase1/RSI。
+- 当前主循环`logs/engine-autonomy-run-20261109-d03/`已exit0，Master与direction均主动stop，不再恢复研究或提交GPU。
+  16/10诊断后，Master请求10独立gate（job-1c73aef8db5d-20261110001129），1.063766 [1.046362,1.082538]，
+  noise=0.0007445165，输出一致且联合验收通过；没有证明10优于12或任何配置最优。
+  预算唯一状态仍在d01/resource-state.json，8任务均Completed/exit0，保守22730GPU秒，峰值2卡；6研究角色均exit0。
+- d01曾因吞吐比/耗时比语义缺项暂停；direction自行纠正。d02末controller通过后，适配器tuple/list比较误报，
+  仅JSON规范化重放修复，未改数字/判据，也未重交该GPU任务。全部旧回包/错误保留。
+- 当前代码另有多次恢复计数修复与独立审计，旧运行中的主循环并未热加载它们；实际host入口源以各run首请求归档为准。
+  最终独立审计区分旧producer的resume范围完成数与全谱系真实诊断数，不能把gate或重复请求当新样本。
+- 两次全谱系独立审计一致，14原生回合/30工具动作/5CPU运行/6GPU诊断，另2独立gate；44usage事件非精确API/token计费。
+  630计时pair只覆盖30个独立公开dev题，不能把重复运行算新题；5份CPU代码/输出与原生工具流绑定通过。
+- 起点8bd6029；收尾机器状态见`logs/engine-autonomy-closeout-20261109-d01/stage-result.json`。
+  321CPU测试、两次独立重放及6类篡改拒绝通过；新归档25836文件/523390549字节，SHA为
+  9fd4dbc77a1a5e97fb831c25a7f852458171437ba0c498ebfe911363e84ee85f，两次全SHA通过。公开审查通过，最终同步身份以publication目录单列回执为准。
+  下一阶段先提案接通受限源码option通路，未授权执行；不读sealed/作者final，不自动integration/kernel/DSH或结转GPU余额。
+- 首条通路仅startup option，非任意源码优化；不读作者final/sealed，不改controller或判据。
+
+## 已收口历史：第三阶段有效微实验
 
 - 用户批准阶段目标及1H100 GPU小时/最多同时1卡/最多3次900秒任务，并明确沿用原镜像、WeaverDev、qiji和只读模型PVC。
 - 25定向/303总CPU回归、旧314文件清单SHA及上一阶段来源审计通过，实际角色源已冻结。

@@ -6,17 +6,19 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 
 GitHub：[china-qijizhifeng/SpecPilot-reproduction](https://github.com/china-qijizhifeng/SpecPilot-reproduction)（用户管理的公开组织仓库）。
 
+仓库并行记录H100/Codex与Ascend/DSH，两条轨道的权限、预算、数据、进度和性能指标分别管理。
+
 ## 当前本地 Ascend 阶段
 
 用户已授权以V4 Flash W8A8、8卡910B2C和dev60/validation40运行DSH自主研究：Claude 5.5总上限200美元，触及预算保护线后可接续`gpt-6.1-sol`，GPT阶段独立上限500美元；不使用`gpt-5.5`，MRV2不是要求。
 45项本地定向检查和此前GPT离线Responses/MCP/恢复联调通过；GPT尚未发起付费推理。MRV1同步调度的9组baseline/192请求已完成并独立审计。后续16384配置的C1筛选吞吐变化为短/中/长+2.9%/+5.6%/−6.8%，TTFT改善均不足2%，尚无可靠收益；12288配置发生Cumsum图捕获错误。基线恢复成功，实验清理时序已修复；Master另遇上游60秒流中断，现按原生会话恢复，限定两次额外重试且逐次计入预算。validation仍保留到候选冻结后的最后独立测量。
 代码与范围见[Ascend适配器](harness/ascend_dsh/README.md)、[阶段记录](docs/experiments/ascend-ctrip-dsh-20261109.md)及[当前计划](PLANS.md)。尚无本轮优化收益或正式晋升结论。
 第三方向首次profile在8192配置启动图捕获时也发生aclnnCumsum错误，尚无trace；已确认旧profile入口实际仅C1/中输入/128输出上限，实验名中的C32不代表实际采样并发。新增启动故障监测和范围校验后51项检查通过，不能将此工程检查写成性能或profile结果。
-本容器缺少旧H100工作路径且不支持Landlock，合并后303项回归未全过（12失败/29错误）；新适配器采用经实测的chroot/降权/seccomp，不宣称仓库全量通过。
+Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后303项回归未全过（12失败/29错误）；新适配器采用经实测的chroot/降权/seccomp，不宣称该环境全量通过。
 
-以下为此前H100复现阶段的结果；不与当前Ascend绝对性能混算。
+以下为H100独立轨道：H100工作区321项CPU检查通过，不代表Ascend环境全量通过；两者指标、预算和待办不混算。
 
-## 当前进度（2026-11-09，UTC+08）
+## H100进度（2026-11-10，UTC+08）
 
 图例：✅ 已完成 · 🟡 初步完成 · 🔵 正在推进 · ⬜ 待完成。只有完成该阶段验收才标 ✅。
 
@@ -29,7 +31,7 @@ GitHub：[china-qijizhifeng/SpecPilot-reproduction](https://github.com/china-qij
 | 5 | 真实正确性、噪声与晋升判据 | ✅ dev联合验收完成 | [验收记录](docs/experiments/dev-joint-20261108.md)：30请求、当前前后null、两轮换卡与实际测速输出forcing均通过；作者产物不写晋升账本 |
 | 6 | 建立独立 sealed 验证 | ⬜ 未开始 | 前置验收通过后由 controller 管理，agent 不接触内容 |
 | 7 | 真实 profiling 与成本模型 | 🟡 profiling/线性重放通过 | [stock诊断](docs/experiments/bottleneck-20261109.md)与[真实链重放](docs/experiments/step-replay-20261109.md)完成；完整最佳树/三因子仍缺 |
-| 8 | agent 自主提案与实现 | 🟡 首个自主GPU微实验完成，尚无候选 | [第三阶段](docs/experiments/gpu-autonomy-stage3-20261109.md)direction自行修复、CPU回归、真实算子筛选/测量通过；不是完整Phase 1或真实模型优化 |
+| 8 | agent 自主提案与实现 | 🟡 真GPU参数研究/dev验收通过 | [本阶段](docs/experiments/engine-autonomy-20261109.md)：6次自主诊断、2次独立dev gate；12为1.0853×、10为1.0638×。不是源码/算法发现、晋升或完整Phase 1 |
 | 9 | 多轮真实优化闭环与记忆 | ⬜ 待真实验证 | [mock 闭环](docs/06-gates.md)已跑通，不代表真实引擎闭环完成 |
 | 10 | 对照实验与最终报告 | ⬜ 未开始 | 分析各组件贡献，分别报告架构与数字复现证据 |
 
@@ -85,9 +87,9 @@ GitHub：[china-qijizhifeng/SpecPilot-reproduction](https://github.com/china-qij
 
 **最新完成：**[第三阶段自主修复与微实验](docs/experiments/gpu-autonomy-stage3-20261109.md)：Master分配完整调试预算，direction自己修复筛选、写18例CPU回归并申请真实GPU；实验及独立进程研究筛选通过，首次获得有效合成算子延迟数据。原容差/长度和计时脚本未改，主助手未代写修复；复用旧方向不算新发现。
 
-**当前状态：**第三阶段微实验目标达成，Master主动停止。25项定向/303项CPU回归、两次来源审计、CPU重放和原始数据重算通过；1H100任务保守43GPU秒，容器及两角色均结束。只有单次合成算子测量，无CI、真实27B生成、端到端提速、候选或controller晋升。当前计划见 [PLANS.md](PLANS.md)。
+**最新完成：**[真实stock引擎自主探索](docs/experiments/engine-autonomy-20261109.md)。Master自行选方向，direction自行设计、编写CPU分析、执行并迭代2048-token研究；12与10均通过原controller的30题dev联合验收，测速输出与stock一致。Master主动停止，不耗完预算；8任务均Completed/exit0，保守6.314 GPU小时、峰值2卡。完整进度见 [PLANS.md](PLANS.md)。
 
-**接下来：**先审核下一阶段方案，由Master评估微实验假设与真实stock执行路径的关系，再安排验证或可开关候选实现。不由主助手代做研究，不强制指定优化，不自动进入integration/kernel、sealed或DSH。
+**接下来：**先提案接通受限源码option候选到真实引擎/独立controller的通路，再推进真正的源码优化；本次只是现有参数调优。未授权下一阶段，不自动进入integration/kernel、sealed或DSH，不结转旧预算。
 
 **已有基础：**三臂真实 server、dev验收、外部数据审计与mock闭环完成；**尚未复现论文原sealed数字或真实RSI方法结论。**
 
