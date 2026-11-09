@@ -48,6 +48,13 @@ GitHub origin：`https://github.com/china-qijizhifeng/SpecPilot-reproduction.git
 
 ## 4. 当前阶段索引
 
+当前未完成：[首轮受控GPU实验自治](experiments/gpu-autonomy-20261109.md)。
+用户已确认原镜像digest/WeaverDev；通用脚本执行器已写，本机30定向/291总CPU回归通过。
+真实Master/direction自主准备脚本并CPU检查；保留旧步数上限、方向额度与阶段额度混淆、复核写死stop等接入失败。
+Master自主分配剩余3动作后，累计24动作耗尽并停止；0GPU请求冻结/提交，无UUID，远程边界未验证。
+独立CPU协议审计明确gpu_autonomy_passed=false。已询问追加最多4动作，未获授权前不重启研究或GPU。
+原始角色回包/代码留logs，公开Git只含通用实现、状态及证据索引；不将现有脚本或CPU验收称为GPU阶段完成。
+
 当前权限/主线收口已本地完成，公开同步获批：[Codex权限边界及主线收口](experiments/codex-boundary-20261109.md)、[公开同步记录](experiments/public-sync-20261109.md)。
 独立受限app-server与可信broker的真实非敏感探针8次动作/1次CPU运行，必要能力成功、红线拒绝；
 原生patch越界拒绝单独留证，不扩大为旧spawn入口也安全。17定向/278总CPU回归、两次独立审计、冻结源身份通过。

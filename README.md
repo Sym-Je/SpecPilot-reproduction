@@ -69,7 +69,7 @@ GitHub：[china-qijizhifeng/SpecPilot-reproduction](https://github.com/china-qij
 
 **发布状态：**用户确认本人主动将仓库设为public，并批准按公开标准同步，原“仅授权私有同步”的阻塞已解除。公开发布审查、范围与版本核对见[同步记录](docs/experiments/public-sync-20261109.md)；不上传原始证据、凭据或受限数据，不改变仓库可见性。
 
-**正在做：**等待下一大步骤授权，当前计划见 [PLANS.md](PLANS.md)。AGENTS规定分工，可信工具和controller负责执行/验收；GPU自主执行链尚未接通，不继续扩建框架或迁移DSH。
+**正在做：**[首轮GPU自治接入](docs/experiments/gpu-autonomy-20261109.md)已获批，镜像/WeaverDev项目已确认；Master自行选方向，direction自行写脚本和CPU检查。累计10研究回合/24动作/2CPU运行，动作额度耗尽，Master已停止；**0GPU提交，GPU自治尚未验收**。已询问是否追加最多4动作，不擅自扩额。当前计划见 [PLANS.md](PLANS.md)。
 
 **接下来：**审核[最小真实GPU自主实验方案](docs/experiments/codex-gpu-autonomy-proposal-20261109.md)，再接通受限角色到GPU执行/反馈链；Master选方向，direction自主设计与迭代。资源提案为最多2×H100、合计2GPU小时，尚未授权；镜像/提交参数需重新核对确认。不恢复旧补采，不预设VERIFY优化，不自动进入RSI或sealed。
 

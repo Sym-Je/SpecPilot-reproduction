@@ -132,7 +132,7 @@ class Client:
         self.events.append(message)
         if message.get('method')=='thread/tokenUsage/updated':
             self.usage_updates+=1
-            if self.usage_updates>12:raise RuntimeError('permission probe model-step ceiling exceeded')
+            if self.usage_updates>getattr(self,'usage_update_ceiling',12):raise RuntimeError('permission probe model-step ceiling exceeded')
         if 'method' in message and 'id' in message:
             if message['method']=='item/tool/call' and self.broker is not None:
                 try:result=self.broker.handle(message['params'])

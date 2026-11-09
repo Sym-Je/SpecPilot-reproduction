@@ -3,7 +3,30 @@
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
 > 最后更新：2026-11-09 北京时间（用户确认公开仓库并批准发布同步；独立Codex入口已有限验收，GPU执行尚未接通）。
 
-## 当前唯一接续点：审核最小真实 GPU 自主实验方案
+## 当前唯一接续点：GPU研究动作额度耗尽，等待是否追加最多4动作
+
+- 用户批准必要权限后推进Master/direction真实GPU自治阶段，再次确认原镜像digest及WeaverDev项目。
+  记录`docs/experiments/gpu-autonomy-20261109.md`；新实现为通用GPU脚本执行/反馈，不预设科学实验。
+- GPU尚未提交、没有UUID；远程边界、真实GPU研究反馈均未验收，不能宣布本阶段或真实Phase 1完成。
+- 本机30定向/291全量CPU回归通过；独立CPU协议审计通过，但gpu_autonomy_passed=false。全量最终回归见准备日志。
+  role输入/canary未变，六原生进程均exit0关闭；controller/作者实现/eval/账本/记忆/stock无Git变更。
+- a01触发旧权限探针12步上限；原结果的动作计数在异常中未刷新，实际13动作/1CPU运行已在后续恢复时补扣。
+  a02由direction自行写实验/筛选/语法脚本，分配额度8用尽，GPU请求被拒。旧复核入口曾写死stop，已修复并保留失败。
+  a03恢复逻辑角色（新原生thread，非同一thread/新发现）；Master自主将原阶段剩余3动作分给原方向。
+  direction读回两个脚本并核对stock接口后再次耗尽，Master停止。没有主助手代写科学脚本或自行扩额。
+- 累计10模型研究回合/24动作/2CPU运行/0GPU尝试；30个usage-update事件不是精确后台API次数或token账单。
+  2GPU小时总上限不变。已询问是否追加最多4动作，未答复前不能重启研究或提交GPU。
+- 证据`logs/gpu-autonomy-{prep,run}-20261109-a01/`、`logs/gpu-autonomy-run-20261109-a02/`、a03目录。
+  CPU协议审计用`--allow-no-gpu`，严格模式必须拒绝。原始角色回包、代码、工具回执均留logs不入公开Git。
+  checkpoint归档195文件/2985858字节全SHA通过，清单`logs/gpu-autonomy-evidence-20261109-a01.sha256`，
+  SHA=`cdd83282ad0d847566ad6c5c036aa04458acac85df171286b18825d6766f3c81`。
+  旧CPU driver逐版本源码冻结有缺项，已在阶段记录披露；当前源码包不能冒充旧执行版本。
+- 新GPU执行器未在GPU上验证。若恢复，先查重/展示命令/核对code200+UUID，GPU内探针通过才执行原脚本。
+  不因目前代码已写就恢复旧取消任务，不放宽controller、不预先建sealed或进入integration/kernel。
+
+## 以下为此前已完成阶段与历史接续（不恢复旧待办）
+
+## 已完成：权限收口与公开组织仓库同步
 
 - **公开授权已明确：**用户说明是本人主动改为public，并批准审查本次待发布内容、更新授权记录及推送。
   旧“只可推私有仓库”的阻塞解除，不改回私有，不自动改变任何可见性。阶段记录`docs/experiments/public-sync-20261109.md`。
