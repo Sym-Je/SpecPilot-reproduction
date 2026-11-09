@@ -9,7 +9,7 @@ GitHub：[china-qijizhifeng/SpecPilot-reproduction](https://github.com/china-qij
 ## 当前本地 Ascend 阶段
 
 用户已授权以V4 Flash W8A8、8卡910B2C和dev60/validation40运行DSH自主研究：Claude 5.5总上限200美元，触及预算保护线后可接续`gpt-6.1-sol`，GPT阶段独立上限500美元；不使用`gpt-5.5`，MRV2不是要求。
-36项本地定向检查和GPT离线Responses/MCP/恢复联调通过；GPT尚未发起付费推理。MRV1同步调度的9组baseline/192请求已完成并独立审计。首个16384 prefill预算候选启动失败，基线已恢复；方向报告截断及格式恢复均保留，Master继续自主决策。validation仍保留到候选冻结后的最后独立测量。
+42项本地定向检查和此前GPT离线Responses/MCP/恢复联调通过；GPT尚未发起付费推理。MRV1同步调度的9组baseline/192请求已完成并独立审计。后续16384配置的C1筛选吞吐变化为短/中/长+2.9%/+5.6%/−6.8%，TTFT改善均不足2%，尚无可靠收益；12288配置发生Cumsum图捕获错误。基线恢复成功，实验失败与清理完成之间的调度时序问题已修复，Master接续决策。validation仍保留到候选冻结后的最后独立测量。
 代码与范围见[Ascend适配器](harness/ascend_dsh/README.md)、[阶段记录](docs/experiments/ascend-ctrip-dsh-20261109.md)及[当前计划](PLANS.md)。尚无本轮优化收益或正式晋升结论。
 本容器缺少旧H100工作路径且不支持Landlock，合并后303项回归未全过（12失败/29错误）；新适配器采用经实测的chroot/降权/seccomp，不宣称仓库全量通过。
 

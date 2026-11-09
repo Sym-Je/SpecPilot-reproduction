@@ -10,6 +10,7 @@ import sys
 import time
 
 from prepare_baseline import ROOT, OUT, write, sha
+from experiment_lifecycle import wait_final, failure_diagnostics
 
 REPO = ROOT / 'vendor/SpecPilot-reproduction'
 sys.path.insert(0, str(REPO))
@@ -173,11 +174,9 @@ class Broker:
         elif name == 'wait_experiment':
             if args['id'] not in self.state['experiments']: raise ValueError('Experiment not owned by this direction')
             if type(args['seconds']) is not int or not 0 <= args['seconds'] <= 1200: raise ValueError('Invalid wait')
-            folder = OUT / 'experiments' / args['id']; deadline = time.monotonic() + args['seconds']
-            while True:
-                result = json.loads((folder / 'state.json').read_text()) if (folder / 'state.json').exists() else {'status': 'queued'}
-                if result['status'] in ('complete', 'failed') or time.monotonic() >= deadline: break
-                time.sleep(2)
+            folder = OUT / 'experiments' / args['id']
+            result = wait_final(folder / 'state.json', args['seconds'])
+            if result['status'] == 'failed': result.update(failure_diagnostics(folder, result))
         elif name == 'read_profile':
             if args['id'] not in self.state['experiments']: raise ValueError('Experiment not owned')
             folder = OUT / 'experiments' / args['id']

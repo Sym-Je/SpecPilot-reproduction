@@ -12,6 +12,8 @@
 - Master选方向，Direction自主读源码/写CPU分析/提交配置或profile实验；每个方向最多3个NPU实验，两模型阶段合计最多3个方向。各阶段共享各自200/500美元保守预占上限，不重置先前费用或角色分配。源代码patch仅提交独立审查，不自动部署。
 - GPT接续代码为`gpt_handoff.py`，实际状态看`handoff/state.json`；独立账本`billing-gpt/`只在交接时创建。原生DSH pi-ai Responses、xhigh、store=false、直连网关；禁止5.5路由。36项定向检查通过，离线3次请求=3次预算准入，真实MCP调用/加密reasoning重放/跨进程恢复通过。尚未做GPT付费接口验证，不把离线fixture写成真实GPT科学运行。
 - 首方向16384 prefill预算候选启动失败，无候选吞吐，基线恢复成功。Claude方向报告先输出截断，再返回含一个多余根括号的完整答案；`resume_claude.py`从原会话恢复，后者仅删除一个括号并保存原始回执SHA，无科学数值改写或重复NPU实验。Master继续判断；完整失败/恢复轨迹保留。
+- 2026-11-10：D2的16384/C1已完成，每档2请求，短/中/长吞吐53.38→54.92、55.49→58.59、51.24→47.78 tok/s，TTFT改善均不足2%；自然EOS输出长度有差异，无稳定收益。12288/C1在aclnnCumsum图捕获时报错，按已核对PID取消可信runner以执行其自身清理，基线已恢复且/health=200。第二方向报告no_gain，但其部分因果解释未独立证实。
+- 发现调度竞态：runner先写failed，再恢复基线，旧broker提前返回，方向报告提交时cleanup检查使研究停止。`experiment_lifecycle.py`将此阶段呈现为restoring_baseline，调度器等待实际收尾，保留已完成报告；42项检查通过。恢复复用D2完整回执，不重复方向API或实验，工具动作21、实验2次原样保留。失败的实际启动日志和人工取消依据通过受限证据交Master，避免只看到泛化的cancellation。
 - `research/supervisor.json`与`handoff/supervisor.json`区分研究进程和条件切换进程。仅持久化Claude预算不足事件可触发GPT；普通错误需要处理后重新挂起监督，Master正常停止或validation冻结后不启用GPT。不要重复启动已有进程。
 - 全机flock串行协调独立量化任务，不抢占它们。服务在实验后恢复。不能重复启动已有监督进程。
 - validation仍未打开。独立终测程序已接通，但只在研究停止、候选对应已完成dev实验且配置/代码冻结之后执行；不把终测反馈给研究角色。

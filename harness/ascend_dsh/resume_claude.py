@@ -59,14 +59,17 @@ def run(cached_call=None):
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         state = read(OUT / 'research/state.json')
         assert state['status'] == 'stopped_with_error'
+        cleanup_recovery = state['error'] == 'AssertionError: Experiment cleanup not complete'
         if cached_call:
-            assert state['error'].startswith('JSONDecodeError:')
+            assert state['error'].startswith('JSONDecodeError:') or cleanup_recovery
         else:
             assert state['error'] == 'AssertionError: max-tokens'
         assert state['validation_opened'] is False and not (OUT / 'candidate-freeze.json').exists()
         assert not read(OUT / 'billing/state.json').get('budget_exhausted')
         experiment_receipts(state['active_role'])
-        checkpoint = OUT / 'research' / ('claude-format-checkpoint.json' if cached_call else 'claude-truncated-checkpoint.json')
+        checkpoint_name = ('claude-cleanup-checkpoint.json' if cleanup_recovery else
+                           'claude-format-checkpoint.json' if cached_call else 'claude-truncated-checkpoint.json')
+        checkpoint = OUT / 'research' / checkpoint_name
         assert not checkpoint.exists(), 'Recovery is explicit, never an unbounded retry loop'
         write(checkpoint, state)
         def resume_invoke(role, mode, prompt):
@@ -78,9 +81,9 @@ def run(cached_call=None):
                 assert record['session_id'] == role and record['model'] == 'claude-opus-5-5'
                 assert record['result']['finish_reason'] == 'completed' and mode == 'direction'
                 value, repair = cached_answer(record['result']['final_response'])
-                write(OUT / 'research/roles' / role / 'answer-recovered-format.json',
+                write(OUT / 'research/roles' / role / ('answer-recovered-cleanup.json' if cleanup_recovery else 'answer-recovered-format.json'),
                       {'answer': value, 'call_id': record['call_id'], 'receipt_sha256': sha(path),
-                       'source': 'Previously completed model answer; format recovery only, no additional API call.',
+                       'source': 'Previously completed model answer; recovery without additional direction API call.',
                        'format_repair': repair})
                 cached_call = None
                 return value

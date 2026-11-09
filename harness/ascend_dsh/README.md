@@ -60,6 +60,15 @@ results are never sent back to the model for more tuning. Serial screens and
 held-out comparisons are not formal paired promotion and do not certify semantic
 accuracy or losslessness.
 
+`experiment_lifecycle.py` distinguishes the runner's early failure write from
+its completed cleanup. The broker reports `restoring_baseline` while restoration
+is pending, and the outer scheduler waits before accepting a finished direction.
+Restoration failure still blocks further research. Bounded error lines from the
+fixed candidate startup log and any recorded operator intervention accompany the
+failed receipt; this does not grant general log or filesystem access. A saved
+completed direction report can be resumed after cleanup without another model
+call or resetting its allocations.
+
 Acceptance (from the runtime directory's parent workspace):
 
 ```bash

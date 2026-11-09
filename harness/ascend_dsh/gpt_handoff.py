@@ -18,6 +18,7 @@ from prepare_baseline import ROOT, OUT, write, sha
 from research_driver import SYSTEM, parse_answer
 from gpt_call import call
 from gpt_budget import Budget, MODEL, gateway_snapshot, get_json
+from experiment_lifecycle import cleanup_pending, wait_final, failure_diagnostics
 
 MASTER_SCHEMA = '''Return a single JSON object {"decision":"run_direction" or "stop", "reason":string,
 "direction":{"name":lowercase-short-slug,"objective":string,"required_evidence":string,
@@ -59,12 +60,17 @@ def experiment_receipts(role, root=OUT):
     broker = read(root / 'research/roles' / role / 'broker-state.json', {'actions': 0, 'experiments': []})
     evidence = []
     for eid in broker['experiments']:
-        actual = read(root / 'experiments' / eid / 'state.json')
+        folder = root / 'experiments' / eid
+        actual = read(folder / 'state.json')
+        if actual and cleanup_pending(actual):
+            # A direction may finish reporting while the runner is restoring.
+            # Wait without another LLM call; preserve the completed report.
+            actual = wait_final(folder / 'state.json', timeout=2100)
         assert actual and actual['status'] in ('complete', 'failed'), 'Experiment still active'
         if actual.get('lock_acquired_epoch'):
             assert actual.get('completed_epoch'), 'Experiment cleanup not complete'
             assert actual.get('baseline_restored') is True, 'Baseline restoration required'
-        evidence.append(actual)
+        evidence.append(actual | failure_diagnostics(folder, actual))
     return broker, evidence
 
 
