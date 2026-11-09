@@ -41,9 +41,12 @@ Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果
 
 ## 4. 当前阶段索引
 
-正在执行：[stock逐步观测与线性链重放](experiments/step-replay-20261109.md)。
-用户已批准必要stock源码阅读/默认关闭钩子，8定向/210总回归及副本可复现构建通过。
-待3题on/off两轮换卡真实烟测；不改controller、不读final、不做性能或lossless晋升。
+最新完成：[stock逐步观测与线性链重放](experiments/step-replay-20261109.md)。
+用户批准必要stock阅读/默认关闭钩子；3题on/off两轮换卡12pair/24臂行均匹配原stock，
+6真实链/24故障副本拒绝/两次CPU重放/210回归/5598项SHA通过，原stock不变。
+输出差1由首token与EOS尾裁切解释；每份有1个未提交overlap尾步，未冒充旧profile逐条对齐。
+pin=e65925c/UUID job-7021a7f03f72-20261109101400已Completed/exit0，0.528333GPU小时/两卡释放。
+无运行任务，不改controller，不读final，不作性能/lossless/晋升声明；完整成本模型仍缺。
 
 最新完成：[stock真实瓶颈、计数审计与部分成本模型](experiments/bottleneck-20261109.md)。
 202回归、原20pair计时、独立20/20窗口补采、两次CPU重放及393项SHA通过；未实施优化。
@@ -91,6 +94,7 @@ node208/2H100已释放。中文1题辅助质量格式缺测不删性能题；无
 | 真实RSI准入准备 | 已完成，不代表真实搜索就绪 | [基线与缺项](experiments/rsi-readiness-20261109.md)；167回归/25319清单项/各四次重放通过，不改裁判，下一候选重新标定 |
 | 真实candidate外围接入 | 首版验收完成，仅启动option | [no-op烟测结果](experiments/candidate-20261109.md)；184回归/20pair/40评分/两重放/2970项SHA通过，无正式晋升 |
 | stock真实profiling/部分成本观察 | 诊断能力完成，完整成本模型未完成 | [瓶颈及缺项](experiments/bottleneck-20261109.md)；202回归/20pair/20窗口/两重放/393项SHA，窗口VERIFY约89.6%，三因子null |
+| stock逐步钩子与真实线性重放 | 完成有限3题工程验收，非最佳树/完整成本模型 | [真实链与计数解释](experiments/step-replay-20261109.md)；210回归/12pair/6链/24故障拒绝/两重放/5598项SHA，已释放GPU |
 | 作者final外部数据泛化审计 | 执行/归档完成，部分泛化且有反例 | [完整结果](experiments/generalization-20261108.md)：200题1.8230×，原5类2.1718×/新5类1.5302×；中文0.5133×，摘要质量代理告警。a02 Completed/exit0，137回归/两次重放/10312文件校验通过；不改final/controller，不冒充论文sealed |
 
 本次仅按已有清单复核真实裁判、dev、泛化、反例确认、诊断五阶段的25319项；

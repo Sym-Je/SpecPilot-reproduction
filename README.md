@@ -16,7 +16,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 | 4 | 验证作者 final 的收益 | ✅ 产物测量完成 | final/AR=8.7347× [8.0235,9.5599]；直接 final/stock=2.2219× [2.1381,2.2988]，见[验收记录](docs/experiments/p3-final-2048-20261107.md) |
 | 5 | 真实正确性、噪声与晋升判据 | ✅ dev联合验收完成 | [验收记录](docs/experiments/dev-joint-20261108.md)：30请求、当前前后null、两轮换卡与实际测速输出forcing均通过；作者产物不写晋升账本 |
 | 6 | 建立独立 sealed 验证 | ⬜ 未开始 | 前置验收通过后由 controller 管理，agent 不接触内容 |
-| 7 | 真实 profiling 与成本模型 | 🟡 profiling验收完成 | [stock诊断](docs/experiments/bottleneck-20261109.md)：20/20窗口、202回归及两次重放通过；窗口VERIFY约89.6%，完整三因子仍缺 |
+| 7 | 真实 profiling 与成本模型 | 🟡 profiling/线性重放通过 | [stock诊断](docs/experiments/bottleneck-20261109.md)与[真实链重放](docs/experiments/step-replay-20261109.md)完成；完整最佳树/三因子仍缺 |
 | 8 | agent 自主提案与实现 | 🟡 候选接入通过，未搜索 | 启动option的no-op真实配对/评分接入通过；真实agent提案、源码机制与晋升尚缺 |
 | 9 | 多轮真实优化闭环与记忆 | ⬜ 待真实验证 | [mock 闭环](docs/06-gates.md)已跑通，不代表真实引擎闭环完成 |
 | 10 | 对照实验与最终报告 | ⬜ 未开始 | 分析各组件贡献，分别报告架构与数字复现证据 |
@@ -47,11 +47,15 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 
 **最新完成：**[真实candidate接入与no-op烟测](docs/experiments/candidate-20261109.md)：184项回归、关闭/开启两模式各两轮换卡、20pair/40臂行输出一致；40条实际输出FP32评分及绑定检查通过。两次CPU重放与2970项SHA通过；任务Completed/exit0，两卡已释放，折算0.395GPU小时。不改controller，不宣称优化收益或lossless。
 
-**最新完成：**[stock真实瓶颈分析](docs/experiments/bottleneck-20261109.md)：原20pair计时保留，独立补采20/20窗口；202回归、两次CPU重放与393项SHA通过。窗口累计kernel工作约89.6%在VERIFY，不是整请求墙钟占比。原生计数36/40行满足全部代数约束，一题存在“多1 token”未解释差异；可识别mm仅覆盖约0.51% kernel工作，完整三因子仍为未知。
+**此前stock诊断：**[真实瓶颈分析](docs/experiments/bottleneck-20261109.md)：原20pair计时保留，独立补采20/20窗口；202回归、两次CPU重放与393项SHA通过。窗口累计kernel工作约89.6%在VERIFY，不是整请求墙钟占比。当时36/40行满足旧代数约束，一题的“多1 token”已由下述逐步重放解释；可识别mm仅覆盖约0.51% kernel工作，完整三因子仍为未知。
 
-**正在做：**已获批准[stock逐步观测与真实线性重放](docs/experiments/step-replay-20261109.md)：独立stock副本默认关闭钩子，8定向/210总回归通过，重复构建一致，待3题on/off真实烟测；不改controller、不读final。
+**最新完成：**[stock逐步观测与真实线性重放](docs/experiments/step-replay-20261109.md)：3题on/off共12pair/24臂行与原stock输出一致；6份真实链、24个故障副本拒绝、两次CPU重放、210回归及5598项SHA通过。计数差1已解释：`输出=首token+正确草稿+已提交验证步−末尾裁切`；原异常题未裁切，两个正常对照各裁掉1。
 
-**接下来：**先报最小逐步计数/lattice与无profiler步计时接口方案，由维护者授权交付后补成本模型；不靠扩题或重跑final绕过缺项。第一版candidate仅启动option，真实proposer与正式晋升/账本集成未就绪；不自动启动RSI或sealed。
+**观测边界：**每份真实链均额外执行1个未提交overlap尾步，不能算进实际接受量；未逐条对齐旧profile标签。观测耗时不是无干扰步计时，线性重放不等于最佳树或完整成本模型。
+
+**正在做：**本阶段已收口，无运行任务；两卡已释放，约0.528GPU小时，未实施优化或晋升。前述36/40是旧条件公式当时的诊断结果，保留原样，不再当作当前尚未解释的生成错误。
+
+**接下来：**先报VERIFY主要kernel-class工作量/byte来源及匹配无干扰步计时方案，获批后补成本模型；不靠扩题或重跑final绕过缺项。第一版candidate仅启动option，真实proposer与正式晋升/账本集成未就绪；不自动启动RSI或sealed。
 
 **已有基础：**三臂真实 server、dev验收、外部数据审计与mock闭环完成；**尚未复现论文原sealed数字或真实RSI方法结论。**
 

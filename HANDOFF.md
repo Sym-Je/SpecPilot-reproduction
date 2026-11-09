@@ -1,9 +1,36 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 UTC（stock逐步钩子与线性重放已批准，CPU准备通过，待GPU烟测）。
+> 最后更新：2026-11-09 UTC（真实stock逐步观测/重放/故障自检/归档完成，无运行任务）。
 
-## 最新接续点：真实逐步观测/重放执行中，不实施优化
+## 最新接续点：真实逐步观测与线性重放完成，未进入优化
+
+- 唯一记录`docs/experiments/step-replay-20261109.md`。用户本阶段明确批准独立stock诊断副本的必要源码阅读/
+  默认关闭只读钩子；不扩展为final阅读、controller修改或自主优化授权。
+- 执行pin=`e65925c337ab06b7327feab5d627576f418e9c8c`，source.tar SHA=01cf21f1...，
+  observer tree=cb27466a...、runtime SHA=fc825e59...，原stock=e5472c4f...未变。
+  源码只在副本的worker/scheduler加观测点及独立runtime，重复构建/逐文件差异检查通过。
+- 唯一GPU UUID=`job-7021a7f03f72-20261109101400`，原镜像/WeaverDev/实际proj-31/node244。
+  02:14:23–02:30:14 UTC（15分51秒），Completed/Pod Succeeded/容器与脚本exit0。
+  33快照单Pod UID/restart0，Job retryCount未设置；总0.528333GPU小时，2预算内，未重复提交。
+- 旧10题受控选3题（异常+同suite正常+首跨suite正常），2048cap/自然EOS。
+  stock vs副本关闭/开启各两轮fresh物理换卡，12pair/24臂行输出全相同，也全部匹配旧stock输出hash。
+  仅开启模式6份真实链重放；24个accepted/bonus/缺步/错输出故障副本全拒，不是论文event-rule实验。
+- 差1已真实解释：输出=首token1+正确草稿+提交验证步−EOS尾裁切。
+  异常1+1312+413−0=1726；正常1+344+81−1=425、1+604+155−1=759，两轮一致。
+  原36/40及costmodel旧条件判据不改，不追写旧证据，不把差1当尚未解释的生成错误。
+- worker82/414/156步，提交81/413/155，每份有1个未提交overlap尾步；实际接受量不含尾步。
+  支持旧标签偏移解释，但本次未开profiler，不冒充同次旧trace逐条对齐；相应flag仍false。
+- 210CPU回归、两次独立CPU重放与远程result字节一致，SHA=
+  `6446c21f635ece6c45685e819202b22d04c95fcbe66805f1452e5ee87b4dc406`。
+  新5598项/92137799逻辑字节全SHA通过，清单`logs/step-replay-evidence-20261109-a01.sha256`，
+  SHA=`d501afd8a1d0418ac81b0db36e6e57133c8d004f24dad2ef8e7f690a42fc2e3a`；前阶段393项亦全过。
+- 私有run/bundle/重复构建不手工读题或输出；只看对应public聚合。两卡0MiB/0%，端口释放，全部会话结束。
+  没有controller/原stock/旧成本模型/ledger/memory改动，无sealed或RSI、性能/lossless/晋升声明。
+- 线性stock链已可重放，但最佳树tau_best、全部kernel-class floor及无干扰步计时仍缺。
+  下一大步骤先报VERIFY实际工作量/byte与匹配步计时方案获批；不扩大题集或自动搜索。
+
+## 本阶段准备与运行历史（已完成，不再作为下一步）
 
 - 用户已批准阶段内自主执行，并明确允许独立stock诊断副本的必要源码阅读及默认关闭只读钩子。
   唯一记录`docs/experiments/step-replay-20261109.md`；仍不读取final实现，不改controller或sealed。
@@ -16,6 +43,9 @@
 - 下一内部动作冻结源码tar→当前CLI查重/完整命令2GPU展示→create一次、核对code200+UUID。
   沿用确认镜像digest/WeaverDev/qiji/原toleration，2H100/256Gi、最长1小时/2GPU小时。
   结束后两次CPU重放、真实故障注入、SHA/清理、主页交接阶段提交推送；不自动进入优化/RSI。
+- 已create一次code200/dataNone，精确UUID=`job-7021a7f03f72-20261109101400`，执行pin=e65925c，
+  source.tar SHA=01cf21f1...，WeaverDev/实际proj-31；前台监控prep/lifecycle.*。
+  不再create、不改执行源码或commit；只看公开聚合，不手工读逐题输出。
 
 ## 最新接续点：stock瓶颈诊断完成，完整成本模型未完成
 
