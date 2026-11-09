@@ -41,6 +41,14 @@ Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果
 
 ## 4. 当前阶段索引
 
+当前受阻：[GPU自治工具边界与离线预检](experiments/autonomy-gpu-boundary-20261109.md)。
+用户批准全阶段，先实测发现fresh子agent仍能调用直接shell并读写broker目录外的无敏感canary；
+已关闭探针，未访问sealed/凭据/controller，不能解释为宿主审批失效。
+12项新增/261项总CPU回归通过，两CLI预检字节一致、旧CPU审计与独立完整性复核通过。
+38文件/3084148字节全SHA归档，清单`logs/autonomy-gpu-evidence-20261109-a01.sha256`；精确SHA与源码overlay见阶段记录。
+新接口仅离线检查，恒定拒绝提交；0GPU、无真实研究实验/优化实现/晋升。
+实际GPU执行器和反馈未接通，先补可强制工具限制的模型入口，再确认新预算/镜像，不恢复旧补采。
+
 最新完成：[master统筹与direction真实CPU实验自治首阶段](experiments/agent-autonomy-plan-20261109.md)。
 执行pin ff96c81，3 fresh角色/12回包，master自主分2方向和预算；direction自产代码、4次真实CPU运行，
 其中1次导入失败由它自行修复，master最终停止两方向。249回归、两独立审计、5类篡改拒绝、输入/文件绑定通过。
@@ -109,6 +117,7 @@ node208/2H100已释放。中文1题辅助质量格式缺测不删性能题；无
 
 | 阶段 | 状态 | 已有证据 / 下一步 |
 |---|---|---|
+| GPU自治接入 | 工程预检通过，真实阶段受阻 | [边界实测](experiments/autonomy-gpu-boundary-20261109.md)；12新增/261回归，真实直接工具探针确认未隔离，离线预检恒blocked、0提交；需工具白名单或纯文本模型入口 |
 | mock 闭环与真实三臂 smoke | 历史阶段已验收，非论文数字复现 | `docs/06-gates.md`、`docs/09-p3-harness-validation.md` |
 | 配对编排 | 完成；17/17 CPU/HTTP 回归，含真实 TIME_WAIT/live-listener 测试 | `exp/p3_pair_run.py`、`harness/test_p3_pair_run.py`；a05 远程生命周期通过 |
 | 本机 AR/stock 尝试 | 历史 blocked；未启动测量 server | `logs/p3-local-ar-stock-20261107.log`；不是远程执行前置条件 |

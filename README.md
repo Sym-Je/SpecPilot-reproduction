@@ -17,7 +17,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 | 5 | 真实正确性、噪声与晋升判据 | ✅ dev联合验收完成 | [验收记录](docs/experiments/dev-joint-20261108.md)：30请求、当前前后null、两轮换卡与实际测速输出forcing均通过；作者产物不写晋升账本 |
 | 6 | 建立独立 sealed 验证 | ⬜ 未开始 | 前置验收通过后由 controller 管理，agent 不接触内容 |
 | 7 | 真实 profiling 与成本模型 | 🟡 profiling/线性重放通过 | [stock诊断](docs/experiments/bottleneck-20261109.md)与[真实链重放](docs/experiments/step-replay-20261109.md)完成；完整最佳树/三因子仍缺 |
-| 8 | agent 自主提案与实现 | 🟡 CPU实验自治验收通过 | master自主分两方向/预算，direction自产脚本执行4次并自行修复错误，master决定停止；GPU探索、优化实现及晋升未完成 |
+| 8 | agent 自主提案与实现 | 🟡 CPU通过，GPU边界受阻 | CPU自主实验已验收；GPU离线预检通过，但真实子agent仍能使用直接工具，不能宣称已隔离或启动GPU探索 |
 | 9 | 多轮真实优化闭环与记忆 | ⬜ 待真实验证 | [mock 闭环](docs/06-gates.md)已跑通，不代表真实引擎闭环完成 |
 | 10 | 对照实验与最终报告 | ⬜ 未开始 | 分析各组件贡献，分别报告架构与数字复现证据 |
 
@@ -61,9 +61,11 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 
 **最新完成：**[真实CPU实验自治回路](docs/experiments/agent-autonomy-plan-20261109.md)：master自主分配两个方向和预算，direction自行设计/编写脚本并执行4次（3成功、1失败后自行修复），再由master根据反馈停止两方向。249回归、两次独立审计、输入/代码绑定和5类篡改拒绝通过；0GPU、无优化发现或晋升。
 
-**正在做：**本阶段已收口，等待下一阶段方案审核。已验证的是CPU脚本执行自治，不是完整GPU探索/论文数字复现；模型后端工具权限尚非物理隔离，不能把脚本沙箱扩大解释为整个模型运行时已隔离。
+**最新核查：**[GPU自治权限边界与离线预检](docs/experiments/autonomy-gpu-boundary-20261109.md)：真实子agent通过直接shell读写了broker目录外的无敏感canary；这是应用层工具边界缺口，不是绕过宿主审批或实读sealed。12项新增测试、261项总CPU回归通过；离线请求检查始终返回blocked，无GPU提交或正式研究实验。
 
-**接下来：**先规划通用GPU执行/资源审批及候选到controller的交接；研究任务继续由master/direction决策，主助手不接管科学实验。未获批准不启动GPU、RSI或sealed，不恢复接受历史补采。
+**正在做：**GPU自治阶段受阻，未完成真实GPU执行接入。当前子agent接口不提供工具白名单，不能用提示约束冒充强制隔离；离线预检不是GPU执行器，也不接受agent自报隔离/资源授权来解锁。
+
+**接下来：**先提供/配置纯文本模型接口或支持工具白名单的独立agent入口，实测禁止绕过broker；再明确新GPU预算与镜像，接入真实执行反馈，由master/direction自行选择最小实验。研究决策不由主助手接管，不恢复旧补采，不自动进入RSI或sealed。
 
 **已有基础：**三臂真实 server、dev验收、外部数据审计与mock闭环完成；**尚未复现论文原sealed数字或真实RSI方法结论。**
 

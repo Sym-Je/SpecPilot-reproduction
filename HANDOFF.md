@@ -1,7 +1,34 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 北京时间（真实CPU自治回路验收完成，三角色关闭；下一阶段先报方案，GPU预算0）。
+> 最后更新：2026-11-09 北京时间（GPU自治权限探针确认工具边界缺口；离线预检已验收，真实GPU阶段受阻，提交0）。
+
+## 当前接续点：先解决模型工具边界，不能把离线预检当GPU自治完成
+
+- 用户批准完成GPU自治接入阶段；唯一记录`docs/experiments/autonomy-gpu-boundary-20261109.md`。
+  先实测权限，不能证明时fail closed。不继承旧补采预算/镜像授权，不恢复已取消a02。
+- 当前spawn_agent接口无工具白名单/独立沙箱参数。fresh权限探针Laplace
+  `01a1beda-4937-7933-abe1-293eefde61f4`通过require_escalated直接shell读写了broker允许目录外的无敏感canary。
+  父端验证SHA和实际marker，两次验证一致；探针已关闭。没有访问真实sealed/凭据/controller或作者final。
+  这是应用层broker边界未强制实施，不说明绕过宿主审批，也不证明未提权时能读sealed。
+- 新`harness/gpu_preflight.py`及`exp/gpu_preflight.py`仅离线检查direction请求的字段/路径/文件SHA/资源需求。
+  无执行、无northjob create、无授权开关；始终submission_allowed=false/exit75。
+  镜像proposal不等于确认，接口请求上限不等于预算，source_pin检查不是执行源冻结。
+  没有接入实际GPU执行器或GPU反馈，不可声称真实GPU自治/优化发现/晋升完成。
+- 12项定向/261项总CPU回归通过；两次CLI结果字节一致，SHA=
+  2868d9d535b1cd3ca6c95725a0c9b99a0b2d8440dfabf86da71e8e57e9e9f3a6。
+  旧CPU审计第二次用--out与原result逐字节一致，独立输入完整性检查亦通过。
+  第一次stdout紧凑JSON与原缩进JSON的cmp失败保留，解析结果相同；另保留新增测试helper的None哨兵错误及修复。
+- 准备/证据：`logs/autonomy-gpu-prep-20261109-a01/`。真实角色只有权限探针，不是新master/direction研究轮；
+  研究方向/题目未由主助手安排。GPU提交0、进程未启动、GPU测试未运行、无UUID。
+- 新38文件/3084148字节全SHA通过；清单`logs/autonomy-gpu-evidence-20261109-a01.sha256`，
+  SHA=5eb42d48234a77d79e12c9176517de469f6669918d560cdb30967b7bebc0ec28；前阶段109项亦复验。
+  source overlay tar SHA=c0bbc892c887424cadc8ea9859a21be9059c3c2a310a7fbc9be23d246a33875d，
+  基准0cc44ac+新增三Python文件，不冒充GPU冻结。stage-result明确blocked/stage_completed=false。
+- 必须先获得可强制工具白名单的运行入口或无直接工具的纯文本模型接口，完成真实拒绝探针，
+  再按新预算/镜像授权接GPU执行及反馈。已向用户询问接口/配置位置，不索要明文密钥。
+  若仍只提供同一spawn工具接口，不能以额外提示词或用户豁免冒充强制隔离。
+  以下全部是历史，不恢复其中的旧下一步。
 
 ## 当前接续点：真实CPU实验自治首阶段通过，不接管科学实验
 
