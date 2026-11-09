@@ -1,14 +1,17 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 北京时间（独立Codex受限入口的权限验收收口；AGENTS/PLANS主线落地；GPU执行尚未接通）。
+> 最后更新：2026-11-09 北京时间（用户确认公开仓库并批准发布同步；独立Codex入口已有限验收，GPU执行尚未接通）。
 
-## 当前唯一接续点：先处理公开远端，再审核最小真实 GPU 自主实验方案
+## 当前唯一接续点：审核最小真实 GPU 自主实验方案
 
-- **新增阻塞：**匿名GitHub API查询精确origin返回HTTP200、private=false、visibility=public，
-  与旧“私有仓库”记录冲突。证据`logs/codex-mainline-closeout-20261109-a01/github-anonymous-check.json`。
-  已拦截推送，未上传本阶段代码/文档，未改变可见性；不推断何时/由谁设为公开。
-  需用户将origin改为私有或明确授权维护者处理，再重新核对并推送；不得擅自向公开仓库同步。
+- **公开授权已明确：**用户说明是本人主动改为public，并批准审查本次待发布内容、更新授权记录及推送。
+  旧“只可推私有仓库”的阻塞解除，不改回私有，不自动改变任何可见性。阶段记录`docs/experiments/public-sync-20261109.md`。
+  审查覆盖远端main之后的待发布提交历史及暂存树，不发布凭据、sealed、受限数据或原始运行产物；不是全仓库历史安全审计。
+  本地权限阶段提交`60a601b`；最终远端身份以`logs/public-sync-20261109-git-sync.json`为准。
+  原先阻塞回执和588文件清单不改写，以新记录追加后续处理；公开授权不扩大GPU/实验权限。
+- 用户确认已转入组织，当前origin为`https://github.com/china-qijizhifeng/SpecPilot-reproduction.git`。
+  GitHub旧地址重定向及组织地址均对应repository ID `1449067162`，同步前main相同；未改仓库可见性。
 
 - 用户已批准“权限验收收口、AGENTS/PLANS、主页/交接与下一阶段提案”；本阶段只CPU复验和文档收口，
   不新启模型研究轮/GPU，不恢复接受历史补采。唯一记录：`docs/experiments/codex-boundary-20261109.md`。
@@ -29,7 +32,7 @@
   需先接通受限角色任务/真实反馈与可信GPU入口，经CPU fixture验收后，再由Master选一个方向。
   提案总2GPU小时、最多同时2H100；新预算/具体镜像/项目等提交参数必须核对确认，不沿用旧补采授权。
   当前GPU离线预检仍恒blocked，权限探针不是GPU driver；没有新任务UUID、真实GPU自治或候选晋升。
-- 本地验收完成后报告远端阻塞；处理并同步后再审核下一阶段，不擅自接入GPU、搜索、建sealed或实现指定优化。
+- 公开同步收尾后再审核下一阶段；不擅自接入GPU、搜索、建sealed或实现指定优化。
 
 ## 以下均为历史记录（不恢复其中旧“当前/下一步”）
 

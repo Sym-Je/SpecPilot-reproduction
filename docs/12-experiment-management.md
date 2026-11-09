@@ -1,7 +1,7 @@
 # Git 全流程实验管理
 
 日期：2026-11-07。用户要求：仓库不仅管代码，也要管理从计划到结论的整个实验流程。
-本文件建立记录规范与当前索引；不代表 NorthJob 自动归档已实现，也不授权提交任务或修改 controller。用户后续已授权大步骤验收后提交 Git 并推送私有远端。
+本文件建立记录规范与当前索引；不代表 NorthJob 自动归档已实现，也不授权提交任务或修改 controller。用户已授权大步骤验收后提交并推送，随后确认仓库由本人主动公开并批准公开发布审查与同步。
 
 ## 1. 单一入口和职责
 
@@ -14,11 +14,13 @@
 - 原始日志、JSONL、profile、源快照：持久存储，不强行加入 Git；记录精确位置、大小和 SHA-256。
 
 Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果或晋升账本。
-GitHub origin：`https://github.com/Sym-Je/SpecPilot-reproduction.git`。此前记录为私有，2026-11-09本次收口时
-匿名API实查private=false/visibility=public，已停止推送；不推断何时/由谁改变。
-需用户处理或明确授权改为私有后再核对同步，不自动改变可见性或向公开远端上传。
-每个大步骤结束更新首页与交接，验收后阶段提交；只有私有性条件满足且远端提交身份一致才算同步完成。
-不自动建分支。此次证据与阻塞见权限收口记录。
+GitHub origin：`https://github.com/china-qijizhifeng/SpecPilot-reproduction.git`。用户确认已将原仓库转入该组织；
+旧`Sym-Je/SpecPilot-reproduction`地址由GitHub重定向到同一repository ID `1449067162`，已核对两地址main一致。
+此前记录为私有，2026-11-09实查public时
+因授权不明确暂停推送；用户随后确认是本人主动公开，并批准按公开标准审查及同步，历史阻塞解除。
+每个大步骤结束更新首页与交接，验收后阶段提交；推送前检查全部待发布提交中的凭据/受限数据/原始产物及许可风险。
+只有远端提交身份一致才算同步完成。不自动建分支、改变可见性或强推；公开授权不改变研究边界。
+范围及证据见[公开同步记录](experiments/public-sync-20261109.md)，原阻塞回执保留。
 
 ## 2. 每次实验的生命周期
 
@@ -46,13 +48,13 @@ GitHub origin：`https://github.com/Sym-Je/SpecPilot-reproduction.git`。此前�
 
 ## 4. 当前阶段索引
 
-当前本地完成、远端同步阻塞：[Codex权限边界及主线收口](experiments/codex-boundary-20261109.md)。
+当前权限/主线收口已本地完成，公开同步获批：[Codex权限边界及主线收口](experiments/codex-boundary-20261109.md)、[公开同步记录](experiments/public-sync-20261109.md)。
 独立受限app-server与可信broker的真实非敏感探针8次动作/1次CPU运行，必要能力成功、红线拒绝；
 原生patch越界拒绝单独留证，不扩大为旧spawn入口也安全。17定向/278总CPU回归、两次独立审计、冻结源身份通过。
 AGENTS/PLANS明确Master/direction/controller分工；GPU执行仍未接通，本次0GPU且不恢复旧支线。
 下一步仅审核[最小真实GPU自治提案](experiments/codex-gpu-autonomy-proposal-20261109.md)，预算/镜像尚待授权确认。
 源码包、证据清单、精确SHA与Git同步回执见权限收口记录。
-本次发现origin当前为public，未推送、未改可见性；先由用户处理/授权私有化，再核对同步。
+用户已说明本人主动设为public，允许审查后推送；同步以新回执为准，不修改可见性或旧失败证据。
 
 此前受阻：[GPU自治工具边界与离线预检](experiments/autonomy-gpu-boundary-20261109.md)。
 用户批准全阶段，先实测发现fresh子agent仍能调用直接shell并读写broker目录外的无敏感canary；
@@ -130,7 +132,7 @@ node208/2H100已释放。中文1题辅助质量格式缺测不删性能题；无
 
 | 阶段 | 状态 | 已有证据 / 下一步 |
 |---|---|---|
-| Codex权限边界与主线收口 | 本地验收完成；公开远端拦截推送 | [收口记录](experiments/codex-boundary-20261109.md)；17定向/278回归、真实8动作/1CPU运行/原生patch拒绝、两次独立审计；AGENTS/PLANS及下一GPU提案，GPU未接通 |
+| Codex权限边界与主线收口 | 本地验收完成；用户已授权公开同步 | [收口记录](experiments/codex-boundary-20261109.md)、[公开同步](experiments/public-sync-20261109.md)；17定向/278回归、真实8动作/1CPU运行/原生patch拒绝、两次独立审计；AGENTS/PLANS及下一GPU提案，GPU未接通 |
 | GPU自治接入 | 旧入口边界失败保留；离线预检仍blocked | [历史实测](experiments/autonomy-gpu-boundary-20261109.md)；12新增/261回归、0提交；后续须使用新受限入口，不能把权限验收当GPU反馈链已接通 |
 | mock 闭环与真实三臂 smoke | 历史阶段已验收，非论文数字复现 | `docs/06-gates.md`、`docs/09-p3-harness-validation.md` |
 | 配对编排 | 完成；17/17 CPU/HTTP 回归，含真实 TIME_WAIT/live-listener 测试 | `exp/p3_pair_run.py`、`harness/test_p3_pair_run.py`；a05 远程生命周期通过 |

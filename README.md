@@ -4,6 +4,8 @@
 Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性能；架构复现与数字复现分开报告。论文原件见
 `docs/` 中的引用；PDF 不在仓库内。
 
+GitHub：[china-qijizhifeng/SpecPilot-reproduction](https://github.com/china-qijizhifeng/SpecPilot-reproduction)（用户管理的公开组织仓库）。
+
 ## 当前进度（2026-11-09，UTC+08）
 
 图例：✅ 已完成 · 🟡 初步完成 · 🔵 正在推进 · ⬜ 待完成。只有完成该阶段验收才标 ✅。
@@ -65,7 +67,9 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 
 **最新完成：**[Codex权限边界与主线收口](docs/experiments/codex-boundary-20261109.md)：独立app-server加外层Landlock/seccomp，真实探针8次broker调用、1次CPU运行；授权读写/执行成功，越界读取、规则写入、GPU动作及原生patch越界被拒。17项定向/278项总CPU回归、两次独立审计与冻结源码身份复核通过。不是旧spawn入口安全证明，也不是GPU研究完成。
 
-**正在做：**本地验收完成，远端同步受阻：GitHub API实查origin当前为public，与此前“私有”记录冲突，已停止推送，未更改可见性。需用户处理或授权改为私有后才能同步。当前计划见 [PLANS.md](PLANS.md)；AGENTS规定分工，可信工具和controller负责执行/验收，不继续扩建框架或迁移DSH。
+**发布状态：**用户确认本人主动将仓库设为public，并批准按公开标准同步，原“仅授权私有同步”的阻塞已解除。公开发布审查、范围与版本核对见[同步记录](docs/experiments/public-sync-20261109.md)；不上传原始证据、凭据或受限数据，不改变仓库可见性。
+
+**正在做：**等待下一大步骤授权，当前计划见 [PLANS.md](PLANS.md)。AGENTS规定分工，可信工具和controller负责执行/验收；GPU自主执行链尚未接通，不继续扩建框架或迁移DSH。
 
 **接下来：**审核[最小真实GPU自主实验方案](docs/experiments/codex-gpu-autonomy-proposal-20261109.md)，再接通受限角色到GPU执行/反馈链；Master选方向，direction自主设计与迭代。资源提案为最多2×H100、合计2GPU小时，尚未授权；镜像/提交参数需重新核对确认。不恢复旧补采，不预设VERIFY优化，不自动进入RSI或sealed。
 
