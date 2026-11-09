@@ -1,7 +1,28 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 北京时间（独立记录核查完成，缺新记录，未运行确认）。
+> 最后更新：2026-11-09 北京时间（用户停止人工补采支线；下一主线只给自主实验能力方案，待审核）。
+
+## 当前唯一接续点：停止补采，先审核实验自治方案
+
+- 用户明确：不要再由主助手推进接受历史预测支线，不提交已准备的GPU任务；保留代码和证据，
+  不算自主探索完成，不是判定点子无效。下一主线是direction自主设计/执行/迭代，master真正统筹。
+  方案`docs/experiments/agent-autonomy-plan-20261109.md`仅草案，尚无实施或新GPU授权。
+- 补采历史`docs/experiments/history-collection-20261109.md`：a01已create一次，code200，UUID=
+  job-a0d49c75347b-20261109123806，node233，Failed/exit1。server/1H100预检成功，1次短预热后，
+  事件函数phase参数重名TypeError退出；无正式四题链。容器176秒；保守创建至结束199秒计预算。
+- a01 pin6d0676b；修复a02 pin=e243e2fce3ebeb2b0c4bc83129cb4342784cf88f，235项CPU回归通过。
+  真实两轮/18调用的外层CPU fixture先红后绿；只改日志字段及剩余预算/失败AbortJob策略，未改预测/观测/裁判。
+  a02的tar/manifest/四题复核/命令均已准备，但用户停止时未create，没有UUID，不自动再提交。
+  `logs/history-collection-prep-20261109-a02/CANCELLED.json`与submit.sh前置拒绝已验收（exit75）。
+- 精确查名确认a01终态Failed、a02不存在，本次无活动任务；两个前台监控已结束。
+  停止归档65文件/5194094字节全SHA通过，清单`logs/history-collection-stopped-20261109.sha256`，
+  SHA=07035ac740420bad9dd217e08d2e8ccfcd9dc3c2e5f535170aed71f34e980c83。
+  a01一个Pod UID/容器restart0，Job retryCount最终1，不宣称集群零重试；未观察第二Pod或容器启动。
+- 现有真实direction只能选少数CPU算术工具，还不能自行写/执行实验；不得把主助手代采集叫实验自治。
+  新方案需接通direction行动→真实执行→证据/退出码反馈→direction继续/停止，master分配预算和决策。
+  先审核再改实现，controller只读/sealed不可访问/option默认stock/性能双卡配对等边界不变。
+  下文均为历史，不恢复任何旧“下一步”；尤其不继续4题补采，也不强行优化VERIFY。
 
 ## 当前接续点：独立确认缺数据，先批准最小采集
 
