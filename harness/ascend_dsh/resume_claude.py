@@ -11,7 +11,7 @@ import re
 import time
 
 from dsh_call import call
-from gpt_handoff import continue_research, experiment_receipts, read
+from gpt_handoff import continue_research, experiment_receipts, read, MASTER_SCHEMA
 from prepare_baseline import OUT, write, sha
 from research_driver import SYSTEM, parse_answer, patch_for
 
@@ -87,12 +87,16 @@ def invoke(role, mode, prompt):
     return value
 
 
-def run(cached_call=None, resume_upstream=False):
+def run(cached_call=None, resume_upstream=False, review_incomplete_stop=False):
     with (OUT / 'research/driver.lock').open('a+') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         state = read(OUT / 'research/state.json')
         assert state['status'] == 'stopped_with_error'
         assert not (cached_call and resume_upstream)
+        if review_incomplete_stop:
+            assert cached_call and state['active_role'] == 'ctrip-master' and len(state['rounds']) < 3
+            assert not any(x.get('request', {}).get('mode') == 'profile' and x.get('status') == 'complete'
+                for x in (read(p) for p in (OUT / 'experiments').glob('*/state.json')))
         cleanup_recovery = state['error'] == 'AssertionError: Experiment cleanup not complete'
         if resume_upstream:
             assert state['error'] == 'AssertionError: error' and transient_stream_stall(latest_call(state['active_role']))
@@ -103,14 +107,31 @@ def run(cached_call=None, resume_upstream=False):
         assert state['validation_opened'] is False and not (OUT / 'candidate-freeze.json').exists()
         assert not read(OUT / 'billing/state.json').get('budget_exhausted')
         experiment_receipts(state['active_role'])
-        checkpoint_name = ('claude-upstream-checkpoint.json' if resume_upstream else
+        checkpoint_name = ('claude-coverage-checkpoint.json' if review_incomplete_stop else
+                           'claude-upstream-checkpoint.json' if resume_upstream else
                            'claude-cleanup-checkpoint.json' if cleanup_recovery else
                            'claude-format-checkpoint.json' if cached_call else 'claude-truncated-checkpoint.json')
         checkpoint = OUT / 'research' / checkpoint_name
         assert not checkpoint.exists(), 'Recovery is explicit, never an unbounded retry loop'
         write(checkpoint, state)
         def resume_invoke(role, mode, prompt):
-            nonlocal cached_call, resume_upstream
+            nonlocal cached_call, resume_upstream, review_incomplete_stop
+            if review_incomplete_stop:
+                path = OUT / 'research/calls' / cached_call
+                assert path.parent == OUT / 'research/calls' and path.name == cached_call and mode == 'master'
+                record = read(path)
+                assert record['session_id'] == role and record['result']['finish_reason'] == 'completed'
+                proposed = parse_answer(record['result']['final_response'])
+                assert proposed['decision'] == 'stop'
+                prompt = '''Task-coverage correction from the supervisor: the user explicitly requested Ascend profiling to locate engine costs and establish achievable bounds before optimization. This campaign has no completed profiling experiment. The two finished directions investigated the same prefill-budget family. Their negative result does not establish that all authorized optimization space is exhausted. Missing bottleneck evidence is a reason to consider the explicitly available diagnostic profile mode, not evidence that no direction exists.
+Review your proposed stop with that outstanding requirement in mind. You have one remaining direction slot, up to three serial NPU experiments, and unused Claude budget. Independently choose what to measure and how to interpret it; no particular bottleneck, code change or positive gain is prescribed. Reuse existing work with attribution, keep validation unseen, and do not repeat completed benchmarks just to spend budget. Your previous stop proposal remains archived and is not being represented as an accepted outcome.
+''' + MASTER_SCHEMA
+                write(OUT / 'research/master-stop-coverage-review.json', {
+                    'source_call_id': record['call_id'], 'receipt_sha256': sha(path),
+                    'proposed_decision': proposed, 'review_prompt': prompt,
+                    'reason': 'Existing user-required profiling has not been performed in this campaign.',
+                    'positive_result_required': False, 'epoch': time.time()})
+                cached_call = None; review_incomplete_stop = False
             if resume_upstream:
                 assert role == state['active_role']
                 resume_upstream = False
@@ -135,4 +156,5 @@ def run(cached_call=None, resume_upstream=False):
 if __name__ == '__main__':
     os.umask(0o077)
     parser = argparse.ArgumentParser(); parser.add_argument('--cached-call'); parser.add_argument('--resume-upstream', action='store_true')
-    args = parser.parse_args(); run(args.cached_call, args.resume_upstream)
+    parser.add_argument('--review-incomplete-stop', action='store_true')
+    args = parser.parse_args(); run(args.cached_call, args.resume_upstream, args.review_incomplete_stop)

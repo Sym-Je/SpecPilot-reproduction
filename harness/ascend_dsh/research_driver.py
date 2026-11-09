@@ -46,6 +46,9 @@ def patch_for(role, mode):
 def parse_answer(answer):
     # Be tolerant of a single accidental code fence, not extraneous prose or embedded objects.
     text = answer.strip()
+    terminal_fence = re.search(r'(?ms)^```(?:json)?[ \t]*\n(.*?)\n```[ \t]*\Z', text)
+    if terminal_fence:
+        text = terminal_fence.group(1).strip()
     if text.startswith('```') and text.endswith('```'): text = '\n'.join(text.splitlines()[1:-1])
     try:
         value = json.loads(text)

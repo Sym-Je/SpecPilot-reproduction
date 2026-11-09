@@ -29,5 +29,7 @@ class DriverTests(unittest.TestCase):
     def test_json_answer_parser_rejects_prose(self):
         self.assertEqual(parse_answer('```json\n{"x":1}\n```'), {'x': 1})
         self.assertEqual(parse_answer('Report follows\\n\\n{"x":1}'), {'x': 1})
+        self.assertEqual(parse_answer('Evidence summary.\n\n```json\n{"x":1}\n```'), {'x': 1})
+        with self.assertRaises(ValueError): parse_answer('```json\n{"x":1}\n```\ntrailing prose')
         for text in ('prose {"x":1}', '[]', '{"x":1} trailing'):
             with self.assertRaises((ValueError, TypeError)): parse_answer(text)
