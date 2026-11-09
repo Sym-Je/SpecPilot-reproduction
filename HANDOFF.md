@@ -1,9 +1,39 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 北京时间（GPU自治权限探针确认工具边界缺口；离线预检已验收，真实GPU阶段受阻，提交0）。
+> 最后更新：2026-11-09 北京时间（独立Codex受限入口的权限验收收口；AGENTS/PLANS主线落地；GPU执行尚未接通）。
 
-## 当前接续点：先解决模型工具边界，不能把离线预检当GPU自治完成
+## 当前唯一接续点：先处理公开远端，再审核最小真实 GPU 自主实验方案
+
+- **新增阻塞：**匿名GitHub API查询精确origin返回HTTP200、private=false、visibility=public，
+  与旧“私有仓库”记录冲突。证据`logs/codex-mainline-closeout-20261109-a01/github-anonymous-check.json`。
+  已拦截推送，未上传本阶段代码/文档，未改变可见性；不推断何时/由谁设为公开。
+  需用户将origin改为私有或明确授权维护者处理，再重新核对并推送；不得擅自向公开仓库同步。
+
+- 用户已批准“权限验收收口、AGENTS/PLANS、主页/交接与下一阶段提案”；本阶段只CPU复验和文档收口，
+  不新启模型研究轮/GPU，不恢复接受历史补采。唯一记录：`docs/experiments/codex-boundary-20261109.md`。
+- 先读本节，再读 `PLANS.md`。长期规则见 `AGENTS.md`；Master自主定方向/预算，direction自主设计、
+  编写、执行与迭代，主助手不代做研究，controller独立裁判。Codex当前主线，DSH迁移后置。
+- 本次接续前已有未提交受限入口实现及真实探针，均保留并复验，未改已执行源码。
+  独立app-server + Landlock/seccomp入口只开放授权工作区与必要运行库，broker保留stock阅读/scratch读写/隔离CPU。
+  真实live-a02：8次动作/1次CPU运行，3个必要能力成功，5次拒绝（其中2次格式错误，3次红线动作）；
+  原生apply_patch越界另被内核拒绝。非敏感canary/只读输入/配置未变，进程exit0。
+- 17项定向/278项总CPU回归通过；真实探针两次独立审计均与原结果字节一致；冻结四份执行源及两个二进制SHA一致。
+  既有失败native-a01–a05、live-a01和红测全部保留。实际进程入口仅经本次有限canary验收，
+  不扩大为旧spawn接口安全、GPU工作进程隔离、完整网络隔离或论文复现完成。
+- 真实探针：`logs/codex-boundary-live-20261109-a02/`；本次复验：`logs/codex-mainline-closeout-20261109-a01/`。
+  精确证据清单、源码包和同步回执见阶段记录。原始产物不入Git，不读sealed/凭据，不改controller/eval/账本/记忆。
+  本次归档588文件/8268976字节，两次全SHA验证通过；清单`logs/codex-mainline-evidence-20261109-a01.sha256`，
+  SHA=`3e39974a215094800cece82e54c35f2a1b209636f60bd2c2b2b0858e2ac7711a`。
+- 下一阶段提案：`docs/experiments/codex-gpu-autonomy-proposal-20261109.md`，**尚未授权执行**。
+  需先接通受限角色任务/真实反馈与可信GPU入口，经CPU fixture验收后，再由Master选一个方向。
+  提案总2GPU小时、最多同时2H100；新预算/具体镜像/项目等提交参数必须核对确认，不沿用旧补采授权。
+  当前GPU离线预检仍恒blocked，权限探针不是GPU driver；没有新任务UUID、真实GPU自治或候选晋升。
+- 本地验收完成后报告远端阻塞；处理并同步后再审核下一阶段，不擅自接入GPU、搜索、建sealed或实现指定优化。
+
+## 以下均为历史记录（不恢复其中旧“当前/下一步”）
+
+## 历史：先解决模型工具边界，不能把离线预检当GPU自治完成
 
 - 用户批准完成GPU自治接入阶段；唯一记录`docs/experiments/autonomy-gpu-boundary-20261109.md`。
   先实测权限，不能证明时fail closed。不继承旧补采预算/镜像授权，不恢复已取消a02。

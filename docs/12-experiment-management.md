@@ -6,6 +6,7 @@
 ## 1. 单一入口和职责
 
 - `HANDOFF.md`：当前状态、阻塞、下一步；新 session 从这里进入。
+- `PLANS.md`：当前执行计划、预算、验收与停止条件；不替代交接入口、阶段证据或controller账本。
 - `docs/11-reproduction-plan.md`：研究阶段、协议和停止规则。
 - 本文件：流程管理规则、阶段索引。
 - `docs/experiments/<experiment-id>.md`：每次实验的版本、任务、证据和决策；从 `TEMPLATE.md` 复制。
@@ -13,7 +14,11 @@
 - 原始日志、JSONL、profile、源快照：持久存储，不强行加入 Git；记录精确位置、大小和 SHA-256。
 
 Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果或晋升账本。
-私有 GitHub origin：`https://github.com/Sym-Je/SpecPilot-reproduction.git`。每个大步骤结束更新首页与交接，验收后阶段提交并推送；只有确认远端提交身份一致才算同步完成。不自动建分支或改变仓库可见性。
+GitHub origin：`https://github.com/Sym-Je/SpecPilot-reproduction.git`。此前记录为私有，2026-11-09本次收口时
+匿名API实查private=false/visibility=public，已停止推送；不推断何时/由谁改变。
+需用户处理或明确授权改为私有后再核对同步，不自动改变可见性或向公开远端上传。
+每个大步骤结束更新首页与交接，验收后阶段提交；只有私有性条件满足且远端提交身份一致才算同步完成。
+不自动建分支。此次证据与阻塞见权限收口记录。
 
 ## 2. 每次实验的生命周期
 
@@ -41,7 +46,15 @@ Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果
 
 ## 4. 当前阶段索引
 
-当前受阻：[GPU自治工具边界与离线预检](experiments/autonomy-gpu-boundary-20261109.md)。
+当前本地完成、远端同步阻塞：[Codex权限边界及主线收口](experiments/codex-boundary-20261109.md)。
+独立受限app-server与可信broker的真实非敏感探针8次动作/1次CPU运行，必要能力成功、红线拒绝；
+原生patch越界拒绝单独留证，不扩大为旧spawn入口也安全。17定向/278总CPU回归、两次独立审计、冻结源身份通过。
+AGENTS/PLANS明确Master/direction/controller分工；GPU执行仍未接通，本次0GPU且不恢复旧支线。
+下一步仅审核[最小真实GPU自治提案](experiments/codex-gpu-autonomy-proposal-20261109.md)，预算/镜像尚待授权确认。
+源码包、证据清单、精确SHA与Git同步回执见权限收口记录。
+本次发现origin当前为public，未推送、未改可见性；先由用户处理/授权私有化，再核对同步。
+
+此前受阻：[GPU自治工具边界与离线预检](experiments/autonomy-gpu-boundary-20261109.md)。
 用户批准全阶段，先实测发现fresh子agent仍能调用直接shell并读写broker目录外的无敏感canary；
 已关闭探针，未访问sealed/凭据/controller，不能解释为宿主审批失效。
 12项新增/261项总CPU回归通过，两CLI预检字节一致、旧CPU审计与独立完整性复核通过。
@@ -117,7 +130,8 @@ node208/2H100已释放。中文1题辅助质量格式缺测不删性能题；无
 
 | 阶段 | 状态 | 已有证据 / 下一步 |
 |---|---|---|
-| GPU自治接入 | 工程预检通过，真实阶段受阻 | [边界实测](experiments/autonomy-gpu-boundary-20261109.md)；12新增/261回归，真实直接工具探针确认未隔离，离线预检恒blocked、0提交；需工具白名单或纯文本模型入口 |
+| Codex权限边界与主线收口 | 本地验收完成；公开远端拦截推送 | [收口记录](experiments/codex-boundary-20261109.md)；17定向/278回归、真实8动作/1CPU运行/原生patch拒绝、两次独立审计；AGENTS/PLANS及下一GPU提案，GPU未接通 |
+| GPU自治接入 | 旧入口边界失败保留；离线预检仍blocked | [历史实测](experiments/autonomy-gpu-boundary-20261109.md)；12新增/261回归、0提交；后续须使用新受限入口，不能把权限验收当GPU反馈链已接通 |
 | mock 闭环与真实三臂 smoke | 历史阶段已验收，非论文数字复现 | `docs/06-gates.md`、`docs/09-p3-harness-validation.md` |
 | 配对编排 | 完成；17/17 CPU/HTTP 回归，含真实 TIME_WAIT/live-listener 测试 | `exp/p3_pair_run.py`、`harness/test_p3_pair_run.py`；a05 远程生命周期通过 |
 | 本机 AR/stock 尝试 | 历史 blocked；未启动测量 server | `logs/p3-local-ar-stock-20261107.log`；不是远程执行前置条件 |
