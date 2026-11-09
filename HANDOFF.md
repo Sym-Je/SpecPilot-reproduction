@@ -1,9 +1,31 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 北京时间（第二阶段已收口；依赖/权限通过，direction筛选错误，无有效延迟数据，Master停止）。
+> 最后更新：2026-11-09 北京时间（第三阶段自主修复及合成算子微实验通过，Master主动停止；真实模型RSI未完成）。
 
-## 当前接续点：由direction修复自身筛选，下一阶段先提案获批
+## 当前接续点：第三阶段已获首份有效微实验，下一阶段先提案
+
+- 用户批准阶段目标及1H100 GPU小时/最多同时1卡/最多3次900秒任务，并明确沿用原镜像、WeaverDev、qiji和只读模型PVC。
+- 25定向/303总CPU回归、旧314文件清单SHA及上一阶段来源审计通过，实际角色源已冻结。
+- Master自主继续原方向并分24动作/4CPU/2GPU尝试；direction自行修复GQA筛选、写CPU fixture，18例通过并复现旧问题。
+  独立重放CPU fixture两次字节一致；实验脚本、原容差/长度/测量判据未变，主助手未代写科学代码。
+- 唯一任务job-4fdd307bbdb9-20261109202445，code200+UUID核对通过，Completed/exit0；保守43GPU秒/容器26秒。
+  真实H100上实验内筛选、另一个独立进程研究筛选及8类边界拒绝均通过；产出3种KV长度、11轮算子微实验耗时。
+  单GPU内交替query宽度的微实验，不是正式双卡配对/CI/模型加速、lossless或controller验收；无候选晋升。
+- 实际4回合/8动作/1CPU/1GPU尝试/10usage事件，2原生角色关闭、输入/canary未变，唯一容器终止；Master自主stop，未用完预算也不追加。
+  两次独立来源审计一致、原始11轮数据重算及6类工程篡改拒绝通过；异常轮次保留，范围不是CI。
+  内部阶段上限64动作/8CPU/24回合/3GPU尝试；可request_budget由Master阶段内重分配，不增加用户总预算。
+- 本次执行目录`logs/gpu-autonomy-run-20261109-c01/`，准备及可信入口`logs/gpu-autonomy-stage3-prep-20261109-c01/`。
+  每个GPU请求须绑定当前实验/筛选SHA的CPU成功回执；主助手不修改科学脚本或放宽原判据。
+- 机器状态`logs/gpu-autonomy-stage3-closeout-20261109-c01/stage-result.json`：stage_goal_met与scientific_microexperiment_completed为true，
+  controller_accepted/candidate_promoted/full_phase1_completed/real_engine_rsi_completed均false；不能将本次记成新算法发现。
+- 新归档`logs/gpu-autonomy-stage3-evidence-20261109-c01.sha256`共126文件/4835333字节，两次全SHA通过；
+  SHA=e52b13d9550139145010e90dee311f4608a99c4bb8633c63bbf8307dcdd8f321。Git同步回执`logs/gpu-autonomy-stage3-git-sync-20261109-c01.json`单列，不覆盖旧归档。
+- 目标/验收见`docs/experiments/gpu-autonomy-stage3-20261109.md`、PLANS；完整归档/公开内容审查通过，最终Git同步身份以单列回执为准，不再启动研究或GPU。
+  下一阶段由Master评估如何映射到真实stock部署路径，再设计验证/option候选；先报方案获批，不强制VERIFY/作者final，不自动进integration/kernel/sealed。
+  旧阶段已结束，不恢复其GPU上限或把复用算新发现。下节全部为历史。
+
+## 已收口历史：由direction修复自身筛选
 
 - 用户批准本阶段并确认1H100 GPU小时总预算，最多同时1卡；1次600秒依赖预检，最多2次1200秒研究。
   镜像digest、WeaverDev、qiji、原只读模型PVC已确认；不继承旧阶段余额。

@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import tarfile
 
-from harness.gpu_autonomy import digest, response_object, verify_request
+from harness.gpu_autonomy import digest, response_object, verify_request, research_limits, validate_allocation
 
 
 def read(path):
@@ -21,6 +21,8 @@ def require(condition, message):
 def audit(root, require_gpu=True):
     root = Path(root)
     result = read(root / 'result.json')
+    contract = result.get('resource_contract', 'legacy')
+    limits = research_limits(contract)
     require(result['status'] in ('completed', 'no_gpu_feedback'), 'role protocol did not complete')
     if require_gpu:
         require(result['status'] == 'completed', 'real autonomy run did not complete')
@@ -120,12 +122,23 @@ def audit(root, require_gpu=True):
                     final_cpu_runs += action.get('kind') == 'run_python'
             turns += 1
     requests = sorted(root.glob('gpu-*/request.json'))
-    require(len(requests) <= len(gpu_turns) <= 2, 'GPU attempt identities inconsistent')
+    require(len(requests) <= len(gpu_turns) <= limits['gpu_attempts'], 'GPU attempt identities inconsistent')
     successful = 0
     scientific_screens = 0
     for request_path, (action, source_codes) in zip(requests, gpu_turns):
         directory = request_path.parent
         manifest = verify_request(directory)
+        if manifest.get('resource_contract') == 'stage3-research':
+            debug = read(directory / 'cpu-debug.json')
+            receipt = Path(debug['receipt'])
+            require(receipt.parts[-3].startswith('tools-') and receipt.parts[-2].startswith('action-'), 'CPU debug receipt path invalid')
+            receipt = root / 'direction' / Path(*receipt.parts[-3:])
+            require(digest(receipt) == debug['receipt_sha256'], 'CPU debug receipt changed')
+            response = read(receipt)
+            execution = json.loads(response['contentItems'][0]['text'])
+            require(response['success'] and execution.get('exit_code') == 0, 'CPU debug did not pass')
+            for name in (manifest['script'], manifest['acceptance']):
+                require(execution.get('workspace_code_sha256', {}).get(name) == manifest['files'][name], 'CPU check did not bind current scientific code')
         source = read(directory / 'source-identity.json')
         require(digest(directory / 'source.tar') == source['archive_sha256'], 'trusted source archive changed')
         with tarfile.open(directory / 'source.tar') as archive:
@@ -166,14 +179,23 @@ def audit(root, require_gpu=True):
         require(all(feedback.get(key) == value for key, value in receipt.items()), 'agent did not receive actual GPU feedback')
         require(feedback.get('job_uuid') and feedback.get('submission_code') == 200, 'submission identity missing')
     recovery = read(root / 'recovery.json')['charged_actual_counters'] if (root / 'recovery.json').exists() else dict(model_turns=0, actions=0, cpu_runs=0, gpu_attempts=0, usage_updates=0)
-    require(result['counters']['model_turns'] == recovery['model_turns'] + turns <= 16, 'model turn budget differs')
+    require(result['counters']['model_turns'] == recovery['model_turns'] + turns <= limits['model_turns'], 'model turn budget differs')
     require(result['counters']['actions'] == recovery['actions'] + native_calls + final_actions + len(requests), 'charged actions differ from actual requests')
     require(result['counters']['cpu_runs'] == recovery['cpu_runs'] + native_cpu_runs + final_cpu_runs, 'CPU run accounting differs')
     require(result['counters']['gpu_attempts'] == recovery['gpu_attempts'] + len(requests), 'GPU attempt accounting differs')
     require(result['counters']['usage_updates'] == recovery['usage_updates'] + native_usage_updates, 'native update accounting differs')
     action_limit = result.get('internal_action_limit', 24)
-    require(action_limit in (24, 28), 'unsupported internal action ceiling')
-    require(result['counters']['actions'] <= action_limit and result['counters']['cpu_runs'] <= 4 and result['counters']['gpu_attempts'] <= 2, 'resource budget exceeded')
+    require(action_limit in ((64,) if contract == 'stage3-research' else (24, 28)), 'unsupported internal action ceiling')
+    require(result['counters']['actions'] <= action_limit and result['counters']['cpu_runs'] <= limits['cpu_runs'] and result['counters']['gpu_attempts'] <= limits['gpu_attempts'], 'resource budget exceeded')
+    require(result['counters']['usage_updates'] <= limits['usage_updates'], 'native update budget exceeded')
+    for path in root.glob('budget-reallocation-*.json'):
+        allocation = read(path)
+        master_response = root / 'master' / Path(allocation['master_response']).name
+        require(read(master_response) == allocation['review'], 'reallocation differs from actual master response')
+        if allocation['review']['decision'] == 'continue':
+            charged = allocation['counters']
+            validate_allocation(allocation['review']['extra_budget'], action_limit-charged['actions'], contract=contract,
+                remaining_cpu=limits['cpu_runs']-charged['cpu_runs'], remaining_gpu=limits['gpu_attempts']-charged['gpu_attempts'])
     if require_gpu:
         require(successful > 0, 'no real constrained GPU feedback')
     review = read(root / 'master-review.json')
@@ -181,7 +203,7 @@ def audit(root, require_gpu=True):
     if review['decision'] == 'continue':
         allocation = review['extra_budget']
         require(all(type(allocation[name]) is int and 0 <= allocation[name] <= limit-result['counters'][counter]
-            for name, limit, counter in (('actions', action_limit, 'actions'), ('cpu_runs', 4, 'cpu_runs'), ('gpu_attempts', 2, 'gpu_attempts'))), 'master expanded stage limits')
+            for name, limit, counter in (('actions', action_limit, 'actions'), ('cpu_runs', limits['cpu_runs'], 'cpu_runs'), ('gpu_attempts', limits['gpu_attempts'], 'gpu_attempts'))), 'master expanded stage limits')
     return dict(schema='gpu-autonomy-audit-v1', passed=True, gpu_autonomy_passed=successful > 0,
         current_run_model_turns=turns, current_run_native_tool_calls=native_calls,
         cumulative_counters=result['counters'], gpu_requests=len(requests), actual_gpu_feedback=successful,

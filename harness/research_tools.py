@@ -23,7 +23,10 @@ def dispatch(work,action,record):
         if kind=='read_file':
             if not path.is_file():raise ValueError('regular workspace file required')
             return dict(status='completed',content=path.read_text()[:12000],sha256=file_sha(path))
-        return execute_python(work,action['path'],record)
+        result=execute_python(work,action['path'],record)
+        result['workspace_code_sha256']={path.relative_to(work).as_posix():file_sha(local_path(work,path.relative_to(work).as_posix()))
+            for path in (work/'scratch').rglob('*.py')}
+        return result
     if kind in ('read_stock','list_stock'):
         from exp.autonomy import STOCK,run_action
         if not local_path(STOCK,action.get('path',action.get('prefix'))).is_relative_to(STOCK):

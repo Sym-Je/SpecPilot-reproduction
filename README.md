@@ -19,7 +19,7 @@ GitHub：[china-qijizhifeng/SpecPilot-reproduction](https://github.com/china-qij
 | 5 | 真实正确性、噪声与晋升判据 | ✅ dev联合验收完成 | [验收记录](docs/experiments/dev-joint-20261108.md)：30请求、当前前后null、两轮换卡与实际测速输出forcing均通过；作者产物不写晋升账本 |
 | 6 | 建立独立 sealed 验证 | ⬜ 未开始 | 前置验收通过后由 controller 管理，agent 不接触内容 |
 | 7 | 真实 profiling 与成本模型 | 🟡 profiling/线性重放通过 | [stock诊断](docs/experiments/bottleneck-20261109.md)与[真实链重放](docs/experiments/step-replay-20261109.md)完成；完整最佳树/三因子仍缺 |
-| 8 | agent 自主提案与实现 | 🟡 GPU执行与自主自诊断通过，筛选未完成 | [第二阶段](docs/experiments/gpu-autonomy-stage2-20261109.md)依赖/权限通过；direction定位自身筛选错误，无有效延迟数据或候选；不是完整Phase 1 |
+| 8 | agent 自主提案与实现 | 🟡 首个自主GPU微实验完成，尚无候选 | [第三阶段](docs/experiments/gpu-autonomy-stage3-20261109.md)direction自行修复、CPU回归、真实算子筛选/测量通过；不是完整Phase 1或真实模型优化 |
 | 9 | 多轮真实优化闭环与记忆 | ⬜ 待真实验证 | [mock 闭环](docs/06-gates.md)已跑通，不代表真实引擎闭环完成 |
 | 10 | 对照实验与最终报告 | ⬜ 未开始 | 分析各组件贡献，分别报告架构与数字复现证据 |
 
@@ -71,11 +71,13 @@ GitHub：[china-qijizhifeng/SpecPilot-reproduction](https://github.com/china-qij
 
 **最新进展：**[首轮GPU自治接入](docs/experiments/gpu-autonomy-20261109.md)验证了Master自主立项、direction编写脚本、真实GPU执行及错误反馈、Master授权一次修复重试并最终停止。两任务均在依赖导入时失败：先是缓存写权限，再是CUDA运行库读取权限；**无有效筛选/延迟数据、候选或晋升，不证明假设为假**。
 
-**最新进展：**[GPU自治第二阶段](docs/experiments/gpu-autonomy-stage2-20261109.md)的依赖预检成功；固定依赖可信预加载在GPU验证，研究代码仍禁止子进程，8类拒绝探针全通过。随后direction自行定位其GQA筛选参考头维度错误；**筛选未完成、没有有效延迟数据，也未证伪研究假设**，主助手没有代写科学修复。
+**此前进展：**[GPU自治第二阶段](docs/experiments/gpu-autonomy-stage2-20261109.md)的依赖预检成功；固定依赖可信预加载在GPU验证，研究代码仍禁止子进程，8类拒绝探针全通过。随后direction自行定位其GQA筛选参考头维度错误；该阶段筛选未完成、没有有效延迟数据，也未证伪研究假设，主助手没有代写科学修复。
 
-**当前状态：**第二阶段已按Master决策和两次研究尝试上限停止。38项定向/299项CPU回归及独立审计通过；1次预检+2次研究共134保守GPU秒，三任务均终止，8角色进程关闭。科学目标未达，无候选或晋升。当前计划见 [PLANS.md](PLANS.md)。
+**最新完成：**[第三阶段自主修复与微实验](docs/experiments/gpu-autonomy-stage3-20261109.md)：Master分配完整调试预算，direction自己修复筛选、写18例CPU回归并申请真实GPU；实验及独立进程研究筛选通过，首次获得有效合成算子延迟数据。原容差/长度和计时脚本未改，主助手未代写修复；复用旧方向不算新发现。
 
-**接下来：**先审核下一阶段方案，由direction自主修复自己的筛选并做CPU自检，再由Master决定是否申请新GPU预算。不由主助手代做研究，不自动进入integration/kernel、sealed或DSH。
+**当前状态：**第三阶段微实验目标达成，Master主动停止。25项定向/303项CPU回归、两次来源审计、CPU重放和原始数据重算通过；1H100任务保守43GPU秒，容器及两角色均结束。只有单次合成算子测量，无CI、真实27B生成、端到端提速、候选或controller晋升。当前计划见 [PLANS.md](PLANS.md)。
+
+**接下来：**先审核下一阶段方案，由Master评估微实验假设与真实stock执行路径的关系，再安排验证或可开关候选实现。不由主助手代做研究，不强制指定优化，不自动进入integration/kernel、sealed或DSH。
 
 **已有基础：**三臂真实 server、dev验收、外部数据审计与mock闭环完成；**尚未复现论文原sealed数字或真实RSI方法结论。**
 

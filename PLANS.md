@@ -13,7 +13,28 @@
 论文 sealed 参照仍为 2.13× [2.07, 2.19]，当前未独立复现该结论。
 DSH 后置，不以更换框架作为当前研究的前提。
 
-## 本阶段：依赖复验与原方向自主接续
+## 本阶段：direction自主修复与完整微实验
+
+用户已批准完整探索窗口及沿用镜像/WeaverDev/qiji/只读模型挂载。
+记录见[第三阶段](docs/experiments/gpu-autonomy-stage3-20261109.md)。
+
+- [x] 新阶段1H100 GPU小时、最多同时1卡、最多3次900秒研究任务；CPU/动作额度单列，由Master分配。
+- [x] 25项定向/303项全量CPU回归通过；旧阶段SHA和来源审计通过，冻结本次实际执行源。
+- [x] Master自主继续原方向，分配24动作/4CPU运行/2GPU尝试；direction已开始自行修改筛选。
+- [x] direction自行修复筛选，18个CPU回归例通过，复现旧错并绑定当前科学代码SHA。
+- [x] 真实GPU实验及独立进程研究筛选通过，原协议延迟数据完成；Master主动stop，不追加运行。
+- [x] 两次来源审计一致、CPU独立重放两次、原始延迟重算及6类工程篡改拒绝通过；容器和角色均终止。
+- [x] 完整归档与公开内容审查通过；最终Git同步身份单列回执。
+
+入口`logs/gpu-autonomy-run-20261109-c01/`，准备/可信提交入口`logs/gpu-autonomy-stage3-prep-20261109-c01/`。
+不代写科学代码，不放宽原判据；阶段内通过request_budget交Master自动重分配，无需逐次找用户审批。
+GPU前要求自身CPU成功回执与实验/筛选脚本SHA匹配；原阶段错误保留，不算新发现。
+本次实际未触发预算重分配。累计4研究回合/8动作/1CPU/1GPU尝试/10usage事件，非精确API或token计费数。
+任务job-4fdd307bbdb9-20261109202445，code200、Completed/exit0，保守43GPU秒/容器26秒；两原生角色关闭。
+第三阶段微实验目标达成，不等于完整Phase1/真实模型RSI。无候选、controller验收或晋升；原容差、长度和计时脚本不变。
+机器状态`logs/gpu-autonomy-stage3-closeout-20261109-c01/stage-result.json`分开上述字段；后续由Master评估真实stock路径映射，先提案获批。
+
+## 已收口历史：依赖复验与原方向自主接续
 
 用户已批准，资源参数已确认；记录见[GPU自治第二阶段](docs/experiments/gpu-autonomy-stage2-20261109.md)。
 

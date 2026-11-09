@@ -6,7 +6,15 @@ from pathlib import Path
 
 from harness.experiment_executor import local_path
 
-CONTRACTS = {'legacy': (1560, 7200), 'stage2-preflight': (600, 3600), 'stage2-research': (1200, 3600)}
+CONTRACTS = {'legacy': (1560, 7200), 'stage2-preflight': (600, 3600), 'stage2-research': (1200, 3600), 'stage3-research': (900, 3600)}
+
+
+def research_limits(contract):
+    if contract not in CONTRACTS:
+        raise ValueError('unknown resource contract')
+    if contract == 'stage3-research':
+        return dict(model_turns=24, cpu_runs=8, gpu_attempts=3, usage_updates=128)
+    return dict(model_turns=16, cpu_runs=4, gpu_attempts=2, usage_updates=64)
 
 
 def digest(path):
@@ -26,8 +34,11 @@ def response_object(content):
     return value
 
 
-def validate_allocation(budget, remaining_actions):
-    limits = dict(actions=remaining_actions, cpu_runs=4, gpu_attempts=2)
+def validate_allocation(budget, remaining_actions, *, contract='legacy', remaining_cpu=None, remaining_gpu=None):
+    stage = research_limits(contract)
+    limits = dict(actions=remaining_actions,
+        cpu_runs=stage['cpu_runs'] if remaining_cpu is None else min(remaining_cpu, stage['cpu_runs']),
+        gpu_attempts=stage['gpu_attempts'] if remaining_gpu is None else min(remaining_gpu, stage['gpu_attempts']))
     if not isinstance(budget, dict) or set(budget) != set(limits):
         raise ValueError('master allocation fields required')
     for name, limit in limits.items():
@@ -43,7 +54,7 @@ def freeze_request(work, action, output, *, attempts, contract='legacy'):
     pod_deadline, stage_ceiling = CONTRACTS[contract]
     if contract == 'stage2-preflight' and attempts != 0:
         raise ValueError('only one dependency preflight allowed')
-    if type(attempts) is not int or not 0 <= attempts < 2:
+    if type(attempts) is not int or not 0 <= attempts < research_limits(contract)['gpu_attempts']:
         raise ValueError('GPU attempt ceiling reached')
     if not isinstance(action, dict) or set(action) != {'kind', 'path', 'acceptance'} or action['kind'] != 'run_gpu_python':
         raise ValueError('bounded GPU action required; role cannot grant authority')
@@ -96,7 +107,7 @@ def verify_request(directory):
         raise ValueError('GPU contract changed')
     if manifest['total_stage_gpu_seconds_ceiling'] != ceiling or manifest['script_wall_seconds'] != 180:
         raise ValueError('GPU resource ceiling changed')
-    if type(manifest['attempt']) is not int or not 1 <= manifest['attempt'] <= (1 if contract == 'stage2-preflight' else 2):
+    if type(manifest['attempt']) is not int or not 1 <= manifest['attempt'] <= (1 if contract == 'stage2-preflight' else research_limits(contract)['gpu_attempts']):
         raise ValueError('GPU attempt ceiling changed')
     if manifest['reserved_gpu_seconds'] != manifest['attempt'] * deadline or manifest['controller_accepted'] is not False:
         raise ValueError('GPU reservation or authority changed')
@@ -106,6 +117,18 @@ def verify_request(directory):
     if manifest['script_sha256'] != manifest['files'][manifest['script']]:
         raise ValueError('script identity changed')
     return manifest
+
+
+def require_cpu_debug(work, records, action):
+    work = Path(work)
+    expected = {name: digest(work / name) for name in (action['path'], action['acceptance'])}
+    for path in Path(records).glob('tools-*/action-*/response.json'):
+        response = json.loads(path.read_text())
+        value = json.loads(response['contentItems'][0]['text'])
+        snapshot = value.get('workspace_code_sha256', {})
+        if response['success'] and value.get('exit_code') == 0 and all(snapshot.get(name) == identity for name, identity in expected.items()):
+            return dict(receipt=str(path), receipt_sha256=digest(path), scientific_code_sha256=expected)
+    raise ValueError('run a successful research CPU self-check after the current scientific code was written')
 
 
 def job_rows(content, name):

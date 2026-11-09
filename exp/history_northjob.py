@@ -5,7 +5,7 @@ import sys
 
 
 def with_model_mount(template, deadline=1560):
-    if type(deadline) is not int or deadline not in (600,1200,1560):
+    if type(deadline) is not int or deadline not in (600,900,1200,1560):
         raise ValueError('unsupported bounded pod deadline')
     result=copy.deepcopy(template)
     tasks=result['spec']['tasks']

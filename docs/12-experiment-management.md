@@ -48,7 +48,13 @@ GitHub origin：`https://github.com/china-qijizhifeng/SpecPilot-reproduction.git
 
 ## 4. 当前阶段索引
 
-最新已收口、科学目标未达：[GPU自治第二阶段](experiments/gpu-autonomy-stage2-20261109.md)。
+最新微实验目标达成：[第三阶段自主修复与完整微实验](experiments/gpu-autonomy-stage3-20261109.md)。
+direction自行修复、18例CPU回归通过；真实GPU原协议及独立进程研究筛选成功，原始11轮数据重算通过。
+25定向/303全量回归、两次来源审计一致、两次CPU重放及6类工程篡改拒绝通过；保守43GPU秒，容器/两角色终止。
+Master主动stop；有有效合成算子数据，但无CI、真实模型生成、候选/晋升或完整Phase1/RSI证明。
+清单`logs/gpu-autonomy-stage3-evidence-20261109-c01.sha256`另建，不覆盖旧314文件证据。
+
+历史已收口、科学目标未达：[GPU自治第二阶段](experiments/gpu-autonomy-stage2-20261109.md)。
 1次依赖预检成功，2次研究分别因延迟加载子进程拒绝、direction筛选头维度错误失败；可信固定依赖预加载已GPU验证。
 38定向/299回归、来源/原始输出/重复审计、5类协议篡改拒绝通过；保守134GPU秒，三任务及8角色进程均结束。
 Master最终stop，无有效延迟数据、候选或controller晋升；下一阶段需direction自主修复及CPU自检，不由主助手代做研究。
