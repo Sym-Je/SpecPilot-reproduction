@@ -16,7 +16,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 | 4 | 验证作者 final 的收益 | ✅ 产物测量完成 | final/AR=8.7347× [8.0235,9.5599]；直接 final/stock=2.2219× [2.1381,2.2988]，见[验收记录](docs/experiments/p3-final-2048-20261107.md) |
 | 5 | 真实正确性、噪声与晋升判据 | ✅ dev联合验收完成 | [验收记录](docs/experiments/dev-joint-20261108.md)：30请求、当前前后null、两轮换卡与实际测速输出forcing均通过；作者产物不写晋升账本 |
 | 6 | 建立独立 sealed 验证 | ⬜ 未开始 | 前置验收通过后由 controller 管理，agent 不接触内容 |
-| 7 | 真实 profiling 与成本模型 | 🟡 工具部分就绪 | 已有真实诊断profile与阶段归因；代表性stock replay及完整三因子尚缺 |
+| 7 | 真实 profiling 与成本模型 | 🔵 stock分析进行中 | [计数审计与有界profile](docs/experiments/bottleneck-20261109.md)已通过200项CPU回归，待远程实测；真实lattice replay及完整三因子尚缺 |
 | 8 | agent 自主提案与实现 | 🟡 候选接入通过，未搜索 | 启动option的no-op真实配对/评分接入通过；真实agent提案、源码机制与晋升尚缺 |
 | 9 | 多轮真实优化闭环与记忆 | ⬜ 待真实验证 | [mock 闭环](docs/06-gates.md)已跑通，不代表真实引擎闭环完成 |
 | 10 | 对照实验与最终报告 | ⬜ 未开始 | 分析各组件贡献，分别报告架构与数字复现证据 |
@@ -47,9 +47,9 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 
 **最新完成：**[真实candidate接入与no-op烟测](docs/experiments/candidate-20261109.md)：184项回归、关闭/开启两模式各两轮换卡、20pair/40臂行输出一致；40条实际输出FP32评分及绑定检查通过。两次CPU重放与2970项SHA通过；任务Completed/exit0，两卡已释放，折算0.395GPU小时。不改controller，不宣称优化收益或lossless。
 
-**正在做：**本阶段已收口，无运行任务，等待下一大步骤批准。执行源码pin=d526f76；首版仅启动option，未做自主搜索或正式晋升。
+**正在做：**已获批准执行[stock真实瓶颈分析](docs/experiments/bottleneck-20261109.md)。200项CPU回归通过，正在冻结源码及准备双H100任务；无profiler配对计时后单独采集20个有界profile，不实施优化。
 
-**接下来：**本阶段验收后，再报代表性stock profile/replay与真实成本模型方案。第一版candidate只支持启动参数option，不冒充任意源码patch接入；真实proposer与正式晋升/账本集成仍未就绪。不能运行mock入口冒充真实RSI；新大步骤另获批准，controller、eval及sealed由维护者负责。
+**接下来：**完成远程计数/trace核查、独立CPU重放与SHA归档，报告实测瓶颈及成本模型缺项，再决定下一大步骤。第一版candidate仅启动option；真实proposer与正式晋升/账本集成未就绪，不自动启动RSI或sealed。
 
 **已有基础：**三臂真实 server、dev验收、外部数据审计与mock闭环完成；**尚未复现论文原sealed数字或真实RSI方法结论。**
 

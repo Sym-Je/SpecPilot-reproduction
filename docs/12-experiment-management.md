@@ -41,6 +41,10 @@ Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果
 
 ## 4. 当前阶段索引
 
+正在执行：[stock真实瓶颈、计数审计与部分成本模型](experiments/bottleneck-20261109.md)。
+已获批准，200项CPU回归通过，待冻结源码及提交2H100/1小时诊断任务。
+先无profiler双卡换卡20pair，再单独20个有界profile；完整成本模型缺项保持null，不实施优化。
+
 最新完成：[真实candidate接入与no-op双卡烟测](experiments/candidate-20261109.md)。184回归、
 关闭/开启各两轮换卡、20pair/40臂行输出一致与40条实际输出FP32评分/绑定通过；两次CPU重放字节一致，
 2970项SHA通过。pin=d526f76，UUID=`job-4fcf9416b13f-20261109072806`已Completed/exit0，

@@ -1,7 +1,21 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 UTC+08（candidate接入/双卡烟测/重放/归档完成，无运行任务）。
+> 最后更新：2026-11-09 UTC（stock瓶颈分析已批准，200项CPU通过，待远程执行）。
+
+## 最新接续点：stock瓶颈分析执行中，不进入优化或RSI
+
+- 用户已批准本阶段内自主执行，唯一记录`docs/experiments/bottleneck-20261109.md`。
+  原5suite前2题共10公开dev/2048cap/自然EOS；先stock/stock两轮fresh换卡，20pair/40臂行，
+  再两卡各fresh stock采10题，共20探针。每server有短预热与完整10题同尺度预热。
+- 新观察层只做计数代数一致性、明确标签/correlation阶段归因与可识别BF16 mm子集名义情景，
+  不拿直方图冒充lattice replay，不将128个公开profiling步预称128次VERIFY。
+  完整三因子/ceiling缺证据均为null；不改旧floor或controller，不读sealed/作者实现/私有逐题输出。
+- 新16项/全200项CPU回归通过，准备日志`logs/bottleneck-prep-20261109-a01/`。
+  下一内部动作冻结源码tar→当前CLI查重/展示完整2GPU命令→create一次核对code200及精确UUID。
+  沿用原确认digest、WeaverDev/qiji/toleration，1节点×2H100/256Gi，最长1小时/2GPU小时。
+- 远程结束后两次CPU受控重放、SHA归档、资源清理、README/交接/阶段提交推送后停止。
+  真实candidate前阶段已完成，不重跑；不自动优化、晋升、RSI或sealed。
 
 ## 最新接续点：真实candidate启动option接入完成，不自动开始自主搜索
 
