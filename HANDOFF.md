@@ -1,9 +1,37 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 北京时间（用户确认公开仓库并批准发布同步；独立Codex入口已有限验收，GPU执行尚未接通）。
+> 最后更新：2026-11-09 北京时间（真实GPU失败反馈链路通过；两次依赖导入失败，科学实验未完成，Master已停止）。
 
-## 当前唯一接续点：GPU研究动作额度耗尽，等待是否追加最多4动作
+## 当前唯一接续点：CUDA运行库白名单修复待GPU复验，再由agent继续原实验
+
+- 本阶段用户批准后，Master自主选方向/预算、direction自主写实验/筛选，真实GPU代码与原生回包绑定通过。
+  仅有限GPU脚本执行/失败反馈闭环通过，**有效科学实验、真实27B生成、完整Phase 1/RSI均未完成**。
+- 2次create均code200/dataNone，按精确任务名解析native name并经Kubernetes确认UUID：
+  `job-097d59232135-20261109181434`、`job-71e60201ac44-20261109183113`，node233，均1H100/128Gi。
+  两者Job Aborted/Pod Failed/容器exit1；每任务观察到1个Pod UID/restart0，不宣称服务端零重试。
+- 首次GPU/8类权限探针通过后，实验在SGLang依赖导入时因.cache不可写失败；原错误交direction，Master自主授权纯缓存修复重试。
+  实验/筛选脚本SHA完全未变。第二次同样探针通过，随后因/usr/local/cuda/.../libcudart.so.12只读权限缺项失败。
+  两次stdout为空、screening未执行，无延迟/数值结果，假设未检验，不是证伪。
+- 最终16研究回合/26动作/2CPU运行/2GPU尝试/36 usage-update事件。主助手自设24动作曾不必要地索要追加审批，
+  已显式校准为28，未改用户GPU预算、16研究回合或controller判据；旧24动作记录/失败不覆盖。
+  Master最后stop，十个原生角色进程关闭，输入/canary未变。按创建至结束保守77GPU秒（容器31秒），原2GPU小时内。
+- 最新代码只补/usr/local/cuda标准运行库READ，不给整个/usr/local或用户目录权限；32定向/293总CPU回归通过，
+  最后这项库白名单修复**未GPU复验**。不因代码已改就自动新增第3个GPU任务。
+- 准备/旧失败：`logs/gpu-autonomy-prep-20261109-a01/`、run-a01/a02/a03；真实GPU及完整冻结源：run-a04/a05。
+  审计/资源/最终发布：`logs/gpu-autonomy-publish-20261109-a01/`；唯一阶段记录`docs/experiments/gpu-autonomy-20261109.md`。
+  两GPU源码tar均实际执行前冻结；早期CPU driver逐版本冻结缺项仍保留，不回写历史。
+- 下一阶段先说明方案获批：GPU验证最小运行库依赖，再由同逻辑Master/direction自主继续原实验。
+  不由主助手设计新研究、不改controller、不建sealed、不启动integration/kernel或DSH；无候选/晋升/论文新数字。
+- 收尾复验32定向/293回归通过，两个GPU独立审计及a05重复一致，10角色关闭/保护路径零diff通过。
+  机器状态`logs/gpu-autonomy-closeout-20261109-a01/stage-result.json`；新最终清单
+  `logs/gpu-autonomy-final-evidence-20261109-a01.sha256`，不覆盖195文件旧checkpoint。
+  新清单363文件/7949293字节、两次全SHA通过，SHA=eb02fade93db43364f45386f6721cfd67ac73c3368857a37d4e3fe249c888211。
+  Git最终同步身份单列`logs/gpu-autonomy-git-sync-20261109-a01.json`，不混进证据清单造成自引用。
+
+## 以下均为本阶段早期checkpoint与历史记录，不恢复旧阻塞或旧待办
+
+## 历史checkpoint：GPU研究动作额度曾耗尽
 
 - 用户批准必要权限后推进Master/direction真实GPU自治阶段，再次确认原镜像digest及WeaverDev项目。
   记录`docs/experiments/gpu-autonomy-20261109.md`；新实现为通用GPU脚本执行/反馈，不预设科学实验。

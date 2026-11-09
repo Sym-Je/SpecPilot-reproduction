@@ -48,12 +48,13 @@ GitHub origin：`https://github.com/china-qijizhifeng/SpecPilot-reproduction.git
 
 ## 4. 当前阶段索引
 
-当前未完成：[首轮受控GPU实验自治](experiments/gpu-autonomy-20261109.md)。
-用户已确认原镜像digest/WeaverDev；通用脚本执行器已写，本机30定向/291总CPU回归通过。
-真实Master/direction自主准备脚本并CPU检查；保留旧步数上限、方向额度与阶段额度混淆、复核写死stop等接入失败。
-Master自主分配剩余3动作后，累计24动作耗尽并停止；0GPU请求冻结/提交，无UUID，远程边界未验证。
-独立CPU协议审计明确gpu_autonomy_passed=false。已询问追加最多4动作，未获授权前不重启研究或GPU。
-原始角色回包/代码留logs，公开Git只含通用实现、状态及证据索引；不将现有脚本或CPU验收称为GPU阶段完成。
+当前有限失败反馈链路通过、科学实验未完成：[首轮受控GPU实验自治](experiments/gpu-autonomy-20261109.md)。
+用户确认原镜像digest/WeaverDev；32定向/293总CPU回归通过；真实Master/direction自主准备脚本，2次1H100执行均在导入时失败。
+两UUID为job-097d59232135-20261109181434、job-71e60201ac44-20261109183113，均Aborted/exit1，GPU/权限探针通过。
+原始错误回到direction，Master自主授权一次缓存修复重试再停止；科学代码/筛选判据不变。新CUDA库只读修复尚未GPU复验。
+累计16回合/26动作/2CPU/2GPU尝试、保守77GPU秒，容器均终止；无数值/延迟数据、候选或晋升。
+独立审计验证角色来源、原代码、原始输出、GPU/权限和预算；scientific_screens_passed=0，不当作完整Phase 1/RSI。
+旧24动作checkpoint与早期源码冻结缺项保留；后两次GPU实际执行前均有完整源tar及身份。原始代码/回包只留logs，不入公开Git。
 
 当前权限/主线收口已本地完成，公开同步获批：[Codex权限边界及主线收口](experiments/codex-boundary-20261109.md)、[公开同步记录](experiments/public-sync-20261109.md)。
 独立受限app-server与可信broker的真实非敏感探针8次动作/1次CPU运行，必要能力成功、红线拒绝；

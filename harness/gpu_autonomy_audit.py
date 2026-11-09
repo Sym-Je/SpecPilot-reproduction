@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import tarfile
 
 from harness.gpu_autonomy import digest, response_object, verify_request
 
@@ -51,6 +52,14 @@ def audit(root, require_gpu=True):
     final_cpu_runs = 0
     turns = 0
     gpu_turns = []
+    if (root / 'master-authorized-retry.json').exists():
+        authority = read(root / 'master-authorized-retry.json')
+        parent = Path(authority['authority_run'])
+        require(digest(parent / 'master-review.json') == authority['authority_sha256'], 'master retry authority changed')
+        require(read(parent / 'master-review.json')['decision'] == 'continue', 'retry lacks a real master decision')
+        require(read(parent / 'master-review.json') == read(parent / 'master/turn-02-response.json'), 'retry authority differs from actual master response')
+        original = verify_request(Path(authority['original_request']))
+        gpu_turns.append((dict(kind='run_gpu_python', path=original['script'], acceptance=original['acceptance']), dict(authored)))
     for role in ('master', 'direction'):
         directory = root / role
         manifest = read(directory / 'manifest.json')
@@ -104,9 +113,15 @@ def audit(root, require_gpu=True):
     requests = sorted(root.glob('gpu-*/request.json'))
     require(len(requests) <= len(gpu_turns) <= 2, 'GPU attempt identities inconsistent')
     successful = 0
+    scientific_screens = 0
     for request_path, (action, source_codes) in zip(requests, gpu_turns):
         directory = request_path.parent
         manifest = verify_request(directory)
+        source = read(directory / 'source-identity.json')
+        require(digest(directory / 'source.tar') == source['archive_sha256'], 'trusted source archive changed')
+        with tarfile.open(directory / 'source.tar') as archive:
+            for name, expected in source['source_sha256'].items():
+                require(hashlib.sha256(archive.extractfile(name).read()).hexdigest() == expected, 'frozen trusted source differs')
         require(manifest['script'] == action['path'] and manifest['acceptance'] == action['acceptance'], 'GPU script paths changed')
         for name in (manifest['script'], manifest['acceptance']):
             require(source_codes.get(name) == manifest['files'][name], 'GPU code differs from agent-authored code')
@@ -137,6 +152,7 @@ def audit(root, require_gpu=True):
                 require(run['proof']['gpu'] and all(run['proof']['boundary_checks'].values()), 'GPU confinement failed')
         if receipt['process_started'] and receipt['gpu_test_passed'] and receipt['boundary_passed']:
             successful += 1
+        scientific_screens += receipt['status'] == 'completed'
         feedback = read(directory / 'feedback.json')
         require(all(feedback.get(key) == value for key, value in receipt.items()), 'agent did not receive actual GPU feedback')
         require(feedback.get('job_uuid') and feedback.get('submission_code') == 200, 'submission identity missing')
@@ -146,14 +162,21 @@ def audit(root, require_gpu=True):
     require(result['counters']['cpu_runs'] == recovery['cpu_runs'] + native_cpu_runs + final_cpu_runs, 'CPU run accounting differs')
     require(result['counters']['gpu_attempts'] == recovery['gpu_attempts'] + len(requests), 'GPU attempt accounting differs')
     require(result['counters']['usage_updates'] == recovery['usage_updates'] + native_usage_updates, 'native update accounting differs')
-    require(result['counters']['actions'] <= 24 and result['counters']['cpu_runs'] <= 4 and result['counters']['gpu_attempts'] <= 2, 'resource budget exceeded')
+    action_limit = result.get('internal_action_limit', 24)
+    require(action_limit in (24, 28), 'unsupported internal action ceiling')
+    require(result['counters']['actions'] <= action_limit and result['counters']['cpu_runs'] <= 4 and result['counters']['gpu_attempts'] <= 2, 'resource budget exceeded')
     if require_gpu:
         require(successful > 0, 'no real constrained GPU feedback')
     review = read(root / 'master-review.json')
-    require(review == result['master_review'] and review.get('decision') == 'stop', 'master did not close the stage')
+    require(review == result['master_review'] and review.get('decision') in ('stop', 'continue'), 'master review not bound')
+    if review['decision'] == 'continue':
+        allocation = review['extra_budget']
+        require(all(type(allocation[name]) is int and 0 <= allocation[name] <= limit-result['counters'][counter]
+            for name, limit, counter in (('actions', action_limit, 'actions'), ('cpu_runs', 4, 'cpu_runs'), ('gpu_attempts', 2, 'gpu_attempts'))), 'master expanded stage limits')
     return dict(schema='gpu-autonomy-audit-v1', passed=True, gpu_autonomy_passed=successful > 0,
         current_run_model_turns=turns, current_run_native_tool_calls=native_calls,
         cumulative_counters=result['counters'], gpu_requests=len(requests), actual_gpu_feedback=successful,
+        scientific_screens_passed=scientific_screens, master_decision=review['decision'],
         code_authorship_bound=True if requests else None, raw_outputs_bound=True if requests else None,
         controller_accepted=False, scope='restricted GPU script receipts' if requests else
             'role protocol only; no GPU request, code execution or remote boundary verification')

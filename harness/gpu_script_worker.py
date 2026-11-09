@@ -13,6 +13,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from controller.landlock import Policy, READ, READ_FILE, WRITE, WRITE_FILE
 from harness.research_boundary import syscall_boundary
 
+GPU_RUNTIME_PATHS = ('/usr/local/cuda',)
+
 
 def deny_processes():
     library = ctypes.CDLL('libseccomp.so.2', use_errno=True)
@@ -57,6 +59,7 @@ def restrict(work, stock, models, gpu):
     if gpu:
         directories.extend(['/proc/self', '/proc/driver/nvidia', '/sys/devices',
             '/gpfs/users/jixinpeng/specpilot_data/shared/cuda-compat/usr/local/cuda-13.0/compat'])
+        directories.extend(GPU_RUNTIME_PATHS)
     for name in directories:
         if Path(name).exists():
             policy.add(name, READ)
@@ -67,7 +70,9 @@ def restrict(work, stock, models, gpu):
         for path in Path('/dev').glob('nvidia*'):
             if not path.is_dir():
                 policy.add(str(path), READ_FILE | WRITE_FILE)
-        policy.add(str(work / 'cache'), READ | WRITE)
+    for name in ('cache', '.cache'):
+        if (work / name).is_dir():
+            policy.add(str(work / name), READ | WRITE)
     policy.apply()
     syscall_boundary(False)
     deny_processes()

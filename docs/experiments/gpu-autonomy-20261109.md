@@ -2,6 +2,9 @@
 
 日期：2026-11-09（北京时间）；基准`facdbbc`。用户批准完整阶段，并再次确认以下配置。
 
+**当前状态：有限GPU执行/失败反馈已验证；科学实验未完成，Master已停止。**
+最终两任务、错误及验收见本文末尾；前面的零GPU/动作阻塞段落仅是保留的历史checkpoint。
+
 ## 目标、授权与边界
 
 复用独立受限Codex入口，跑通Master选一个方向 → direction自主设计/写代码/执行 →
@@ -50,7 +53,7 @@ GPU提交遵循northjob-submit：当前CLI帮助、本人凭据形状核对、�
 
 准备证据：`logs/gpu-autonomy-prep-20261109-a01/`。当前尚无GPU任务UUID或研究结论。
 
-## 当前实际结果：动作额度耗尽，GPU未执行
+## 历史checkpoint：动作额度耗尽，GPU未执行
 
 - 本机新增11测试、与既有权限测试合计28项通过；旧288项回归通过，新增严格拒绝测试后的最终回归另存regression-final.log。
 - a01真实Master选方向，direction使用13工具动作/1CPU运行后触发旧Client的12次usage-update上限；没有GPU。
@@ -96,3 +99,99 @@ GPU提交遵循northjob-submit：当前CLI帮助、本人凭据形状核对、�
   gpu_autonomy_passed=false、gpu_submissions=0、extra_actions_approved=false。
 - 仅提交已完成本机验收的工程checkpoint与状态文档；阶段目标未达成。
   公开发布审查和最终Git身份另记`logs/gpu-autonomy-publish-20261109-a01/`，不改写以上归档。
+
+## 阶段内接入参数更正
+
+24动作是主助手自设的接入限制，并非用户指定的GPU预算或controller判据；用户已批准整个阶段并允许阶段内自主调试。
+此前询问额外审批属于不必要的停顿。现显式将内部动作上限调整为28，仅接续同一逻辑方向，不抹去已用24动作。
+16研究回合、64个usage-update事件、4次CPU运行、2次GPU尝试及2GPU小时上限保持不变，镜像/项目/权限不变。
+恢复前将冻结完整实际源码，原样提供本方向已有脚本/反馈，由Master自行决定是否分配剩余4动作；不强制GPU或正结果。
+这是执行器参数校准，不是agent自批权限或放宽controller验收，也不表示用户另行批准过28这个具体数值。
+
+## 最终结果：有限执行/失败反馈链路通过，科学实验未完成
+
+以下取代前述checkpoint的当前状态，但不覆盖旧回包、计数和失败证据。
+Master自主分配方向与预算，direction自行编写实验/筛选脚本；主助手只修复通用执行器。
+两次GPU执行在进入科学实验前失败，实际数值筛选和延迟测量均未完成，**不是原假设被证伪**。
+
+| 尝试 | 服务端身份 | 实际执行与失败 | 研究反馈 |
+|---|---|---|---|
+| 1 | `job-097d59232135-20261109181434` | GPU及8类边界探针通过，SGLang依赖导入因工作区`.cache`不可写退出 | 原错误交direction，Master授权仅修复私有缓存后重试一次 |
+| 2 | `job-71e60201ac44-20261109183113` | GPU及边界探针通过，FlashInfer导入读取`/usr/local/cuda/targets/x86_64-linux/lib/libcudart.so.12`遭拒 | direction与Master收到实际错误；Master最终`stop`，不提交第三个任务 |
+
+- 两次create均返回code200/dataNone；通过精确查名的native `name`字段和Kubernetes metadata确认UUID，
+  不把缺失的`job_uuid`字段或create回包本身当作身份验证成功。
+- 两次均1×H100/128Gi/1560秒硬期限，模型PVC只读、非privileged、非hostNetwork；请求项目`WeaverDev`、
+  namespace/queue=`qiji`，服务端实际queue=`proj-31`。镜像digest和toleration与用户确认值一致。
+- node233上两任务最终Job Aborted/Pod Failed/容器exit1；分别观察到1个Pod UID和restart0。
+  `maxRetry`/`retryCount`无值，**不声称集群级零重试**，也不声称整个节点空闲。
+- 创建至终止分别36秒/41秒，保守累计**77 GPU秒**；容器运行13秒/18秒，合计31秒。
+  原上限7200 GPU秒未耗尽；停止因为两次尝试及16研究回合上限与Master决策，不是GPU时间预算耗尽。
+- 累计16研究回合/26动作/2CPU运行/2GPU尝试/36个usage-update事件。它们不是精确后台API请求数或计费token。
+  10个原生角色进程均exit0关闭，输入和无敏感canary保持不变。
+- 两次实验脚本SHA均为`d0fe34655ede755c9c014e4f87aed170396a38c154c42065f310f58effb984e9`，
+  筛选脚本SHA均为`046b834bec017073344408632c63c3a87863a6bd80701ec57eb6c9c3e4f030fd`。
+  重试来自Master真实continue回包，不伪装成新的direction请求；没有人工更改科学设计或筛选判据。
+
+### 修复范围与验收边界
+
+首次修复只让工作区私有`cache`/`.cache`可写并设置相关缓存环境变量，不开放inputs写入。
+第二次失败后仅增加标准`/usr/local/cuda`树的READ权限，不开放整个`/usr/local`或用户目录。
+该最后修复经CPU内核fixture验证只读CUDA运行库可读、同级private仍不可读，**尚未GPU复验**。
+不能用CPU回归通过断言真实GPU依赖导入已修好。
+
+32项定向及293项全harness CPU回归通过；收尾复验全量耗时34.281秒。
+两真实GPU回执均独立审计通过，a05重复审计字节一致；核对了实际角色请求、恢复来源、Master重试授权、
+执行前源tar、原代码、原始输出、GPU/边界证明及资源计数。5类协议篡改被拒只属于工程审计，不是controller数值故障注入。
+
+审计字段`gpu_autonomy_passed=true`及旧driver的`status=completed`仅表示有限执行/失败反馈，
+**不表示科学实验完成**。收尾机器状态明确分开：
+
+```json
+{
+  "execution_feedback_loop_verified": true,
+  "scientific_experiment_completed": false,
+  "scientific_screens_passed": 0,
+  "controller_accepted": false,
+  "full_phase1_completed": false,
+  "real_engine_rsi_completed": false,
+  "cuda_runtime_repair_gpu_revalidated": false
+}
+```
+
+没有真实27B生成、新的性能数字、候选晋升、lossless或论文复现结论。
+实验stdout均为空，acceptance未执行；错误stderr和失败回执保留，不将缺数据写成零收益。
+controller/eval/账本/记忆/stock及作者final未修改，未读取sealed。
+
+### 最终复验与证据
+
+```bash
+PY=/gpfs/users/jixinpeng/miniconda3/envs/dev/bin/python
+OUT=logs/gpu-autonomy-closeout-20261109-a01
+CUDA_VISIBLE_DEVICES='' "$PY" -B -m unittest harness.test_p19_gpu_autonomy harness.test_p18_research_boundary > "$OUT/tests.log" 2>&1
+CUDA_VISIBLE_DEVICES='' "$PY" -B -m unittest discover -s harness -p 'test_p*.py' > "$OUT/regression.log" 2>&1
+"$PY" -B -m harness.gpu_autonomy_audit --directory logs/gpu-autonomy-run-20261109-a04 > "$OUT/audit-a04.json"
+"$PY" -B -m harness.gpu_autonomy_audit --directory logs/gpu-autonomy-run-20261109-a05 > "$OUT/audit-a05.json"
+"$PY" -B -m harness.gpu_autonomy_audit --directory logs/gpu-autonomy-run-20261109-a05 > "$OUT/audit-a05-repeat.json"
+cmp "$OUT/audit-a05.json" "$OUT/audit-a05-repeat.json"
+"$PY" -B "$OUT/verify.py"
+git diff --exit-code facdbbc -- controller orchestrator patches costmodel assets/upstream eval ledger memory
+git diff --check
+```
+
+- GPU执行证据：`logs/gpu-autonomy-run-20261109-a04/`和`logs/gpu-autonomy-run-20261109-a05/`，
+  各含冻结源tar、源身份、提交/任务身份、原始GPU输出与生命周期。a05另含`master-authorized-retry.json`。
+- 实际角色启动前源码：`logs/gpu-autonomy-publish-20261109-a01/a04-execution-source.tar`及a05同名形式，
+  身份见各`a04-source.json`/`a05-source.json`。早期CPU逐版本源码缺项仍保留，不用这些tar补写历史。
+- 收尾机器状态：`logs/gpu-autonomy-closeout-20261109-a01/stage-result.json`。
+  新最终SHA清单：`logs/gpu-autonomy-final-evidence-20261109-a01.sha256`，不覆盖旧195文件checkpoint清单。
+  清单身份及校验统计见`logs/gpu-autonomy-final-evidence-20261109-a01.json`。
+  共363文件/7,949,293逻辑字节，两次全SHA校验通过；清单SHA256为
+  `eb02fade93db43364f45386f6721cfd67ac73c3368857a37d4e3fe249c888211`。
+- 最终同步回执另存`logs/gpu-autonomy-git-sync-20261109-a01.json`，不放入上述清单，避免自引用。
+  公开Git只发布通用实现、脱敏状态和证据索引，不发布原始角色上下文、方向脚本或实验输出。
+
+### 下一阶段（待批准，不执行）
+
+先用最小GPU依赖预检复验新运行库只读白名单，确认导入可用后，再由Master/direction自主接续原实验。
+预算及提交参数按新阶段核对，不自动提交第三个任务；不由主助手设计研究，不自动进入integration/kernel、sealed或DSH。

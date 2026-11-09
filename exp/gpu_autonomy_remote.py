@@ -26,6 +26,8 @@ def execute(work, program, output, canary, stock, models):
         CUDA_CACHE_PATH=str(work / 'cache'), XDG_CACHE_HOME=str(work / 'cache'),
         HF_HUB_OFFLINE='1', PYTHONDONTWRITEBYTECODE='1', OPENBLAS_NUM_THREADS='1', OMP_NUM_THREADS='1',
         SP_TARGET=os.environ.get('SP_TARGET', ''), SP_DRAFT=os.environ.get('SP_DRAFT', ''))
+    environment.update(TORCHINDUCTOR_CACHE_DIR=str(work / 'cache/torchinductor'),
+        TRITON_CACHE_DIR=str(work / 'cache/triton'), TORCH_EXTENSIONS_DIR=str(work / 'cache/extensions'))
     payload = dict(work=str(work), program=program, canary=str(canary), stock=str(stock), models=models, cpu_probe=False)
     started = time.monotonic()
     timed_out = False
@@ -61,6 +63,7 @@ def run(request, output):
     work = output / 'work'
     shutil.copytree(request / 'work', work)
     (work / 'cache').mkdir()
+    (work / '.cache').mkdir()
     canary = output / 'protected-canary.txt'
     canary.write_text('nonsecret remote boundary fixture\n')
     canary_sha = digest(canary)

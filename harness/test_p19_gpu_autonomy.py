@@ -152,6 +152,50 @@ class GpuAutonomyTests(unittest.TestCase):
                     client.receive()
                     self.assertEqual(client.usage_updates, 13)
 
+    def test_private_cache_writable_but_inputs_still_readonly(self):
+        (self.work / '.cache').mkdir()
+        (self.work / 'cache').mkdir()
+        (self.work / 'scratch/experiment.py').write_text('from pathlib import Path; Path(".cache/probe.txt").write_text("allowed cache")')
+        canary = self.root / 'protected.txt'
+        canary.write_text('nonsecret fixture')
+        worker = Path(__file__).with_name('gpu_script_worker.py')
+        payload = dict(work=str(self.work), program='scratch/experiment.py', canary=str(canary),
+            stock=None, models=[], cpu_probe=True)
+        result = subprocess.run([sys.executable, '-I', '-B', str(worker)], input=json.dumps(payload),
+            capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.work / '.cache/probe.txt').read_text(), 'allowed cache')
+        self.assertTrue(json.loads(result.stderr.splitlines()[0])['boundary_checks']['rules_write'])
+
+    def test_gpu_runtime_read_grant_does_not_allow_write_or_sibling_access(self):
+        runtime = self.root / 'cuda-runtime'
+        runtime.mkdir()
+        library = runtime / 'libcudart.fixture'
+        library.write_text('nonsecret runtime fixture')
+        canary = self.root / 'protected.txt'
+        canary.write_text('nonsecret protected fixture')
+        (self.work / 'cache').mkdir()
+        (self.work / '.cache').mkdir()
+        root = Path(__file__).resolve().parents[1]
+        program = f'''import sys
+sys.path.insert(0,{str(root)!r})
+from pathlib import Path
+from harness import gpu_script_worker as worker
+worker.GPU_RUNTIME_PATHS=({str(runtime)!r},)
+worker.restrict(Path({str(self.work)!r}),None,[],True)
+assert Path({str(library)!r}).read_text()=="nonsecret runtime fixture"
+for path,mode in (({str(library)!r},"w"),({str(canary)!r},"r")):
+    try:
+        open(path,mode)
+    except PermissionError:
+        continue
+    raise AssertionError("unexpected authority")
+print("runtime read only; sibling denied")
+'''
+        result = subprocess.run([sys.executable, '-I', '-B', '-c', program], capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(library.read_text(), 'nonsecret runtime fixture')
+
 
 if __name__ == '__main__':
     unittest.main()

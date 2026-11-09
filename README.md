@@ -19,7 +19,7 @@ GitHub：[china-qijizhifeng/SpecPilot-reproduction](https://github.com/china-qij
 | 5 | 真实正确性、噪声与晋升判据 | ✅ dev联合验收完成 | [验收记录](docs/experiments/dev-joint-20261108.md)：30请求、当前前后null、两轮换卡与实际测速输出forcing均通过；作者产物不写晋升账本 |
 | 6 | 建立独立 sealed 验证 | ⬜ 未开始 | 前置验收通过后由 controller 管理，agent 不接触内容 |
 | 7 | 真实 profiling 与成本模型 | 🟡 profiling/线性重放通过 | [stock诊断](docs/experiments/bottleneck-20261109.md)与[真实链重放](docs/experiments/step-replay-20261109.md)完成；完整最佳树/三因子仍缺 |
-| 8 | agent 自主提案与实现 | 🟡 CPU与受限入口通过，GPU未接通 | CPU自治与独立Codex入口的非敏感权限探针已验收；旧spawn接口不继承该保证，尚无真实GPU自主实验 |
+| 8 | agent 自主提案与实现 | 🟡 有限GPU失败反馈通过，实验未完成 | Master/direction自主准备脚本、2次真实GPU执行；依赖导入均失败，无有效科学数据或候选；不是完整Phase 1 |
 | 9 | 多轮真实优化闭环与记忆 | ⬜ 待真实验证 | [mock 闭环](docs/06-gates.md)已跑通，不代表真实引擎闭环完成 |
 | 10 | 对照实验与最终报告 | ⬜ 未开始 | 分析各组件贡献，分别报告架构与数字复现证据 |
 
@@ -69,9 +69,11 @@ GitHub：[china-qijizhifeng/SpecPilot-reproduction](https://github.com/china-qij
 
 **发布状态：**用户确认本人主动将仓库设为public，并批准按公开标准同步，原“仅授权私有同步”的阻塞已解除。公开发布审查、范围与版本核对见[同步记录](docs/experiments/public-sync-20261109.md)；不上传原始证据、凭据或受限数据，不改变仓库可见性。
 
-**正在做：**[首轮GPU自治接入](docs/experiments/gpu-autonomy-20261109.md)已获批，镜像/WeaverDev项目已确认；Master自行选方向，direction自行写脚本和CPU检查。累计10研究回合/24动作/2CPU运行，动作额度耗尽，Master已停止；**0GPU提交，GPU自治尚未验收**。已询问是否追加最多4动作，不擅自扩额。当前计划见 [PLANS.md](PLANS.md)。
+**最新进展：**[首轮GPU自治接入](docs/experiments/gpu-autonomy-20261109.md)验证了Master自主立项、direction编写脚本、真实GPU执行及错误反馈、Master授权一次修复重试并最终停止。两任务均在依赖导入时失败：先是缓存写权限，再是CUDA运行库读取权限；**无有效筛选/延迟数据、候选或晋升，不证明假设为假**。
 
-**接下来：**审核[最小真实GPU自主实验方案](docs/experiments/codex-gpu-autonomy-proposal-20261109.md)，再接通受限角色到GPU执行/反馈链；Master选方向，direction自主设计与迭代。资源提案为最多2×H100、合计2GPU小时，尚未授权；镜像/提交参数需重新核对确认。不恢复旧补采，不预设VERIFY优化，不自动进入RSI或sealed。
+**当前状态：**本阶段已收口，科学实验未完成，下一阶段待批准。最小运行库白名单修复已做，32项定向/293项CPU回归通过，但最新修复尚未GPU复验；两次任务均已终止，不再追加本阶段GPU任务。累计16研究回合/26动作/2CPU运行/2GPU尝试，保守77GPU秒。当前计划见 [PLANS.md](PLANS.md)。
+
+**接下来：**先审核下一阶段的最小运行库复验与原方向接续方案，再由agent继续科学实验；不把失败反馈闭环等同于有效实验或真实模型RSI完成。不恢复旧补采，不由主助手指定优化，不自动进入integration/kernel或sealed。
 
 **已有基础：**三臂真实 server、dev验收、外部数据审计与mock闭环完成；**尚未复现论文原sealed数字或真实RSI方法结论。**
 
