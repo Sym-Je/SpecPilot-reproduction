@@ -184,6 +184,8 @@ def run(experiment_id):
     assert request['split'] == 'dev'
     assert request['source_sha256'] == sha(__file__), 'Execution source changed after submission'
     validate_config(request['config'])
+    assert all(sha(OUT / name) == expected for name, expected in request['execution_pins'].items()), 'Queued dependency changed'
+    assert sha(OUT / 'installed-engine-source-manifest.json') == request['installed_engine_manifest_sha256']
     state = {'id': experiment_id, 'status': 'queued', 'created_epoch': time.time(), 'request': request,
              'screening_only': True, 'validation_opened': False}
     def save(): write(directory / 'state.json', state)
@@ -191,6 +193,11 @@ def run(experiment_id):
     signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(RuntimeError('Experiment cancellation')))
     with (ROOT / 'evaluation/npu-workload.lock').open('a+') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
+        assert all(sha(OUT / name) == expected for name, expected in request['execution_pins'].items()), 'Dependency changed while waiting for NPU'
+        from research_broker import SOURCE_ROOTS
+        for name, expected in json.loads((OUT / 'installed-engine-source-manifest.json').read_text()).items():
+            tree, relative = name.split('/', 1)
+            assert sha(SOURCE_ROOTS[tree] / relative) == expected, 'Installed engine changed: ' + name
         assert json.loads((OUT / 'baseline-state.json').read_text())['status'] == 'complete'
         selection = json.loads((ROOT / 'deployment/selected/selection.json').read_text())
         assert selection['selected_mode'] == 'MRV1-fixed-DSpark-K7'
@@ -251,4 +258,15 @@ def run(experiment_id):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(); parser.add_argument('--id', required=True)
-    run(parser.parse_args().id)
+    arguments = parser.parse_args()
+    try:
+        run(arguments.id)
+    except BaseException as exc:
+        if re.fullmatch(r'[a-z0-9-]{1,145}', arguments.id):
+            path = OUT / 'experiments' / arguments.id / 'state.json'
+            if path.parent.is_dir():
+                state = json.loads(path.read_text()) if path.exists() else {'id': arguments.id}
+                if state.get('status') != 'failed':
+                    state.update(status='failed', error=f'{type(exc).__name__}: {exc}', failed_epoch=time.time())
+                    write(path, state)
+        raise

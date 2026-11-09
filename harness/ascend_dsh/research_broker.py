@@ -138,7 +138,9 @@ class Broker:
                 if len(self.state['experiments']) >= self.allocation['max_experiments']: raise RuntimeError('Three experiments per direction ceiling')
                 folder.mkdir(mode=0o700, parents=True)
                 request = {'id': experiment_id, 'role': self.role, 'config': args['config'], 'mode': args['mode'],
-                           'split': 'dev', 'created_epoch': time.time(), 'source_sha256': sha(OUT / 'experiment_runner.py')}
+                           'split': 'dev', 'created_epoch': time.time(), 'source_sha256': sha(OUT / 'experiment_runner.py'),
+                           'execution_pins': {name: sha(OUT / name) for name in ('experiment_runner.py', 'activity_watchdog.py', 'run_baseline.py', 'audit_baseline.py', 'prepare_baseline.py', 'launch-mrv1.sh', 'plan.json', 'baseline-input-manifest.json')},
+                           'installed_engine_manifest_sha256': sha(OUT / 'installed-engine-source-manifest.json')}
                 write(folder / 'request.json', request)
                 with (folder / 'supervisor.log').open('xb') as log:
                     p = subprocess.Popen([str(ROOT / '.venv/bin/python'), str(OUT / 'experiment_runner.py'),
