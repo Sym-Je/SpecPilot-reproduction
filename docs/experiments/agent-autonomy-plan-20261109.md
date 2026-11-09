@@ -1,6 +1,6 @@
 # Master统筹与Direction自主实验能力：待审核方案
 
-日期：2026-11-09（北京时间）。状态：方案草案，未获实施授权。
+日期：2026-11-09（北京时间）。状态：用户已批准首阶段实现与CPU回路验收；不授权GPU。
 用户已停止主助手人工推进的接受历史补采；保留旧代码/证据，不判断点子无效，不算自主探索完成。
 
 ## 目标
@@ -33,4 +33,24 @@ master负责方向拆分、预算分配、跨方向统筹和继续/终止决策�
 - 权限隔离需实际验证，不能只靠提示语声称物理隔离。工具权限不足时如实列为缺项，不让主助手代做实验掩盖。
 - 正式性能验收仍为双卡同请求/换卡；单臂诊断不得冒充paired CI。新门槛不能由实现者自行放宽。
 
-先由用户审核此主线及首阶段范围，再写实现或启动真实实验；本文件不授权GPU或自主搜索。
+用户已用“开始”批准上述首阶段；本文件不授权GPU或完整自主优化搜索。
+
+## 本阶段验收先行
+
+```bash
+PY=/gpfs/users/jixinpeng/miniconda3/envs/dev/bin/python
+CUDA_VISIBLE_DEVICES='' "$PY" -B -m unittest harness.test_p15_autonomy
+CUDA_VISIBLE_DEVICES='' "$PY" -B -m unittest discover -s harness -p 'test_p*.py'
+git diff --exit-code 12f08a0 -- controller orchestrator patches costmodel assets/upstream ledger memory
+git diff --check
+```
+
+实现通用write_file/read_file/read_stock/list_stock/run_python接口，不新增专用科学算法工具。
+CPU脚本仅可读自身工作目录/公开证据和运行库；代码写入由broker执行，脚本运行时文件系统只读，结果经stdout/stderr返回。
+实际Landlock+seccomp验证越界读写、网络、子进程和GPU设备被拒绝，限制CPU/内存/输出/墙钟；不可用就拒绝执行，不降级。
+子agent后端自身的工具访问只能按提示约束，不能把脚本执行沙箱说成模型后端的物理隔离。
+master自主分配最多2个方向和预算，可依据真实反馈继续/停止；direction编写任意受控CPU实验并依反馈迭代。
+全阶段最多24个broker动作、8次CPU运行，每次6秒墙钟/3秒CPU/768MiB/每流64KiB输出；GPU预算固定0。
+允许证据不足或假设被否定；验收至少记录一次真实agent自产脚本执行与后续决策，不预置方向/预测器/样本规则。
+旧接受历史补采保持取消；不继承旧聊天、作者答案或固定registry，不以调用旧算术接口冒充新执行能力。
+工具回包/代码/退出码/实际角色回执/版本/预算均绑定，两次CPU审计及完整回归后更新主页与交接并推送。
