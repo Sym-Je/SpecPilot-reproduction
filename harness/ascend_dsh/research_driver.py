@@ -52,8 +52,10 @@ def parse_answer(answer):
     except json.JSONDecodeError:
         # Accept a terminal standalone JSON object; never parse inline prose/code.
         candidates = []
-        for match in re.finditer(r'(?m)^\{', text):
-            try: candidates.append(json.loads(text[match.start():]))
+        # Some gateways leave a literal \\n outside the final JSON object.
+        # Treat that separator as a boundary; never unescape the JSON payload.
+        for match in re.finditer(r'(?:^|\n|\\n)(\{)', text):
+            try: candidates.append(json.loads(text[match.start(1):]))
             except json.JSONDecodeError: pass
         if len(candidates) != 1: raise
         value = candidates[0]

@@ -90,7 +90,8 @@ class Broker:
                     'configuration_only_capabilities': True,
                     'patches': 'Source/kernel patches can be submitted for independent review; not auto-executed by the broker.'}
         if name == 'budget':
-            x = json.loads((OUT / 'billing/state.json').read_text())
+            ledger = 'billing-gpt' if os.environ.get('SP_BUDGET_PHASE') == 'gpt' else 'billing'
+            x = json.loads((OUT / ledger / 'state.json').read_text())
             return {k: x[k] for k in ('limit_micro_usd', 'conservative_reserved_micro_usd', 'observed_gateway_delta_micro_usd', 'stopped')}
         raise ValueError('Evidence name not authorized')
 

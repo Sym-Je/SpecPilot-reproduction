@@ -97,10 +97,29 @@ def reserve_amount(input_bytes, max_tokens):
 
 
 class Budget:
-    def __init__(self, directory=HERE / 'billing'):
+    def __init__(self, directory=HERE / 'billing', *, model=MODEL,
+                 limit_micro_usd=LIMIT_MICRO_USD, quota_per_usd=QUOTA_PER_USD):
         self.directory = Path(directory)
         self.directory.mkdir(mode=0o700, exist_ok=True)
         self.state_path = self.directory / 'state.json'
+        self.model = model
+        self.limit = limit_micro_usd
+        self.quota_per_usd = quota_per_usd
+
+    def persist(self, state, action, result):
+        state['last_updated_epoch'] = time.time()
+        tmp = self.state_path.with_suffix('.tmp')
+        with tmp.open('w') as f:
+            json.dump(state, f, ensure_ascii=False, indent=2); f.write('\n'); f.flush(); os.fsync(f.fileno())
+        tmp.replace(self.state_path)
+        directory_fd = os.open(self.directory, os.O_RDONLY | os.O_DIRECTORY)
+        try: os.fsync(directory_fd)
+        finally: os.close(directory_fd)
+        with (self.directory / 'events.jsonl').open('a') as f:
+            f.write(json.dumps({'epoch': time.time(), 'action': action, 'result': result,
+                                'reserved_micro_usd': state['conservative_reserved_micro_usd'],
+                                'observed_gateway_delta_micro_usd': state['observed_gateway_delta_micro_usd']}) + '\n')
+            f.flush(); os.fsync(f.fileno())
 
     def transact(self, action, payload, snapshot):
         with (self.directory / 'mutex').open('a+') as lock:
@@ -108,14 +127,15 @@ class Budget:
             if self.state_path.exists():
                 state = json.loads(self.state_path.read_text())
             else:
-                state = {'schema': 'northgate-budget-v1', 'model': MODEL,
-                         'limit_micro_usd': LIMIT_MICRO_USD, 'reservations': {},
+                state = {'schema': 'persistent-model-budget-v2', 'model': self.model,
+                         'limit_micro_usd': self.limit, 'reservations': {},
                          'start_gateway_quota': snapshot['total_used_quota'],
                          'conservative_reserved_micro_usd': 0, 'observed_gateway_delta_micro_usd': 0,
                          'created_epoch': time.time(), 'stopped': False}
+            assert state['model'] == self.model, 'Ledger model mismatch'
             assert type(state['limit_micro_usd']) is int and state['limit_micro_usd'] > 0
             previous_limit = state['limit_micro_usd']
-            state['limit_micro_usd'] = min(previous_limit, LIMIT_MICRO_USD)
+            state['limit_micro_usd'] = min(previous_limit, self.limit)
             if state['limit_micro_usd'] < previous_limit:
                 state.setdefault('limit_changes', []).append({'epoch': time.time(),
                     'from_micro_usd': previous_limit, 'to_micro_usd': state['limit_micro_usd'],
@@ -124,18 +144,21 @@ class Budget:
             if delta < 0:
                 raise RuntimeError('Gateway usage counter reset; refuse admission')
             state['observed_gateway_delta_micro_usd'] = max(
-                state['observed_gateway_delta_micro_usd'], math.ceil(delta * 1_000_000 / QUOTA_PER_USD))
+                state['observed_gateway_delta_micro_usd'], math.ceil(delta * 1_000_000 / self.quota_per_usd))
             state['latest_gateway_snapshot'] = snapshot
             if action == 'reserve':
-                if state['stopped']:
-                    raise RuntimeError('Budget stopped')
-                assert payload['model'] == MODEL
+                assert payload['model'] == self.model
                 role_id = payload.get('role_id', 'unknown')
                 if sum(r['request'].get('role_id', 'unknown') == role_id for r in state['reservations'].values()) >= 96:
                     raise RuntimeError('Per-role 96 model request limit reached')
                 amount = reserve_amount(payload['input_bytes'], payload['max_tokens'])
                 used = max(state['conservative_reserved_micro_usd'], state['observed_gateway_delta_micro_usd'])
-                if used + amount > state['limit_micro_usd']:
+                if state.get('budget_exhausted') or used + amount > state['limit_micro_usd']:
+                    state['stopped'] = True
+                    state.setdefault('budget_exhausted', {'epoch': time.time(), 'reason': 'admission_ceiling',
+                        'used_micro_usd': used, 'denied_reservation_micro_usd': amount,
+                        'role_id': role_id, 'request_sha256': payload.get('request_sha256')})
+                    self.persist(state, 'budget_exhausted', state['budget_exhausted'])
                     raise RuntimeError(f"{state['limit_micro_usd'] / 1e6:g} USD budget admission denied")
                 rid = uuid.uuid4().hex
                 row = {'id': rid, 'reserved_micro_usd': amount, 'request': payload,
@@ -154,17 +177,8 @@ class Budget:
             else:
                 raise ValueError('Unknown budget operation')
             used = max(state['conservative_reserved_micro_usd'], state['observed_gateway_delta_micro_usd'])
-            state['stopped'] = used >= state['limit_micro_usd']
-            state['last_updated_epoch'] = time.time()
-            tmp = self.state_path.with_suffix('.tmp')
-            with tmp.open('w') as f:
-                json.dump(state, f, ensure_ascii=False, indent=2); f.write('\n'); f.flush(); os.fsync(f.fileno())
-            tmp.replace(self.state_path)
-            with (self.directory / 'events.jsonl').open('a') as f:
-                f.write(json.dumps({'epoch': time.time(), 'action': action, 'result': result,
-                                    'reserved_micro_usd': state['conservative_reserved_micro_usd'],
-                                    'observed_gateway_delta_micro_usd': state['observed_gateway_delta_micro_usd']}) + '\n')
-                f.flush(); os.fsync(f.fileno())
+            state['stopped'] = bool(state.get('budget_exhausted')) or used >= state['limit_micro_usd']
+            self.persist(state, action, result)
             return result | {'limit_usd': state['limit_micro_usd'] / 1e6, 'reserved_usd': state['conservative_reserved_micro_usd'] / 1e6,
                              'gateway_delta_usd': state['observed_gateway_delta_micro_usd'] / 1e6,
                              'remaining_admission_usd': max(0, state['limit_micro_usd'] - used) / 1e6}

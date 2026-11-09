@@ -2,14 +2,17 @@
 
 ## 当前接续点：本地 Ascend 开发集 baseline → DSH＋Claude 5.5 自主研究
 
-用户已授权：选定100条本地agent数据（dev60/validation40），先baseline，再DSH＋Claude 5.5运行SpecPilot；API总额上限200美元；MRV2不是要求。
+用户已授权：选定100条本地agent数据（dev60/validation40），先baseline，再DSH＋Claude 5.5运行SpecPilot；Claude总额上限200美元，预算保护触发后用`gpt-6.1-sol`接续，GPT独立上限500美元。不得使用`gpt-5.5`；MRV2不是要求。
 唯一阶段记录：[Ascend执行计划与验收](docs/experiments/ascend-ctrip-dsh-20261109.md)。当前源码归档在`harness/ascend_dsh/`，真实运行目录在部署工作区`profiling/specpilot-ctrip-dsh-20261109/`。
 
 - 本地8卡910B2C，V4 Flash W8A8，MRV1、图模式、固定DSpark K7。异步调度的C32失败已保留；改同步调度建立新baseline，不能把这个修复记成优化收益。
 - 9组dev AIPerf baseline/192次正式请求已完成并独立审计通过；C32短/中/长输入输出吞吐约288/210/185 tok/s，中/长档各1次输出到上限。瞬态metrics连接失败及恢复证据保留。
 - DSH预算/会话恢复及真实MCP受限工具探针已通过；22项本地定向测试通过。CPU隔离使用chroot/降权/seccomp，本容器Landlock不可用。
 - 真实DSH科学Master已启动并读取baseline/硬件/模型/部署，开始自主选方向；状态文件`research/state.json`。原生会话/MCP/逐调用费用均落盘；尚无本轮优化后收益。启动器venv入口失败已修复并保留。
-- Master选方向，Direction自主读源码/写CPU分析/提交配置或profile实验；每个方向最多3个NPU实验，最多3个方向，所有请求共享200美元保守预占上限。源代码patch仅提交独立审查，不自动部署。
+- Master选方向，Direction自主读源码/写CPU分析/提交配置或profile实验；每个方向最多3个NPU实验，两模型阶段合计最多3个方向。各阶段共享各自200/500美元保守预占上限，不重置先前费用或角色分配。源代码patch仅提交独立审查，不自动部署。
+- GPT接续代码为`gpt_handoff.py`，实际状态看`handoff/state.json`；独立账本`billing-gpt/`只在交接时创建。原生DSH pi-ai Responses、xhigh、store=false、直连网关；禁止5.5路由。36项定向检查通过，离线3次请求=3次预算准入，真实MCP调用/加密reasoning重放/跨进程恢复通过。尚未做GPT付费接口验证，不把离线fixture写成真实GPT科学运行。
+- 首方向16384 prefill预算候选启动失败，无候选吞吐，基线恢复成功。Claude方向报告先输出截断，再返回含一个多余根括号的完整答案；`resume_claude.py`从原会话恢复，后者仅删除一个括号并保存原始回执SHA，无科学数值改写或重复NPU实验。Master继续判断；完整失败/恢复轨迹保留。
+- `research/supervisor.json`与`handoff/supervisor.json`区分研究进程和条件切换进程。仅持久化Claude预算不足事件可触发GPT；普通错误需要处理后重新挂起监督，Master正常停止或validation冻结后不启用GPT。不要重复启动已有进程。
 - 全机flock串行协调独立量化任务，不抢占它们。服务在实验后恢复。不能重复启动已有监督进程。
 - validation仍未打开。独立终测程序已接通，但只在研究停止、候选对应已完成dev实验且配置/代码冻结之后执行；不把终测反馈给研究角色。
 - 合并最新H100提交后，仓库303项回归在此容器未全过：12失败/29错误，涉及缺失旧H100固定路径和Landlock不可用。不要将新22项定向通过写成仓库全绿；未修改旧controller/eval/ledger/memory。
