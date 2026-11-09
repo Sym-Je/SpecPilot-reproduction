@@ -41,6 +41,10 @@ Git 里的记录是实验索引，不是 agent 自己生产的正式统计结果
 
 ## 4. 当前阶段索引
 
+正在执行：[stock逐步观测与线性链重放](experiments/step-replay-20261109.md)。
+用户已批准必要stock源码阅读/默认关闭钩子，8定向/210总回归及副本可复现构建通过。
+待3题on/off两轮换卡真实烟测；不改controller、不读final、不做性能或lossless晋升。
+
 最新完成：[stock真实瓶颈、计数审计与部分成本模型](experiments/bottleneck-20261109.md)。
 202回归、原20pair计时、独立20/20窗口补采、两次CPU重放及393项SHA通过；未实施优化。
 计时pin=a102b64/UUID job-fa7aeb0532ed-20261109083627，补采pin=5ed0302/UUID job-46790c2ece9b-20261109090434。

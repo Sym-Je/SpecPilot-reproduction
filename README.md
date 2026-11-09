@@ -49,7 +49,7 @@ Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性�
 
 **最新完成：**[stock真实瓶颈分析](docs/experiments/bottleneck-20261109.md)：原20pair计时保留，独立补采20/20窗口；202回归、两次CPU重放与393项SHA通过。窗口累计kernel工作约89.6%在VERIFY，不是整请求墙钟占比。原生计数36/40行满足全部代数约束，一题存在“多1 token”未解释差异；可识别mm仅覆盖约0.51% kernel工作，完整三因子仍为未知。
 
-**正在做：**本阶段已收口，无运行任务；两卡已释放，合计约1.078GPU小时，未实施优化或晋升。
+**正在做：**已获批准[stock逐步观测与真实线性重放](docs/experiments/step-replay-20261109.md)：独立stock副本默认关闭钩子，8定向/210总回归通过，重复构建一致，待3题on/off真实烟测；不改controller、不读final。
 
 **接下来：**先报最小逐步计数/lattice与无profiler步计时接口方案，由维护者授权交付后补成本模型；不靠扩题或重跑final绕过缺项。第一版candidate仅启动option，真实proposer与正式晋升/账本集成未就绪；不自动启动RSI或sealed。
 

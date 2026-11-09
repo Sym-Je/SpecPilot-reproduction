@@ -1,7 +1,21 @@
 # HANDOFF — 交接给新 session
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 UTC（stock瓶颈诊断/重放/归档完成，无运行任务）。
+> 最后更新：2026-11-09 UTC（stock逐步钩子与线性重放已批准，CPU准备通过，待GPU烟测）。
+
+## 最新接续点：真实逐步观测/重放执行中，不实施优化
+
+- 用户已批准阶段内自主执行，并明确允许独立stock诊断副本的必要源码阅读及默认关闭只读钩子。
+  唯一记录`docs/experiments/step-replay-20261109.md`；仍不读取final实现，不改controller或sealed。
+- 已先红后绿新增runtime/线性重放/副本构建器及exp入口；8定向/210总CPU回归通过。
+  stock canonical=e5472c4f...未变；重复构建observer canonical=cb27466a...一致，
+  只改worker与scheduler两文件的观测插入，另加独立runtime文件。开关默认不存在，不触碰tensor/日志。
+- 冻结协议：沿用旧10题，受控选唯一重复异常+同suite正常+首跨suite正常共3题。
+  stock vs observer关闭/开启各两轮fresh物理换卡，2048cap/自然EOS，12pair/24臂行；
+  只验输出/真实逐步链重放，不报性能收益。prefill首token假设待真实数据确认，不翻绿旧计数。
+- 下一内部动作冻结源码tar→当前CLI查重/完整命令2GPU展示→create一次、核对code200+UUID。
+  沿用确认镜像digest/WeaverDev/qiji/原toleration，2H100/256Gi、最长1小时/2GPU小时。
+  结束后两次CPU重放、真实故障注入、SHA/清理、主页交接阶段提交推送；不自动进入优化/RSI。
 
 ## 最新接续点：stock瓶颈诊断完成，完整成本模型未完成
 
