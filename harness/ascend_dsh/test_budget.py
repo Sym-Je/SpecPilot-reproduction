@@ -49,6 +49,32 @@ class BudgetTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'admission denied'):
             self.budget.transact('reserve', REQUEST, snapshot)
 
+    def test_old_500_ledger_is_lowered_without_resetting_usage(self):
+        original = self.budget.transact('reserve', REQUEST, SNAPSHOT)
+        state = json.loads(self.budget.state_path.read_text())
+        state['limit_micro_usd'] = 500_000_000
+        before = copy.deepcopy(state['reservations'])
+        self.budget.state_path.write_text(json.dumps(state))
+        updated = Budget(self.tmp.name).transact('status', {}, SNAPSHOT)
+        persisted = json.loads(self.budget.state_path.read_text())
+        self.assertEqual(updated['limit_usd'], 200)
+        self.assertEqual(persisted['reservations'], before)
+        self.assertEqual(updated['reserved_usd'], original['reserved_usd'])
+        self.assertEqual(persisted['limit_changes'][-1]['from_micro_usd'], 500_000_000)
+        settled = Budget(self.tmp.name).transact('settle', {'reservation_id': original['reservation_id']}, SNAPSHOT)
+        self.assertEqual(settled['limit_usd'], 200)
+        self.assertEqual(settled['reserved_usd'], original['reserved_usd'])
+
+    def test_200_ceiling_cannot_be_raised_by_stale_ledger(self):
+        self.budget.transact('status', {}, SNAPSHOT)
+        state = json.loads(self.budget.state_path.read_text())
+        state['limit_micro_usd'] = 500_000_000
+        state['conservative_reserved_micro_usd'] = 200_000_000 - 1
+        self.budget.state_path.write_text(json.dumps(state))
+        with self.assertRaisesRegex(RuntimeError, '200 USD budget admission denied'):
+            Budget(self.tmp.name).transact('reserve', REQUEST, SNAPSHOT)
+        self.assertFalse(json.loads(self.budget.state_path.read_text())['reservations'])
+
     def test_counter_reset_fails_closed(self):
         self.budget.transact('status', {}, SNAPSHOT)
         with self.assertRaisesRegex(RuntimeError, 'counter reset'):

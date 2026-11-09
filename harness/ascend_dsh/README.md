@@ -17,7 +17,7 @@ with Claude Opus 5.5. Native DSH tool loops connect to a capability-gated MCP
 broker. Every model request crosses a native `llm/stream` budget hook. Direct
 NorthGate HTTPS is used; this adapter does not start a network relay.
 
-The task ceiling is USD 500, enforced by conservative, persistent, nonrefundable
+The task ceiling is USD 200, enforced by conservative, persistent, nonrefundable
 request reservations plus observed shared-key billing deltas. This does not
 change the gateway account/token quota. Shared-key use elsewhere may stop the
 campaign early. Failed requests and process restarts cannot reclaim reservations.
@@ -46,3 +46,8 @@ Acceptance (from the runtime directory's parent workspace):
 The model/MCP preflight consumes paid API calls and must run only with an
 explicitly authorized task budget. The scheduler refuses duplicate state;
 failed/uncertain submissions require inspection instead of automatic resubmission.
+
+The user lowered the original USD 500 authorization to USD 200 on 2026-11-09.
+The live billing ledger is authoritative; frozen run plans and launch-time
+scheduler metadata may retain the original authorization. Existing reservations
+and spend are retained, and the runtime clamps any stale higher ledger limit.

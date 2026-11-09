@@ -20,7 +20,7 @@ import uuid
 
 HERE = Path(__file__).resolve().parent
 MODEL = 'claude-opus-5-5'
-LIMIT_MICRO_USD = 500_000_000
+LIMIT_MICRO_USD = 200_000_000
 QUOTA_PER_USD = 500_000
 INPUT_CEILING_USD_PER_M = 10
 OUTPUT_CEILING_USD_PER_M = 50
@@ -113,7 +113,13 @@ class Budget:
                          'start_gateway_quota': snapshot['total_used_quota'],
                          'conservative_reserved_micro_usd': 0, 'observed_gateway_delta_micro_usd': 0,
                          'created_epoch': time.time(), 'stopped': False}
-            assert state['limit_micro_usd'] == LIMIT_MICRO_USD
+            assert type(state['limit_micro_usd']) is int and state['limit_micro_usd'] > 0
+            previous_limit = state['limit_micro_usd']
+            state['limit_micro_usd'] = min(previous_limit, LIMIT_MICRO_USD)
+            if state['limit_micro_usd'] < previous_limit:
+                state.setdefault('limit_changes', []).append({'epoch': time.time(),
+                    'from_micro_usd': previous_limit, 'to_micro_usd': state['limit_micro_usd'],
+                    'reason': 'User lowered the total campaign budget; prior reservations remain charged.'})
             delta = snapshot['total_used_quota'] - state['start_gateway_quota']
             if delta < 0:
                 raise RuntimeError('Gateway usage counter reset; refuse admission')
@@ -130,7 +136,7 @@ class Budget:
                 amount = reserve_amount(payload['input_bytes'], payload['max_tokens'])
                 used = max(state['conservative_reserved_micro_usd'], state['observed_gateway_delta_micro_usd'])
                 if used + amount > state['limit_micro_usd']:
-                    raise RuntimeError('500 USD budget admission denied')
+                    raise RuntimeError(f"{state['limit_micro_usd'] / 1e6:g} USD budget admission denied")
                 rid = uuid.uuid4().hex
                 row = {'id': rid, 'reserved_micro_usd': amount, 'request': payload,
                        'created_epoch': time.time(), 'status': 'reserved_before_dispatch'}
@@ -159,7 +165,7 @@ class Budget:
                                     'reserved_micro_usd': state['conservative_reserved_micro_usd'],
                                     'observed_gateway_delta_micro_usd': state['observed_gateway_delta_micro_usd']}) + '\n')
                 f.flush(); os.fsync(f.fileno())
-            return result | {'limit_usd': 500, 'reserved_usd': state['conservative_reserved_micro_usd'] / 1e6,
+            return result | {'limit_usd': state['limit_micro_usd'] / 1e6, 'reserved_usd': state['conservative_reserved_micro_usd'] / 1e6,
                              'gateway_delta_usd': state['observed_gateway_delta_micro_usd'] / 1e6,
                              'remaining_admission_usd': max(0, state['limit_micro_usd'] - used) / 1e6}
 
