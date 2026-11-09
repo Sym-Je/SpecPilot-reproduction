@@ -29,6 +29,7 @@ SCHEMAS = {
     'launch_experiment': {'id': {'type': 'string'}, 'config': {'type': 'object'}, 'mode': {'type': 'string', 'enum': ['benchmark', 'profile']}},
     'wait_experiment': {'id': {'type': 'string'}, 'seconds': {'type': 'integer', 'minimum': 0, 'maximum': 1200}},
     'read_profile': {'id': {'type': 'string'}, 'path': {'type': 'string'}, 'offset': {'type': 'integer', 'minimum': 0}},
+    'search_source': {'tree': {'type': 'string', 'enum': list(SOURCE_ROOTS)}, 'query': {'type': 'string'}, 'prefix': {'type': 'string'}},
     'submit_patch': {'path': {'type': 'string'}, 'rationale': {'type': 'string'}},
 }
 DESCRIPTIONS = {
@@ -40,6 +41,7 @@ DESCRIPTIONS = {
     'launch_experiment': 'Submit a serial 8-NPU configuration experiment, or a diagnostic Ascend CPU+NPU profile. The trusted runner restores baseline afterwards. Config keys: max_num_batched_tokens, max_num_seqs, gpu_memory_utilization, enable_prefix_caching, enforce_eager, num_speculative_tokens, additional_config; screen_concurrency=1/8/32 chooses the same three input buckets. No sampling/model/weights/topology/dataset changes. Returns an ID, never a self-reported result.',
     'wait_experiment': 'Wait for trusted experiment progress/result without launching or duplicating work. Up to 1200 seconds; no model billing while waiting. Measurements are serial screening, not formal paired promotion.',
     'read_profile': 'Read at most 12000 characters from an owned completed experiment CSV under traces. Use profile_summary.csv_files for paths. No request or model output files are exposed.',
+    'search_source': 'Literal search in authorized engine Python sources, at most 30 matching lines and 12000 characters. Use a path prefix to narrow the search.',
     'submit_patch': 'Submit a scratch patch for independent admission review. Records a proposal; does not execute or auto-approve code.',
 }
 
@@ -59,7 +61,9 @@ class Broker:
         self.state = json.loads(self.statefile.read_text()) if self.statefile.exists() else {'actions': 0, 'experiments': []}
 
     def names(self):
-        return list(SCHEMAS) if self.mode == 'direction' else list(SCHEMAS)[:5 if self.mode == 'probe' else 3]
+        if self.mode == 'direction': return list(SCHEMAS)
+        if self.mode == 'probe': return ['read_evidence', 'list_source', 'read_source', 'write_scratch', 'run_cpu']
+        return ['read_evidence', 'list_source', 'read_source', 'search_source']
 
     def source(self, tree, name):
         if tree not in SOURCE_ROOTS: raise ValueError('Unknown source tree')
@@ -110,6 +114,21 @@ class Broker:
             offset = args['offset']; assert type(offset) is int and offset >= 0
             content = p.read_text(); result = {'path': args['path'], 'sha256': sha(p), 'offset': offset,
                                              'total_chars': len(content), 'content': content[offset:offset + 12000]}
+        elif name == 'search_source':
+            tree, prefix, query = args['tree'], args['prefix'], args['query']
+            if tree not in SOURCE_ROOTS or not isinstance(query, str) or not 2 <= len(query) <= 128: raise ValueError('Invalid search')
+            if prefix.startswith('/') or '..' in prefix.split('/'): raise ValueError('Invalid prefix')
+            root = SOURCE_ROOTS[tree].resolve(); matches = []
+            for path in sorted(root.rglob('*.py')):
+                relative = str(path.relative_to(root))
+                if not relative.startswith(prefix) or path.is_symlink(): continue
+                path = self.source(tree, relative)
+                for line_number, line in enumerate(path.read_text().splitlines(), 1):
+                    if query in line:
+                        matches.append({'path': relative, 'line': line_number, 'text': line[:300]})
+                        if len(matches) >= 30: break
+                if len(matches) >= 30: break
+            result = {'matches': matches, 'limit': 30, 'truncated_at_limit': len(matches) == 30}
         elif name == 'write_scratch':
             p = local_path(self.work, args['path'])
             if p.suffix not in ('.py', '.json', '.patch') or len(args['content'].encode()) > 65536:

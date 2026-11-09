@@ -160,12 +160,15 @@ Final JSON {"status":"candidate" or "no_gain" or "needs_admission" or "needs_evi
                 review = invoke(master_role, 'master', context + '\nNo further direction may be launched. Return {"decision":"stop","reason":string,"candidate":null or {"config":object,"experiment_id":string},"limitations":array}.')
                 assert review['decision'] == 'stop'
                 state.update(status='research_finished', master_decision=review); save()
-            state.update(completed_epoch=time.time(), final_validation_status='pending_candidate_freeze_and_independent_execution')
+            state.update(completed_epoch=time.time(), final_validation_status='running_independently', validation_opened_by_research=False)
             save()
             # No more LLM calls after this point. Independent local runner opens holdout only after freeze.
             with (directory / 'final-validation.log').open('xb') as log:
                 completed = subprocess.run([str(ROOT / '.venv/bin/python'), str(OUT / 'final_validation.py'),
                     '--research-state', str(statefile)], stdout=log, stderr=subprocess.STDOUT, timeout=12 * 3600)
+            final_state = OUT / 'final-validation/state.json'
+            if final_state.exists():
+                state['validation_opened'] = json.loads(final_state.read_text()).get('validation_opened', False)
             state['final_validation_exit_code'] = completed.returncode
             state['final_validation_status'] = 'complete' if completed.returncode == 0 else 'failed_preserved'
             state['campaign_status'] = 'complete' if completed.returncode == 0 else 'needs_attention'

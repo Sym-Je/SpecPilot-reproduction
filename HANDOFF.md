@@ -6,9 +6,9 @@
 唯一阶段记录：[Ascend执行计划与验收](docs/experiments/ascend-ctrip-dsh-20261109.md)。当前源码归档在`harness/ascend_dsh/`，真实运行目录在部署工作区`profiling/specpilot-ctrip-dsh-20261109/`。
 
 - 本地8卡910B2C，V4 Flash W8A8，MRV1、图模式、固定DSpark K7。异步调度的C32失败已保留；改同步调度建立新baseline，不能把这个修复记成优化收益。
-- 9组dev AIPerf baseline正在运行。首个同步尝试遇到瞬态metrics连接断开，服务仍活跃；加监控重试后恢复，失败case保留。进度以`baseline-state.json`为准。
+- 9组dev AIPerf baseline/192次正式请求已完成并独立审计通过；C32短/中/长输入输出吞吐约288/210/185 tok/s，中/长档各1次输出到上限。瞬态metrics连接失败及恢复证据保留。
 - DSH预算/会话恢复及真实MCP受限工具探针已通过；22项本地定向测试通过。CPU隔离使用chroot/降权/seccomp，本容器Landlock不可用。
-- 真实调度器已启动，状态文件`research/state.json`；等9组baseline审计通过后才进行科学Master/Direction调用。仅基础探针不算研究完成。
+- 真实DSH科学Master已启动并读取baseline/硬件/模型/部署，开始自主选方向；状态文件`research/state.json`。原生会话/MCP/逐调用费用均落盘；尚无本轮优化后收益。启动器venv入口失败已修复并保留。
 - Master选方向，Direction自主读源码/写CPU分析/提交配置或profile实验；每个方向最多3个NPU实验，最多3个方向，所有请求共享500美元保守预占上限。源代码patch仅提交独立审查，不自动部署。
 - 全机flock串行协调独立量化任务，不抢占它们。服务在实验后恢复。不能重复启动已有监督进程。
 - validation仍未打开。独立终测程序已接通，但只在研究停止、候选对应已完成dev实验且配置/代码冻结之后执行；不把终测反馈给研究角色。
