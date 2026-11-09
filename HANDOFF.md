@@ -12,16 +12,113 @@
 - Master选方向，Direction自主读源码/写CPU分析/提交配置或profile实验；每个方向最多3个NPU实验，最多3个方向，所有请求共享500美元保守预占上限。源代码patch仅提交独立审查，不自动部署。
 - 全机flock串行协调独立量化任务，不抢占它们。服务在实验后恢复。不能重复启动已有监督进程。
 - validation仍未打开。独立终测程序已接通，但只在研究停止、候选对应已完成dev实验且配置/代码冻结之后执行；不把终测反馈给研究角色。
-- 仓库原278项回归在此容器未全过：8失败/29错误，涉及缺失旧H100固定路径和Landlock不可用。不要将新22项定向通过写成仓库全绿；未修改旧controller/eval/ledger/memory。
+- 合并最新H100提交后，仓库303项回归在此容器未全过：12失败/29错误，涉及缺失旧H100固定路径和Landlock不可用。不要将新22项定向通过写成仓库全绿；未修改旧controller/eval/ledger/memory。
 - 上述串行实验不写论文配对晋升账本，不承诺正确率/无损。公开提交不含数据内容、原生研究轨迹、权重、密钥或计费原始日志。
 
 ## 以下为历史交接，不恢复旧阶段的资源指令
 
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
-> 最后更新：2026-11-09 北京时间（用户确认公开仓库并批准发布同步；独立Codex入口已有限验收，GPU执行尚未接通）。
+> 最后更新：2026-11-09 北京时间（第三阶段自主修复及合成算子微实验通过，Master主动停止；真实模型RSI未完成）。
 
-## 当前唯一接续点：审核最小真实 GPU 自主实验方案
+## H100阶段接续点：第三阶段微实验已收口，下一阶段先提案
+
+- 用户批准阶段目标及1H100 GPU小时/最多同时1卡/最多3次900秒任务，并明确沿用原镜像、WeaverDev、qiji和只读模型PVC。
+- 25定向/303总CPU回归、旧314文件清单SHA及上一阶段来源审计通过，实际角色源已冻结。
+- Master自主继续原方向并分24动作/4CPU/2GPU尝试；direction自行修复GQA筛选、写CPU fixture，18例通过并复现旧问题。
+  独立重放CPU fixture两次字节一致；实验脚本、原容差/长度/测量判据未变，主助手未代写科学代码。
+- 唯一任务job-4fdd307bbdb9-20261109202445，code200+UUID核对通过，Completed/exit0；保守43GPU秒/容器26秒。
+  真实H100上实验内筛选、另一个独立进程研究筛选及8类边界拒绝均通过；产出3种KV长度、11轮算子微实验耗时。
+  单GPU内交替query宽度的微实验，不是正式双卡配对/CI/模型加速、lossless或controller验收；无候选晋升。
+- 实际4回合/8动作/1CPU/1GPU尝试/10usage事件，2原生角色关闭、输入/canary未变，唯一容器终止；Master自主stop，未用完预算也不追加。
+  两次独立来源审计一致、原始11轮数据重算及6类工程篡改拒绝通过；异常轮次保留，范围不是CI。
+  内部阶段上限64动作/8CPU/24回合/3GPU尝试；可request_budget由Master阶段内重分配，不增加用户总预算。
+- 本次执行目录`logs/gpu-autonomy-run-20261109-c01/`，准备及可信入口`logs/gpu-autonomy-stage3-prep-20261109-c01/`。
+  每个GPU请求须绑定当前实验/筛选SHA的CPU成功回执；主助手不修改科学脚本或放宽原判据。
+- 机器状态`logs/gpu-autonomy-stage3-closeout-20261109-c01/stage-result.json`：stage_goal_met与scientific_microexperiment_completed为true，
+  controller_accepted/candidate_promoted/full_phase1_completed/real_engine_rsi_completed均false；不能将本次记成新算法发现。
+- 新归档`logs/gpu-autonomy-stage3-evidence-20261109-c01.sha256`共126文件/4835333字节，两次全SHA通过；
+  SHA=e52b13d9550139145010e90dee311f4608a99c4bb8633c63bbf8307dcdd8f321。Git同步回执`logs/gpu-autonomy-stage3-git-sync-20261109-c01.json`单列，不覆盖旧归档。
+- 目标/验收见`docs/experiments/gpu-autonomy-stage3-20261109.md`、PLANS；完整归档/公开内容审查通过，最终Git同步身份以单列回执为准，不再启动研究或GPU。
+  下一阶段由Master评估如何映射到真实stock部署路径，再设计验证/option候选；先报方案获批，不强制VERIFY/作者final，不自动进integration/kernel/sealed。
+  旧阶段已结束，不恢复其GPU上限或把复用算新发现。下节全部为历史。
+
+## 已收口历史：由direction修复自身筛选
+
+- 用户批准本阶段并确认1H100 GPU小时总预算，最多同时1卡；1次600秒依赖预检，最多2次1200秒研究。
+  镜像digest、WeaverDev、qiji、原只读模型PVC已确认；不继承旧阶段余额。
+- 最终38定向/299全量CPU回归通过；新阶段来源、资源契约、恢复计数和8类边界拒绝均验收。
+- 预检code200、UUID=`job-2ea20f106d5c-20261109191521`，Completed/exit0；保守59GPU秒。
+- Master自主接续，direction两次请求GPU：job-d8bd211a0273-20261109192612、job-258e42aa7878-20261109193328，
+  均code200且独立确认UUID，最终Aborted/exit1；保守41秒、34秒。总134GPU秒/容器67秒，3容器均终止。
+- 首次研究在FA3延迟加载触发FlashInfer的ptxas版本探测时被禁子进程边界拒绝。
+  主助手仅修复固定依赖可信预加载，Master自行批准最后一次研究尝试；GPU证明已越过加载故障且8类探针仍全通过。
+  随后direction自行诊断其GQA参考头维度错误，筛选未通过、未进入延迟测量，不是原假设被证伪。
+- 科学脚本/筛选SHA保持上一阶段原样，主助手未代改研究。累计15回合/8动作/0研究CPU/2研究GPU尝试/19usage事件；
+  8个新角色进程均关闭，输入/canary未变。两次研究尝试已用完，Master停止，不新增任务；不是GPU时间预算耗尽。
+- b01旧失败上下文未附新预检、b02方向动作耗尽/扩额措辞歧义均保留；修复反馈分发及阶段内重分配说明后由Master重决策。
+  实际执行前均冻结源tar；没有追溯改写旧阶段或假称研究成功。
+- 两真实GPU回执独立审计、最终重复一致、5类协议篡改拒绝通过；工程验收不等于controller正确性/性能验收。
+  机器状态`logs/gpu-autonomy-stage2-closeout-20261109-b01/stage-result.json`明确original_goal_met=false、
+  scientific_experiment_completed=false、controller_accepted=false，可信预加载GPU复验则为true。
+- 新阶段先提案获批：由direction自主修复筛选、先做CPU维度fixture，再由Master决定新GPU请求；不代写GQA修复。
+  证据prep-b01至b04、run-b01至b04、preflight-b01及closeout-b01；新清单`logs/gpu-autonomy-stage2-evidence-20261109-b01.sha256`。
+  新清单314文件/12185277字节，两次全SHA通过；SHA=1767ae60ca82564559175754911fa09a922354bbef573238b2666308bd2e7e82。
+  Git同步回执`logs/gpu-autonomy-stage2-git-sync-20261109-b01.json`单列，旧363文件清单复核通过，不覆盖。
+- 当前阶段记录`docs/experiments/gpu-autonomy-stage2-20261109.md`，进度见PLANS；下节为旧阶段，不恢复旧上限或旧待办。
+
+## 已收口历史：CUDA运行库白名单修复待GPU复验
+
+- 本阶段用户批准后，Master自主选方向/预算、direction自主写实验/筛选，真实GPU代码与原生回包绑定通过。
+  仅有限GPU脚本执行/失败反馈闭环通过，**有效科学实验、真实27B生成、完整Phase 1/RSI均未完成**。
+- 2次create均code200/dataNone，按精确任务名解析native name并经Kubernetes确认UUID：
+  `job-097d59232135-20261109181434`、`job-71e60201ac44-20261109183113`，node233，均1H100/128Gi。
+  两者Job Aborted/Pod Failed/容器exit1；每任务观察到1个Pod UID/restart0，不宣称服务端零重试。
+- 首次GPU/8类权限探针通过后，实验在SGLang依赖导入时因.cache不可写失败；原错误交direction，Master自主授权纯缓存修复重试。
+  实验/筛选脚本SHA完全未变。第二次同样探针通过，随后因/usr/local/cuda/.../libcudart.so.12只读权限缺项失败。
+  两次stdout为空、screening未执行，无延迟/数值结果，假设未检验，不是证伪。
+- 最终16研究回合/26动作/2CPU运行/2GPU尝试/36 usage-update事件。主助手自设24动作曾不必要地索要追加审批，
+  已显式校准为28，未改用户GPU预算、16研究回合或controller判据；旧24动作记录/失败不覆盖。
+  Master最后stop，十个原生角色进程关闭，输入/canary未变。按创建至结束保守77GPU秒（容器31秒），原2GPU小时内。
+- 最新代码只补/usr/local/cuda标准运行库READ，不给整个/usr/local或用户目录权限；32定向/293总CPU回归通过，
+  最后这项库白名单修复**未GPU复验**。不因代码已改就自动新增第3个GPU任务。
+- 准备/旧失败：`logs/gpu-autonomy-prep-20261109-a01/`、run-a01/a02/a03；真实GPU及完整冻结源：run-a04/a05。
+  审计/资源/最终发布：`logs/gpu-autonomy-publish-20261109-a01/`；唯一阶段记录`docs/experiments/gpu-autonomy-20261109.md`。
+  两GPU源码tar均实际执行前冻结；早期CPU driver逐版本冻结缺项仍保留，不回写历史。
+- 下一阶段先说明方案获批：GPU验证最小运行库依赖，再由同逻辑Master/direction自主继续原实验。
+  不由主助手设计新研究、不改controller、不建sealed、不启动integration/kernel或DSH；无候选/晋升/论文新数字。
+- 收尾复验32定向/293回归通过，两个GPU独立审计及a05重复一致，10角色关闭/保护路径零diff通过。
+  机器状态`logs/gpu-autonomy-closeout-20261109-a01/stage-result.json`；新最终清单
+  `logs/gpu-autonomy-final-evidence-20261109-a01.sha256`，不覆盖195文件旧checkpoint。
+  新清单363文件/7949293字节、两次全SHA通过，SHA=eb02fade93db43364f45386f6721cfd67ac73c3368857a37d4e3fe249c888211。
+  Git最终同步身份单列`logs/gpu-autonomy-git-sync-20261109-a01.json`，不混进证据清单造成自引用。
+
+## 以下均为本阶段早期checkpoint与历史记录，不恢复旧阻塞或旧待办
+
+## 历史checkpoint：GPU研究动作额度曾耗尽
+
+- 用户批准必要权限后推进Master/direction真实GPU自治阶段，再次确认原镜像digest及WeaverDev项目。
+  记录`docs/experiments/gpu-autonomy-20261109.md`；新实现为通用GPU脚本执行/反馈，不预设科学实验。
+- GPU尚未提交、没有UUID；远程边界、真实GPU研究反馈均未验收，不能宣布本阶段或真实Phase 1完成。
+- 本机30定向/291全量CPU回归通过；独立CPU协议审计通过，但gpu_autonomy_passed=false。全量最终回归见准备日志。
+  role输入/canary未变，六原生进程均exit0关闭；controller/作者实现/eval/账本/记忆/stock无Git变更。
+- a01触发旧权限探针12步上限；原结果的动作计数在异常中未刷新，实际13动作/1CPU运行已在后续恢复时补扣。
+  a02由direction自行写实验/筛选/语法脚本，分配额度8用尽，GPU请求被拒。旧复核入口曾写死stop，已修复并保留失败。
+  a03恢复逻辑角色（新原生thread，非同一thread/新发现）；Master自主将原阶段剩余3动作分给原方向。
+  direction读回两个脚本并核对stock接口后再次耗尽，Master停止。没有主助手代写科学脚本或自行扩额。
+- 累计10模型研究回合/24动作/2CPU运行/0GPU尝试；30个usage-update事件不是精确后台API次数或token账单。
+  2GPU小时总上限不变。已询问是否追加最多4动作，未答复前不能重启研究或提交GPU。
+- 证据`logs/gpu-autonomy-{prep,run}-20261109-a01/`、`logs/gpu-autonomy-run-20261109-a02/`、a03目录。
+  CPU协议审计用`--allow-no-gpu`，严格模式必须拒绝。原始角色回包、代码、工具回执均留logs不入公开Git。
+  checkpoint归档195文件/2985858字节全SHA通过，清单`logs/gpu-autonomy-evidence-20261109-a01.sha256`，
+  SHA=`cdd83282ad0d847566ad6c5c036aa04458acac85df171286b18825d6766f3c81`。
+  旧CPU driver逐版本源码冻结有缺项，已在阶段记录披露；当前源码包不能冒充旧执行版本。
+- 新GPU执行器未在GPU上验证。若恢复，先查重/展示命令/核对code200+UUID，GPU内探针通过才执行原脚本。
+  不因目前代码已写就恢复旧取消任务，不放宽controller、不预先建sealed或进入integration/kernel。
+
+## 以下为此前已完成阶段与历史接续（不恢复旧待办）
+
+## 已完成：权限收口与公开组织仓库同步
 
 - **公开授权已明确：**用户说明是本人主动改为public，并批准审查本次待发布内容、更新授权记录及推送。
   旧“只可推私有仓库”的阻塞解除，不改回私有，不自动改变任何可见性。阶段记录`docs/experiments/public-sync-20261109.md`。

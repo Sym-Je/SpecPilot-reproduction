@@ -48,6 +48,26 @@ GitHub origin：`https://github.com/china-qijizhifeng/SpecPilot-reproduction.git
 
 ## 4. 当前阶段索引
 
+最新微实验目标达成：[第三阶段自主修复与完整微实验](experiments/gpu-autonomy-stage3-20261109.md)。
+direction自行修复、18例CPU回归通过；真实GPU原协议及独立进程研究筛选成功，原始11轮数据重算通过。
+25定向/303全量回归、两次来源审计一致、两次CPU重放及6类工程篡改拒绝通过；保守43GPU秒，容器/两角色终止。
+Master主动stop；有有效合成算子数据，但无CI、真实模型生成、候选/晋升或完整Phase1/RSI证明。
+清单`logs/gpu-autonomy-stage3-evidence-20261109-c01.sha256`另建，不覆盖旧314文件证据。
+
+历史已收口、科学目标未达：[GPU自治第二阶段](experiments/gpu-autonomy-stage2-20261109.md)。
+1次依赖预检成功，2次研究分别因延迟加载子进程拒绝、direction筛选头维度错误失败；可信固定依赖预加载已GPU验证。
+38定向/299回归、来源/原始输出/重复审计、5类协议篡改拒绝通过；保守134GPU秒，三任务及8角色进程均结束。
+Master最终stop，无有效延迟数据、候选或controller晋升；下一阶段需direction自主修复及CPU自检，不由主助手代做研究。
+旧阶段363文件清单复核通过，新清单`logs/gpu-autonomy-stage2-evidence-20261109-b01.sha256`不覆盖旧证据。
+
+历史有限失败反馈链路通过、科学实验未完成：[首轮受控GPU实验自治](experiments/gpu-autonomy-20261109.md)。
+用户确认原镜像digest/WeaverDev；32定向/293总CPU回归通过；真实Master/direction自主准备脚本，2次1H100执行均在导入时失败。
+两UUID为job-097d59232135-20261109181434、job-71e60201ac44-20261109183113，均Aborted/exit1，GPU/权限探针通过。
+原始错误回到direction，Master自主授权一次缓存修复重试再停止；科学代码/筛选判据不变。新CUDA库只读修复尚未GPU复验。
+累计16回合/26动作/2CPU/2GPU尝试、保守77GPU秒，容器均终止；无数值/延迟数据、候选或晋升。
+独立审计验证角色来源、原代码、原始输出、GPU/权限和预算；scientific_screens_passed=0，不当作完整Phase 1/RSI。
+旧24动作checkpoint与早期源码冻结缺项保留；后两次GPU实际执行前均有完整源tar及身份。原始代码/回包只留logs，不入公开Git。
+
 当前权限/主线收口已本地完成，公开同步获批：[Codex权限边界及主线收口](experiments/codex-boundary-20261109.md)、[公开同步记录](experiments/public-sync-20261109.md)。
 独立受限app-server与可信broker的真实非敏感探针8次动作/1次CPU运行，必要能力成功、红线拒绝；
 原生patch越界拒绝单独留证，不扩大为旧spawn入口也安全。17定向/278总CPU回归、两次独立审计、冻结源身份通过。
