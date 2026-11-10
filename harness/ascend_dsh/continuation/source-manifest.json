@@ -40,5 +40,7 @@
   "run_prefix_capability_design.py": "d62f71326806b2f7ddb8230bc5b3fcc36832f95ecf83a00734338a471c9e8710",
   "finish_cache_init_capture.py": "9f1c08b862e4de15c0920e72f59a0a445848d02fcbdfcac3d0f7f0c02a10c7c8",
   "export_cache_init_facts.py": "ab1ccba94a94845c630d49a3161fad518618b8df24cbc5a7f97bc751e9f75724",
-  "repair_cache_init_restoration.py": "1b744e1ef6a0cd0650fb1e24fdab3132a3839db3667671cdb4d8b09be8488612"
+  "repair_cache_init_restoration.py": "1b744e1ef6a0cd0650fb1e24fdab3132a3839db3667671cdb4d8b09be8488612",
+  "continuation_compare.py": "0472218baf4808f2acdbd3b0d1470256712e62a7568c36a43654f737f2443fb3",
+  "test_continuation_compare.py": "f5fe508eaadd8aef6e628aab197e6732cc6f091e57ef1bf9d50832a686e70415"
 }

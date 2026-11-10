@@ -231,3 +231,13 @@ requires its own explicit admission; initialization capture cannot grant it.
 Sixty-nine focused CPU checks passed, including these failure/permission paths.
 They do not certify the still-pending stock recovery retry. The original executed
 runner source is reproducible at commit4ce336b and matches its pinned request SHA.
+
+A host-only three-arm comparator prototype now has five synthetic fixture tests:
+OFF/OFF reproducibility is required before judging the candidate; reasoning,
+content, tool names/argument strings, finish reasons and completion counts are
+compared, while generated protocol tool-call IDs are ignored. Prompt usage and
+caller-supplied frozen-protocol signatures must agree. Missing captures and cached
+OFF controls fail validation. Only aggregate booleans/counts leave the function.
+Seventy-four targeted CPU checks pass including the existing checks. The
+comparator has made no live request, has not received independent admission or
+been integrated, and measures neither model accuracy nor global losslessness.

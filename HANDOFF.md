@@ -90,6 +90,8 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 - 首次未插桩基线恢复在rank3图捕获时申请内存失败（aclnnGroupedMatmulWeightNz），原任务终态failed；已仅清理核对归属的失败恢复进程树，初次采集仍可用但服务尚未恢复。相同stock脚本的最多2次恢复重试已排队，等待另一个8–15卡任务的全机锁。用户明确选择“维持串行等待”，不得中断另一任务或绕锁。付费研究暂停，当前服务不健康，不得照搬之前health200。
 - 修复原finally在restore_error时未写completed_epoch造成监听器挂起；原已退出runner通过单列操作回执标为失败终态，baseline_restored仍false。未来broker阻止未恢复基线继续提交，元数据getter在恢复前不开放partial事实，enabled-prefix推理需另行准入。69项定向CPU检查通过；恢复helper只做stock/同参数重试并检查已有stock服务避免重复启动，目前尚未真正重试。实际状态见私有restoration-recovery与state，源码原执行版可从4ce336b重建并匹配request SHA。
 
+- 等锁时新增host-only三臂输出对照器原型：OFF/OFF先可复现才判断候选，正文/thinking/tool参数/结束原因/输出token数严格对照，忽略随机生成的tool-call协议ID；仅输出聚合计数/布尔。5项合成fixture通过，连同既有检查总74项；未发真实请求/未独立审查/未接入，不是模型精度或lossless证明。用户再次明确维持串行等待，恢复仍未启动，不中断另一任务。
+
 ## 以下为H100独立轨道，不混用Ascend资源授权
 
 
