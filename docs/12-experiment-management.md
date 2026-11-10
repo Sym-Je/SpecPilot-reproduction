@@ -48,6 +48,12 @@ GitHub origin：`https://github.com/china-qijizhifeng/SpecPilot-reproduction.git
 
 ## 4. 当前阶段索引
 
+最新H100诊断：[Phase 0 lattice与完整profile](experiments/ceiling-20261110.md)。
+40pair/80臂行输出一致，20份完整profile覆盖、20份真实lattice重放及80故障拒绝通过，
+两次独立CPU审计一致，331项定向检查通过；含失败共1.918889 GPU小时、两任务终止。
+N32条件接受量+23.19%不是速度收益；完整三因子仍未知，不将采集收口写成完整Phase 0/RSI完成。
+私有归档索引`logs/ceiling-evidence-20261110-a01.sha256`，机器状态`logs/ceiling-closeout-20261110-a01/stage-result.json`。
+
 最新微实验目标达成：[第三阶段自主修复与完整微实验](experiments/gpu-autonomy-stage3-20261109.md)。
 direction自行修复、18例CPU回归通过；真实GPU原协议及独立进程研究筛选成功，原始11轮数据重算通过。
 25定向/303全量回归、两次来源审计一致、两次CPU重放及6类工程篡改拒绝通过；保守43GPU秒，容器/两角色终止。

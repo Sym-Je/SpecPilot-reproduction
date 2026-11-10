@@ -54,6 +54,11 @@
 起点 ceiling 2.57x = tau 1.83 x overhead 1.01 x kernel 1.39
 第 2 轮前 ceiling 1.95x = tau 1.34 x step-cost 1.45
 
+2026-11-10核对原PDF：上述历史数值在附录B（第20页）明确使用oracle的tau和full-peak floors；
+正文§3.1式(4)（第5页）定义的却是best-first最佳预算与60% dense peak/90% bandwidth。
+复现时分别标注，不将两者混成一套数值目标；本地证据缺项仍为未知，见
+[Phase 0口径及采集](experiments/ceiling-20261110.md)。
+
 单请求 27B：读权重占 23.61 ms 步时的 80%；即便峰值带宽也需 92% 的时间读全部字节。
 GEMM 时间：1 行 17.88 ms，64 行 18.58 ms（行数几乎免费）。
 

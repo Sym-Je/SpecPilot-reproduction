@@ -43,15 +43,15 @@ def command(request, source, output, name, deadline):
         '--k8s-ttl', '86400', '--k8s-images', IMAGE, user_command]
 
 
-def execute(directory, source, budget, *, resume_only=False):
+def execute(directory, source, budget, *, resume_only=False, command_factory=None, feedback_loader=None, deadline=None):
     from kubernetes import client, config
     request = directory / 'request.json'
     record = json.loads(request.read_text())
     action = record['action']
-    deadline = 3600 if action['per_suite'] <= 2 else 7200
+    deadline = (3600 if action['per_suite'] <= 2 else 7200) if deadline is None else deadline
     name = directory.name
     output = directory / 'remote'
-    cli = command(request, source, output, name, deadline)
+    cli = (command if command_factory is None else command_factory)(request, source, output, name, deadline)
     if resume_only:
         pending = json.loads((directory / 'pending.json').read_text())
         submitted = json.loads((directory / 'submitted.json').read_text())
@@ -62,7 +62,7 @@ def execute(directory, source, budget, *, resume_only=False):
                 len(matches) != 1 or matches[0].get('name') != uuid or
                 pending['request_sha256'] != digest(request) or pending['source_sha256'] != digest(source)):
             raise RuntimeError('resume identity/source differs; never recreate an existing task')
-        return monitor(directory, budget, record, pending, uuid)
+        return monitor(directory, budget, record, pending, uuid, feedback_loader=feedback_loader)
     if query(directory, name, 'pre-submit-query.txt'):
         raise RuntimeError('exact task name already exists; no new submission')
     budget.reserve(name, 2, deadline + 1200)
@@ -90,10 +90,10 @@ def execute(directory, source, budget, *, resume_only=False):
     budget.update(name, uuid=uuid, submission_code=200)
     save(directory / 'submitted.json', dict(uuid=uuid, code=200, name=name))
     print(json.dumps(dict(event='SUBMITTED', uuid=uuid, name=name)), flush=True)
-    return monitor(directory, budget, record, pending, uuid)
+    return monitor(directory, budget, record, pending, uuid, feedback_loader=feedback_loader)
 
 
-def monitor(directory, budget, record, pending, uuid):
+def monitor(directory, budget, record, pending, uuid, *, feedback_loader=None):
     from kubernetes import client, config
     name = pending['name']
     deadline = pending['deadline_seconds']
@@ -139,7 +139,9 @@ def monitor(directory, budget, record, pending, uuid):
                 (directory / f'{pod.metadata.name}.log').write_text(pods_api.read_namespaced_pod_log(pod.metadata.name, 'qiji', tail_lines=120))
             budget.update(name, terminal=phase, terminated=True, charged_gpu_seconds=charged)
             if (output / 'result.json').exists() and all(row['exit_code'] == 0 for row in observed.values()):
-                if record.get('mode') == 'controller-dev':
+                if feedback_loader is not None:
+                    feedback = feedback_loader(output, record)
+                elif record.get('mode') == 'controller-dev':
                     from controller.dev_campaign import validate_campaign
                     feedback = json.loads((output / 'result.json').read_text())
                     verdict = json_record(validate_campaign(output))
