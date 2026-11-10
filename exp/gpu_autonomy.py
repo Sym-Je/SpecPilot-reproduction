@@ -140,9 +140,10 @@ def prepare_submission(request, source, output, name, manifest):
         '--k8s-namespace', 'qiji', '--k8s-queue', 'qiji', '--k8s-toleration',
         'key=task-type,operator=Equal,value=infra-dev-weaver,effect=NoSchedule',
         '--k8s-pvc-name', 'jixinpeng-pvc', '--k8s-pvc-mount-path', '/gpfs/users/jixinpeng',
-        '--k8s-ttl', '86400', '--k8s-images', IMAGE, command]
+        '--k8s-ttl', '86400', '--k8s-priority', '3', '--k8s-images', IMAGE, command]
     pending = dict(name=name, request=str(request), request_sha256=digest(request / 'request.json'),
         command=cli, shell_command=shlex.join(cli), total_gpus=1, memory_gib=128,
+        priority_class='higher-priority-job',
         pod_deadline_seconds=manifest['pod_deadline_seconds'],
         output=str(output), manifest=manifest, source_sha256=digest(source), submitted=False)
     write(request / 'pending.json', pending)

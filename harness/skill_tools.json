@@ -1,0 +1,16 @@
+{
+  "repository": "https://github.com/BBuf/AI-Infra-Auto-Driven-SKILLS",
+  "revision": "5df356636bf9da3a1446653043942ff3487c1430",
+  "files": {
+    "skills/llm-torch-profiler-analysis/scripts/analyze_llm_torch_profile.py": "130a39a23a2dbca2c83a4940f172d20b010075389951351312d6f311b28e8901",
+    "skills/llm-torch-profiler-analysis/scripts/profile_common.py": "068620008356614a26753b0f1d40bd2f158cc054e4f6fcb25e3c52dbbc501622",
+    "skills/llm-torch-profiler-analysis/scripts/triage_kernel_helpers.py": "f3bd33da3b65accc331ff98297e07b72fa530ef6f69acd93551def020db3aaaa",
+    "skills/llm-torch-profiler-analysis/scripts/triage_overlap_helpers.py": "b6ffad2f0e0224ed53c1eb16e1fd7a8bc1408e43554cf838678ea89719b3e090",
+    "skills/llm-pipeline-analysis/scripts/layer_timeline_analyzer.py": "4791eec2ed6516390e4d806e90e18e9345e0b0e8bf998b05dee15cdbc2d06501",
+    "skills/llm-pipeline-analysis/scripts/model_profiles.py": "54e40f5eb175464597ce1a1a469017acf8c8342d77f0a88922c09c756f552aa5",
+    "skills/model-compute-simulation/scripts/model_compute_simulator.py": "46cc3167e05b0447c2f37d9fa1a89f54da809d974db4b019430a6164dd8905b3",
+    "skills/model-compute-simulation/scripts/config_normalization.py": "3a08347fa47b494a08bd7bcb954b4620b520845fd0577b7e0f00ab5e5607fa54",
+    "skills/model-compute-simulation/references/model-config-index.json": "700dda94b2336c0f2106114a9db0780df21c84e1c91564b3d36ac1412d90aaba",
+    "skills/model-compute-simulation/references/gpu-specs.json": "35a9939141e2b85748140be475668c928e8a240ce17b3a86d077da390905fc8e"
+  }
+}

@@ -35,7 +35,26 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
 > 最后更新：2026-11-10 北京时间（真实stock参数探索与两份dev联合验收通过，Master主动停止；完整RSI未完成）。
 
-## H100当前接续点：Phase 0诊断采集收口，完整ceiling仍缺
+## H100当前接续点：最小 Skills 诊断验证完成
+
+- 用户批准用可信 profile/接受量/粗粒度成本推进主线，不再以完整 ceiling 为硬前置；
+  本阶段不新增 GPU、不恢复补采、不启动科学角色，不接管 Ascend。
+- 记录与研究简报：`docs/experiments/skills-diagnostics-20261110.md`；私有证据
+  `logs/skills-diagnostics-20261110-a01/`。BBuf 工具固定 commit/10 文件 SHA；真实 stock
+  trace 的 89391 个 kernel 与原记录同口径核对通过，计算估算/4项投影手算通过。
+  pipeline 仅合成 fixture 通过，真实层锚点未适配；上游 GPU activity 含 memcpy/memset，
+  DFlash2 阶段标签不直接采信。52 项定向检查通过，不称全仓库或研究角色自主调用通过。
+- 旧完整 ceiling b01–b17 均已终态；b16/b17 为 JobPreempted/Aborted，退出码未知，
+  总计 24942 GPU 秒（6.928333 小时），本阶段新增 GPU 为 0；不重复提交。
+  formal 三因子/ceiling 仍 null，树分支 argmax 分歧未解决，不称 lossless 或自主发现。
+- 后续 NorthJob 显式 `--k8s-priority 3`，当前 CLI 实测映射 `higher-priority-job`；
+  高优先级不保证免抢占，不自动 no-reclaim。新阶段预算/镜像/提交参数仍需确认。
+- 下一步先提案 Master 自主分方向、多 direction 探索与 Integration/Kernel；每个拟保留的
+  单项/组合/kernel 变体分别过独立 controller dev 正确性/forcing 与配对性能，最终冻结后用 sealed。
+  本阶段仅维护者离线入口，不开放整个原始证据目录，不代写 direction 的研究。
+- 旧 ceiling/source 未提交代码仍保留；本阶段发布不夹带这些代码或 Ascend 未提交修改。
+
+## H100历史：Phase 0诊断采集收口，完整ceiling仍缺
 
 - [Phase 0诊断](docs/experiments/ceiling-20261110.md)采集与复核已收口；完整Phase 0尚未完成，三因子仍为null。
 - 新资源授权16 H100 GPU小时/12小时/最多并发2卡，沿用已确认镜像/WeaverDev/qiji/只读模型PVC，旧余额不结转。

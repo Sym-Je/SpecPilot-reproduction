@@ -31,7 +31,7 @@ Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后30
 | 4 | 验证作者 final 的收益 | ✅ 产物测量完成 | final/AR=8.7347× [8.0235,9.5599]；直接 final/stock=2.2219× [2.1381,2.2988]，见[验收记录](docs/experiments/p3-final-2048-20261107.md) |
 | 5 | 真实正确性、噪声与晋升判据 | ✅ dev联合验收完成 | [验收记录](docs/experiments/dev-joint-20261108.md)：30请求、当前前后null、两轮换卡与实际测速输出forcing均通过；作者产物不写晋升账本 |
 | 6 | 建立独立 sealed 验证 | ⬜ 未开始 | 前置验收通过后由 controller 管理，agent 不接触内容 |
-| 7 | 真实 profiling 与成本模型 | 🟡 条件lattice/完整profile通过 | [Phase 0诊断](docs/experiments/ceiling-20261110.md)：40pair、20份完整profile、格内best-first重放通过；完整三因子仍缺 |
+| 7 | 真实 profiling 与成本模型 | 🟡 最小Skills离线验证通过 | [诊断与工具接入](docs/experiments/skills-diagnostics-20261110.md)：真实stock trace/计算估算通过，层归因未适配；完整ceiling未知，不再阻塞自主研究 |
 | 8 | agent 自主提案与实现 | 🟡 真GPU参数研究/dev验收通过 | [本阶段](docs/experiments/engine-autonomy-20261109.md)：6次自主诊断、2次独立dev gate；12为1.0853×、10为1.0638×。不是源码/算法发现、晋升或完整Phase 1 |
 | 9 | 多轮真实优化闭环与记忆 | ⬜ 待真实验证 | [mock 闭环](docs/06-gates.md)已跑通，不代表真实引擎闭环完成 |
 | 10 | 对照实验与最终报告 | ⬜ 未开始 | 分析各组件贡献，分别报告架构与数字复现证据 |
@@ -92,9 +92,11 @@ Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后30
 
 **最新完成：**[Phase 0诊断采集](docs/experiments/ceiling-20261110.md)：40pair/80臂行输出一致，20份完整请求profile、20份真实lattice重放、80故障拒绝及两次独立CPU审计通过；331项定向CPU检查通过。stock条件接受量4.8604，32节点树5.9877（+23.2%），**不是实测速率提升**。两任务已终止，含失败共1.9189 H100 GPU小时。
 
-**当前缺口：**完整Phase 0尚未完成，三因子仍为未知；kernel→byte/FLOP工作量映射、无干扰逐步时间和节点预算成本尚缺。VERIFY的90.17%只是累计kernel工作比，不能冒充ceiling。旧源码通路未完成，9次旧预检已终止；当前无GPU任务运行。
+**最新完成：**[最小 Skills 离线接入与研究简报](docs/experiments/skills-diagnostics-20261110.md)：固定 BBuf 工具版本，89391 个真实 stock kernel 的计数/累计时间/并集/跨度与原记录一致；计算估算与4个投影/FFN手算核对，52项定向检查通过。真实层归因未适配，工具阶段标签不直接采信，本阶段新增GPU为0，不代表研究agent已自主调用。
 
-**接下来：**先补成本模型缺项，再由Master据证据分方向，按多direction→Integration→Kernel→独立controller推进；不预设必须优化VERIFY。sealed、晋升、可信记忆和多轮RSI仍另行安排，不自动结转资源预算。
+**当前状态：**完整ceiling仍未知，不再作为自主探索硬前置；停止继续补采。旧17任务均终态，b16/b17被抢占，保守6.9283 GPU小时；树分支argmax分歧未解决，不称lossless或完整ceiling完成。
+
+**接下来：**审核Master据现有诊断自主分方向→多direction→Integration→Kernel→独立controller的研究阶段。单项、组合、kernel修改后都要独立dev正确性/token forcing与配对性能，最终冻结后才用sealed。后续GPU显式用`--k8s-priority 3`（`higher-priority-job`），仍须确认新预算/镜像并查重，不保证不会被抢占。
 
 **已有基础：**三臂真实 server、dev验收、外部数据审计与mock闭环完成；**尚未复现论文原sealed数字或真实RSI方法结论。**
 

@@ -35,7 +35,24 @@ H100/Codex与Ascend/DSH是独立轨道。下面先保留Ascend既有计划，H10
 论文 sealed 参照仍为 2.13× [2.07, 2.19]，当前未独立复现该结论。
 DSH 后置，不以更换框架作为当前研究的前提。
 
-## 本阶段：Phase 0 ceiling证据重建
+## 当前阶段：最小 Skills 离线接入与研究简报
+
+用户批准：只使用已有授权 stock 证据，不新增 GPU、不继续 ceiling 补采、不启动科学角色；
+完整 ceiling 不再作为研究硬前置。记录与验收：
+[最小Skills阶段](docs/experiments/skills-diagnostics-20261110.md)。
+
+- [x] 核对旧17任务全部终态；b16/b17被抢占，总计24942 GPU秒，本阶段0新增GPU。
+- [x] 先写工程验收和逐阶段T0/T1/配对性能/T3边界，不改controller或科学规则。
+- [x] 固定上游10文件SHA，真实stock profiler和计算估算通过；真实层归因留空。
+- [x] 89391 kernel原始统计与旧记录核对、4项投影手算及52项定向CPU测试通过。
+- [x] 研究简报及主页/交接更新，原始证据私有归档，公开发布身份以publication回执为准。
+
+下一阶段先审核：Master据简报自主分方向→direction自主实验/修复→Integration→Kernel→
+controller独立验收；不预设优化VERIFY，不以外部Skill复用冒充独立发现。
+每个拟保留单项、组合、kernel变体均须dev正确性/token forcing与配对性能，最终冻结才用sealed。
+后续GPU使用`--k8s-priority 3`（`higher-priority-job`），不保证免抢占；新预算/镜像另行确认。
+
+## 已收口历史：Phase 0 ceiling证据采集
 
 用户已批准执行，并重新确认16 H100 GPU小时、最长12小时、最多并发2卡；
 沿用已确认镜像digest、WeaverDev/qiji、toleration及只读模型PVC。旧预算不结转，不接管Ascend。

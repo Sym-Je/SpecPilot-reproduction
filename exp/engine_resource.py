@@ -40,7 +40,7 @@ def command(request, source, output, name, deadline):
         '--k8s-queue', 'qiji', '--k8s-toleration',
         'key=task-type,operator=Equal,value=infra-dev-weaver,effect=NoSchedule',
         '--k8s-pvc-name', 'jixinpeng-pvc', '--k8s-pvc-mount-path', '/gpfs/users/jixinpeng',
-        '--k8s-ttl', '86400', '--k8s-images', IMAGE, user_command]
+        '--k8s-ttl', '86400', '--k8s-priority', '3', '--k8s-images', IMAGE, user_command]
 
 
 def execute(directory, source, budget, *, resume_only=False, command_factory=None, feedback_loader=None, deadline=None):
@@ -68,6 +68,7 @@ def execute(directory, source, budget, *, resume_only=False, command_factory=Non
     budget.reserve(name, 2, deadline + 1200)
     pending = dict(name=name, total_gpus=2, nodes=1, gpu_per_node=2, gpu_type='H100',
         mode='bash', memory_gib=256, image=IMAGE, workspace=str(ROOT), deadline_seconds=deadline,
+        priority_class='higher-priority-job',
         command=cli, shell_command=shlex.join(cli), request_sha256=digest(request), source_sha256=digest(source))
     save(directory / 'pending.json', pending)
     print(json.dumps(dict(event='PRE_SUBMIT', **pending)), flush=True)

@@ -43,6 +43,8 @@ Speculative Decoding*。任何 agent（人或模型）在此工作都必须遵�
   CUDA运行库只读权限和固定依赖可信预加载已在GPU复验；agent自写GPU脚本仍禁子进程，CPU回执须绑定当前科学脚本SHA。
   真实server仅执行受信stock与结构化option，不由此开放任意agent源码执行。
   阶段内可由Master重分配剩余额度，不为每次修复找用户审批；不能突破用户总上限。
+  后续NorthJob GPU任务显式使用`--k8s-priority 3`（当前CLI映射为`higher-priority-job`）；
+  提交后核对实际priorityClassName。优先级不保证不被抢占，不自动设置no-reclaim，也不免除预算/镜像/查重确认。
   证据见`docs/experiments/engine-autonomy-20261109.md`；新阶段另行确认预算、镜像和提交参数，不自动结转旧余额。
 - 本地8卡Ascend的配置实验与profile经可信broker串行执行；原始数据、密钥和validation不向角色开放。该授权不包含新NorthJob/H100任务，不把串行筛选写成论文配对晋升。
 - 每轮记录代码身份、动作/退出码、实际输出、预算与证据位置；失败/证据不足可作为正常结论。
