@@ -11,7 +11,7 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 - 本地8卡910B2C，V4 Flash W8A8，MRV1、图模式、固定DSpark K7。异步调度的C32失败已保留；改同步调度建立新baseline，不能把这个修复记成优化收益。
 - 9组dev AIPerf baseline/192次正式请求已完成并独立审计通过；C32短/中/长输入输出吞吐约288/210/185 tok/s，中/长档各1次输出到上限。瞬态metrics连接失败及恢复证据保留。
 - DSH预算/会话恢复及真实MCP受限工具探针已通过；22项本地定向测试通过。CPU隔离使用chroot/降权/seccomp，本容器Landlock不可用。
-- 真实DSH科学Master已启动并读取baseline/硬件/模型/部署，开始自主选方向；状态文件`research/state.json`。原生会话/MCP/逐调用费用均落盘；尚无本轮优化后收益。启动器venv入口失败已修复并保留。
+- 真实DSH科学Master已完成三方向并stop；状态`research_finished`、campaign/终测均complete。无可靠候选或新收益；原生会话/MCP/逐调用费用均落盘。三方向上限为执行器阶段限制，停止不是API预算耗尽，GPT未付费启用。
 - Master选方向，Direction自主读源码/写CPU分析/提交配置或profile实验；每个方向最多3个NPU实验，两模型阶段合计最多3个方向。各阶段共享各自200/500美元保守预占上限，不重置先前费用或角色分配。源代码patch仅提交独立审查，不自动部署。
 - GPT接续代码为`gpt_handoff.py`，实际状态看`handoff/state.json`；独立账本`billing-gpt/`只在交接时创建。原生DSH pi-ai Responses、xhigh、store=false、直连网关；禁止5.5路由。36项定向检查通过，离线3次请求=3次预算准入，真实MCP调用/加密reasoning重放/跨进程恢复通过。尚未做GPT付费接口验证，不把离线fixture写成真实GPT科学运行。
 - 首方向16384 prefill预算候选启动失败，无候选吞吐，基线恢复成功。Claude方向报告先输出截断，再返回含一个多余根括号的完整答案；`resume_claude.py`从原会话恢复，后者仅删除一个括号并保存原始回执SHA，无科学数值改写或重复NPU实验。Master继续判断；完整失败/恢复轨迹保留。
@@ -19,9 +19,13 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 - 发现调度竞态：runner先写failed，再恢复基线，旧broker提前返回，方向报告提交时cleanup检查使研究停止。`experiment_lifecycle.py`将此阶段呈现为restoring_baseline，调度器等待实际收尾，保留已完成报告；42项检查通过。恢复复用D2完整回执，不重复方向API或实验，工具动作21、实验2次原样保留。失败的实际启动日志和人工取消依据通过受限证据交Master，避免只看到泛化的cancellation。
 - Master接续后另遇NorthGate上游60秒停止发送（原生turn/end code=SERVER），未完成第三方向决策；这不是预算耗尽。`resume_claude.py --resume-upstream`从原会话继续，后续仅对这一已确认错误最多额外重试两次；新请求逐次预占，不重复大段上下文或重置账本。45项检查通过，历史失败回执保留。实时角色/进程以state和supervisor为准。
 - 恢复后的Master提出stop/no_gain，答复末尾JSON代码块前有说明文字，已补充终端代码块解析，原答复不改。该提议未被当作任务完成：两方向只覆盖prefill预算，本轮尚未执行用户要求的profile。按原任务要求发起一次明确记录的覆盖复核，剩余一方向仍由Master自主选择诊断，允许无收益结论；不得强迫正结果或声称这一督导修正是模型独立发现。复核依据/原提议SHA保存在`research/master-stop-coverage-review.json`，validation保持未打开。
+- D3首个profile（名字含c32-baseline）在8192配置的NPUGraph capture中发生aclnnCumsum/worker-init失败，trace数量0；研究进程仍在等runner恢复基线。新增`startup_guard.py watch`仅在命中两类致命标记且runner argv/PID出生时间/候选归属均核对后SIGTERM该runner，由原finally恢复；不重置设备或影响别的任务。此次实际runner在guard启用前已自行失败，未发送信号，后续故障才由guard自动处理；这一区别在注释回执里明确。
+- 关键口径纠正：冻结`profile_request`只采一条中长度请求、C1、max_tokens=128，忽略screen_concurrency，不能声称C32或长输入trace。已通过本次失败的受限证据向存活Direction披露；新broker明确能力并拒绝profile/C32提交（已加载的旧MCP进程不假称热更新）。51项本地检查通过，新增guard/范围检查不是已经获得性能提升。
 - `research/supervisor.json`与`handoff/supervisor.json`区分研究进程和条件切换进程。仅持久化Claude预算不足事件可触发GPT；普通错误需要处理后重新挂起监督，Master正常停止或validation冻结后不启用GPT。不要重复启动已有进程。
 - 全机flock串行协调独立量化任务，不抢占它们。服务在实验后恢复。不能重复启动已有监督进程。
-- validation仍未打开。独立终测程序已接通，但只在研究停止、候选对应已完成dev实验且配置/代码冻结之后执行；不把终测反馈给研究角色。
+- 2026-11-10 02:10前后：无候选冻结后独立终测已完成，仅baseline臂，40条validation形成9组/142次正式请求，0错误；原AIPerf记录重算全部一致。validation已打开，不再把结果回传给研究角色或恢复本轮调参；服务保留且健康检查200。
+- D3第二次eager/C1/mid/128采样完成，原始562文件约955 MB。未自动导出是torch-npu禁止daemon内解析；主助手随后离线复制导出，得到部分timeline/CSV，但发现TLV数据缺失警告和部分rank解析失败。离线收尾为partial_export，6/8个rank成功导出、rank1/4失败；见`offline-profile-analysis/state.json`，562个原文件SHA复核未变；导出在`/data/northinfer-profile-artifacts/ctrip-d3-eager-20261110`，避免写满工作盘。不能用部分事件推算完整通信占比、关键路径或理论收益。
+- 本轮模型报告用均值/中位数重建的prefill/decode占比、约94%排队和overlap解释均未获trace独立验证，不能作为实测phase分解。研究收尾不代表用户的优化/profile目标已达成；后续应先补齐可信profile与真实源码option能力，保留本轮验证隔离。研究/预算切换/启动监测/离线导出监督进程均已退出，仅服务保留；不能对用户声称仍在后台优化。
 - 合并最新H100提交后，仓库303项回归在此容器未全过：12失败/29错误，涉及缺失旧H100固定路径和Landlock不可用。不要将新22项定向通过写成仓库全绿；未修改旧controller/eval/ledger/memory。
 - 上述串行实验不写论文配对晋升账本，不承诺正确率/无损。公开提交不含数据内容、原生研究轨迹、权重、密钥或计费原始日志。
 

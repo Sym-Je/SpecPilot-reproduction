@@ -11,8 +11,10 @@ GitHub：[china-qijizhifeng/SpecPilot-reproduction](https://github.com/china-qij
 ## 当前本地 Ascend 阶段
 
 用户已授权以V4 Flash W8A8、8卡910B2C和dev60/validation40运行DSH自主研究：Claude 5.5总上限200美元，触及预算保护线后可接续`gpt-6.1-sol`，GPT阶段独立上限500美元；不使用`gpt-5.5`，MRV2不是要求。
-45项本地定向检查和此前GPT离线Responses/MCP/恢复联调通过；GPT尚未发起付费推理。MRV1同步调度的9组baseline/192请求已完成并独立审计。后续16384配置的C1筛选吞吐变化为短/中/长+2.9%/+5.6%/−6.8%，TTFT改善均不足2%，尚无可靠收益；12288配置发生Cumsum图捕获错误。基线恢复成功，实验清理时序已修复；Master另遇上游60秒流中断，现按原生会话恢复，限定两次额外重试且逐次计入预算。validation仍保留到候选冻结后的最后独立测量。
-代码与范围见[Ascend适配器](harness/ascend_dsh/README.md)、[阶段记录](docs/experiments/ascend-ctrip-dsh-20261109.md)及[当前计划](PLANS.md)。尚无本轮优化收益或正式晋升结论。
+51项本地定向检查和此前GPT离线Responses/MCP/恢复联调通过；本轮GPT付费推理为0。开发集9组baseline/192请求完成并审计；三方向研究已停止，无可靠优化候选。16384配置的C1小样本吞吐变化为短/中/长+2.9%/+5.6%/−6.8%，TTFT改善均不足2%，输出长度不同，不能当作稳定收益。
+2026-11-10独立终测完成：仅基线臂，40条保留验证请求构造9组、142次正式请求，0请求错误；原始AIPerf记录重算一致，服务保留。没有优化臂，不能据此计算加速或证明精度。验证结果不返回研究模型，正常收尾未触发GPT接续。
+第三方向的eager/C1中输入采集得到562个原始文件；graph启动失败与实际采样范围限制均保留。离线导出已完成：6/8个rank得到timeline/算子表，rank1/4失败，且有数据缺失警告，尚无可信的完整算子占比或硬件下界结论。该诊断不能代表生产图模式C32，仍需补齐profiling能力。
+代码与范围见[Ascend适配器](harness/ascend_dsh/README.md)、[阶段记录](docs/experiments/ascend-ctrip-dsh-20261109.md)及[当前计划](PLANS.md)。本轮研究流程收尾不等于性能优化目标达成。
 Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后303项回归未全过（12失败/29错误）；新适配器采用经实测的chroot/降权/seccomp，不宣称该环境全量通过。
 
 以下为H100独立轨道：既有321项回归与10项新增Phase 0检查通过，不代表Ascend环境全量通过；两者指标、预算和待办不混算。

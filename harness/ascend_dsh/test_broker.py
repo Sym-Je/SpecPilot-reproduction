@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from unittest.mock import patch
 import shlex
 import tempfile
 import unittest
@@ -10,6 +11,15 @@ from prepare_baseline import OUT
 
 
 class BrokerTests(unittest.TestCase):
+    def test_profile_c32_is_rejected_before_submission(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with patch('research_broker.OUT', root):
+                broker = Broker('profile-fixture', 'direction')
+                with self.assertRaisesRegex(ValueError, 'Profile supports only C1'):
+                    broker.act('launch_experiment', {'id': 'bad-scope', 'config': {'screen_concurrency': 32}, 'mode': 'profile'})
+                self.assertFalse((root / 'experiments').exists())
+
     def test_parent_and_absolute_and_symlink_paths_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp) / 'scratch'; work.mkdir()

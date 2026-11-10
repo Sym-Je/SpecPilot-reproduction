@@ -96,4 +96,31 @@ Master接续时另一次请求以原生SERVER错误结束，明确原因是上�
 
 恢复后的Master提出无收益收尾；输出为说明文字加末尾JSON代码块，已修复该格式的确定性解析，未改变答复值。本轮两个方向只覆盖prefill预算，尚未进行用户原先要求的Ascend profiling，因此不能把该停止提议等同整个任务完成。监督者明确提醒这一未覆盖要求，要求Master使用剩余方向独立复核是否补充诊断，不指定瓶颈、优化方案或正收益；原stop答复、SHA、复核提示与来源均留存。此次覆盖纠偏需与模型自主发现区分，validation未因此打开。45项定向检查仍通过，包括带前置说明的终端JSON代码块及尾随非JSON拒绝。
 
+## 第三方向首次profile未成功；采样范围纠正
+
+Master分配了device-cost-attribution-profile方向。首次实验名含c32-baseline，使用8192预算与图模式，但在aclnnCumsum的图捕获阶段发生worker初始化失败，未进入采样，trace文件数量0。此事实不能作为吞吐、算子耗时占比或C32瓶颈结论。
+
+代码核对还发现接口口径缺陷：冻结profile_request固定选择一条mid输入，单并发、输出上限128；screen_concurrency仅对benchmark生效。该限制此前没有充分告知角色，实验名和配置中的32不能改变实际负载。已向存活Direction的失败证据附上源SHA绑定的范围审计；新broker明确这一能力并拒绝profile/C8或C32。未假称旧MCP进程已热更新，也未修改已提交实验的执行pins。
+
+新增独立startup_guard，在只属于本任务的candidate_startup阶段同时确认NPUGraph致命错误、worker-init失败、runner精确命令/PID出生时间及候选进程归属后，才SIGTERM可信runner，由原finally清理并恢复。不会重置设备或按名称终止进程。本次dry-run核验通过，但runner在guard启动前已自行进入失败恢复，实际未发送信号；这一差别单独记录。51项定向检查通过，覆盖误报拒绝、所有权、PID复用、幂等操作及错误profile并发拒绝，仍无新的性能收益。
+
 本次未修改已冻结NPU实验计划、采样或配置；当前实验继续。冻结plan和正在运行的监督器启动元数据中的500美元属于原始授权记录，实时上限以`billing/state.json`及`billing/budget-amendment-200.json`为准。
+
+
+## 2026-11-10：本轮无候选收尾、独立基线终测与离线trace补导
+
+D3第二次运行使用eager、单并发、一条中输入、输出上限128，采集完成并恢复原图模式服务，原始562文件共955164157字节。推理worker为daemon，torch-npu拒绝在其中解析，因此原回执中的CSV为空不代表没有原始采样。主助手在研究结束后补做离线导出，不计作模型独立发现，也不向研究角色回传终测反馈。
+
+离线处理复制原始数据后导出，保留源文件逐项SHA，产物放在工作盘以外的`/data/northinfer-profile-artifacts/ctrip-d3-eager-20261110`。rank0已经生成timeline和算子CSV，但解码出现`The collected data has been lost`，另有rank的TaskQueue/TracePre/TreeBuild等解析失败；最终6/8个rank导出timeline/CSV，rank1/4缺失；562个原文件SHA复核未变。离线阶段终态partial_export，质量回执`offline-profile-analysis/quality-report.json`，便于查看的rank0压缩timeline单独保存；未向研究模型反馈。不能从部分事件的duration之和推出通信占整请求比例、完整CPU/设备关键路径、可达到的加速或硬件极限。eager/C1也不能冒充生产graph/C32采样。
+
+Master在执行器三方向阶段限制下stop，无候选；这不是Claude预算耗尽，也不是用户性能目标达成。GPT未发起付费推理，条件监督以`finished_without_handoff`退出。模型报告中从均值/中位数拼接的phase/排队/overlap估计不构成实测归因，本记录不采纳为性能证据。
+
+冻结配置`null`后，独立终测只运行原基线：40条保留validation构造9组、142次正式请求，0错误；逐组AIPerf原记录重算与保存指标一致。142是含并发复用的请求次数，不是142条独立新样本。MRV1同步、图模式、固定DSpark K7、自然EOS、8192输出上限、前缀缓存关闭；C1每档2请求，C8用全部40条，C32每档循环32请求。输出吞吐为正式窗口总生成token除以最早请求开始至最晚请求结束的wall时间，包含prefill和排队。
+
+| 输入长度档 | C1 tok/s | C8 tok/s | C32 tok/s |
+|---|---:|---:|---:|
+| ≤16K | 73.32 | 121.51 | 188.25 |
+| 16–32K | 48.97 | 116.21 | 166.58 |
+| 32–56K | 40.60 | 146.98 | 195.68 |
+
+中输入C8有一次输出达到8192上限。仅绝对性能终测，没有候选臂，不能与不同请求的dev baseline相除来报告优化收益；0错误不证明语义精度或lossless。validation结果不反馈到研究角色；服务保留且健康检查200。回执为`final-validation/state.json`、`final-validation/replay-audit.json`；离线导出/输入身份见`offline-profile-analysis/`。后续需补齐profile和可信源码option研究能力，本轮不声称已完成这些任务。
