@@ -57,7 +57,24 @@ H100/Codex与Ascend/DSH是独立轨道。下面先保留Ascend既有计划，H10
 论文 sealed 参照仍为 2.13× [2.07, 2.19]，当前未独立复现该结论。
 DSH 后置，不以更换框架作为当前研究的前提。
 
-## 当前阶段：最小 Skills 离线接入与研究简报
+## 当前阶段：BBuf角色接入、controller复核与真实全流程
+
+用户已批准三个部分整体执行，并新确认32 H100 GPU小时／24小时／最多并发4卡，
+镜像/WeaverDev/qiji/挂载沿用，priority=`higher-priority-job`。另授权必要controller/eval
+维护者侧实现，不放宽规则；研究角色仍禁止读取sealed或修改裁判。
+计划与验收见[本阶段](docs/experiments/skills-rsi-20261110.md)，唯一预算
+`logs/skills-rsi-20261110-b01/resource-state.json`；旧余额不结转。
+
+- [x] 先行计划、新预算、镜像与维护者权限确认；67项既有相关检查通过。
+- [x] 工具broker与多角色执行器初版；controller故障/绑定/噪声复核和sealed协议fixture通过。
+- [x] 真实source预检：第五次Completed/exit0，两轮fresh和换卡、10pair/20臂输出一致；
+  五次终态共3196 GPU秒，原失败保留，不扩大文件权限，不再重复预检。
+- [x] Master自主调用BBuf并分配3方向；3次真实源码诊断均无可信收益，6原生角色已停止。
+- [ ] Integration无输入、Kernel证据不足，尚未完成真实科学组合/优化；分页修复后Master完整读证据仍stop。
+- [ ] 科学谱系与prefix审计通过；control01握手失败144秒，修复后control02正在2卡执行，勿重复提交。
+- [ ] 独立dev验收、controller私有Phase4执行、证据重算及收尾；未执行不称通过。
+
+## 已收口历史：最小 Skills 离线接入与研究简报
 
 用户批准：只使用已有授权 stock 证据，不新增 GPU、不继续 ceiling 补采、不启动科学角色；
 完整 ceiling 不再作为研究硬前置。记录与验收：

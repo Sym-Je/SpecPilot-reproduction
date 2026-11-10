@@ -1,12 +1,13 @@
 """Explicit dev campaign validation; produces evidence, never a promotion."""
 
 import argparse
+import hashlib
 import json
 import math
 from pathlib import Path
 
 from controller.http_transport import sha_ids
-from controller.paper_policy import candidate_verdict, calibrate_null_runs, measurement_protocol_id, valid_digest
+from controller.paper_policy import calibration_from_intervals, candidate_verdict, calibrate_null_runs, measurement_protocol_id, record_digest, valid_digest
 from controller.scored_forcing import calibrate_delta, calibrate_stock, checked_server, digest_record, judge_scored_forcing, load_score_trace, read_reference
 from controller.scoring import server_arguments
 from controller.stats import stratified_geomean_ci
@@ -16,6 +17,47 @@ from harness.baseline_validation import read_rows, validate_paired_run
 
 PROTOCOL = 'dev-joint-v1'
 PHASES = ('null-pre', 'candidate', 'null-post')
+
+
+def correctness_reference(campaign):
+    reference = campaign.get('reference_tree_sha', campaign['null_arms'][0]['tree_sha'])
+    if not valid_digest(reference):
+        raise ValueError('canonical correctness reference needs a tree SHA256')
+    comparison = campaign['candidate_arms'][0]
+    if any(any(arm.get(field) != comparison.get(field) for field in ('tree_sha', 'block', 'engine', 'env'))
+           for arm in campaign['null_arms']):
+        raise ValueError('null arms must match the performance comparison stack')
+    return reference, comparison['tree_sha'] != reference
+
+
+def check_reference_generation(paths, requests, campaign, *, evidence_root, completed_unix, role):
+    if role not in ('ar', 'stock'):
+        raise ValueError('canonical generation role must be AR or stock')
+    reference, _ = correctness_reference(campaign)
+    if len(paths) != len(requests):
+        raise ValueError('incomplete canonical reference-stock coverage')
+    for path, request in zip(paths, requests):
+        trace = load_score_trace(path, evidence_root=evidence_root)
+        generator, scorer = trace['generator'], trace['scorer']
+        arguments = generator['server_args']
+        if (trace['request_id'] != request['id'] or trace['prompt_ids'] != request['input_ids'] or
+                generator['tree_sha'] != reference or scorer['tree_sha'] != reference or
+                arguments.get('model_path') != campaign['model_path'] or
+                arguments.get('enable_fp32_lm_head') is not False or
+                arguments.get('speculative_algorithm') != ('DFLASH' if role == 'stock' else None) or
+                arguments.get('speculative_num_draft_tokens') != (8 if role == 'stock' else None) or
+                scorer['server_args'].get('speculative_algorithm') is not None or
+                len(trace['generation_segments']) != 1 or not 0 < trace['output_tokens'] <= 2048):
+            raise ValueError('reference-stock is not canonical stock on the declared request')
+        packet = read_reference(trace['generation_segments'][0], evidence_root)
+        raw = read_reference(trace['raw_evidence'], evidence_root)
+        if (packet['request'].get('sampling_params') != dict(
+                temperature=0, top_k=1, max_new_tokens=2048, ignore_eos=False) or
+                packet['response'].get('meta_info', {}).get('finish_reason', {}).get('type') not in ('stop', 'length') or
+                (packet['response']['meta_info']['finish_reason']['type'] == 'length' and trace['output_tokens'] != 2048) or
+                any(type(value) not in (int, float) or not math.isfinite(value) or value < completed_unix
+                    for value in (packet.get('started_unix'), raw.get('started_unix')))):
+            raise ValueError('canonical reference-stock generation protocol or timing differs')
 
 
 def check_phase_order(phases):
@@ -90,6 +132,7 @@ def validate_session(directory, campaign):
         campaign['requests'], rounds=2, per_suite=6)
     if (manifest.get('head') != campaign['source_pin'] or manifest.get('campaign_id') != campaign['campaign_id'] or
             manifest.get('source_sha256') != campaign['source_sha256'] or
+            manifest.get('reference_tree_sha') != campaign.get('reference_tree_sha') or
             measurement_protocol_id(manifest) != campaign['protocol_id']):
         raise ValueError('session deployment or source differs from the predeclared campaign')
     if any(manifest.get(key) is not True for key in ('full_scale_warmup', 'synchronized_start', 'raw_capture')):
@@ -151,8 +194,21 @@ def validate_session(directory, campaign):
     checked.update(interval=stratified_geomean_ci(groups), round_per_suite=round_groups,
                    process_sessions=process_sessions, groups=groups)
     if directory.name != 'candidate':
-        from controller.null_validation import validate_null
-        validate_null(directory, per_suite=6)
+        _, separate = correctness_reference(campaign)
+        if separate:
+            outputs = {}
+            for number in (1, 2):
+                root = directory / f'round-{number:02d}'
+                deployment = json.loads((root / 'deployment.json').read_text())
+                if [assignment['arm'] for assignment in deployment['assignments']] != manifest['arms']:
+                    raise ValueError('comparison-null deployment differs from the declared stack')
+                for pair in read_rows(root / 'pairs.jsonl'):
+                    output = pair['a']['output_sha256']
+                    if pair['b']['output_sha256'] != output or outputs.setdefault(pair['id'], output) != output:
+                        raise ValueError('comparison-null outputs differ across instances or physical rounds')
+        else:
+            from controller.null_validation import validate_null
+            validate_null(directory, per_suite=6)
     return checked, manifest, summary, rows_by_round
 
 
@@ -161,14 +217,31 @@ def validate_campaign(directory):
     campaign = json.loads((directory / 'manifest.json').read_text())
     if campaign['directory'] != str(directory) or campaign['campaign_protocol_version'] != PROTOCOL:
         raise ValueError('unexpected campaign identity')
+    reference, separate = correctness_reference(campaign)
     sessions = [validate_session(directory / phase, campaign) for phase in PHASES]
     check_phase_order([dict(started_unix=session[1]['started_unix'], completed_unix=session[2]['completed_unix']) for session in sessions])
     if len({process for session in sessions for process in session[0]['process_sessions']}) != 6:
         raise ValueError('server process reuse across campaign phases')
-    noise = calibrate_null_runs([directory / PHASES[0], directory / PHASES[2]],
-        declared_sessions=[PHASES[0], PHASES[2]], campaign_id=campaign['campaign_id'], mode='current',
-        expected_protocol_id=campaign['protocol_id'], expected_source_pin=campaign['source_pin'],
-        campaign_started_unix=campaign['started_unix'], per_suite=6)
+    if separate:
+        intervals = []
+        for phase, session in ((PHASES[0], sessions[0]), (PHASES[2], sessions[2])):
+            if session[1]['started_unix'] < campaign['started_unix']:
+                raise ValueError('historical null cannot calibrate the current comparison stack')
+            root = directory / phase
+            files = [root / 'manifest.json', root / 'summary.json']
+            files += [path for number in (1, 2) for path in sorted((root / f'round-{number:02d}').glob('*.json*'))]
+            inventory = {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest() for path in files}
+            intervals.append(dict(session_id=phase, protocol_id=campaign['protocol_id'],
+                source_sha256=record_digest(inventory), interval=session[0]['interval'], directory=str(root)))
+        noise = calibration_from_intervals(intervals, declared_sessions=[PHASES[0], PHASES[2]],
+            campaign_id=campaign['campaign_id'], protocol_id=campaign['protocol_id'], policy='paper-aligned-v1')
+        noise.update(historical_replay=False, current_campaign_usable=True)
+        noise['evidence_sha256'] = record_digest(noise)
+    else:
+        noise = calibrate_null_runs([directory / PHASES[0], directory / PHASES[2]],
+            declared_sessions=[PHASES[0], PHASES[2]], campaign_id=campaign['campaign_id'], mode='current',
+            expected_protocol_id=campaign['protocol_id'], expected_source_pin=campaign['source_pin'],
+            campaign_started_unix=campaign['started_unix'], per_suite=6)
     requests = campaign['requests']
     root = directory / 'correctness'
     autoregressive = [root / 'ar' / f'{request["id"]}.json' for request in requests]
@@ -185,22 +258,33 @@ def validate_campaign(directory):
         trace = load_score_trace(path, evidence_root=directory)
         if (trace['request_id'] != request['id'] or trace['prompt_ids'] != request['input_ids'] or
                 trace['generator']['server_args']['speculative_algorithm'] is not None or
-                trace['scorer']['tree_sha'] != campaign['null_arms'][0]['tree_sha'] or
-                trace['generator']['tree_sha'] != campaign['null_arms'][0]['tree_sha']):
+                trace['scorer']['tree_sha'] != reference or
+                trace['generator']['tree_sha'] != reference):
             raise ValueError('invalid current AR calibration output')
+    reference_stock = [root / 'reference-stock' / f'{request["id"]}.json' for request in requests] if separate else []
+    if separate:
+        for paths, role in ((autoregressive, 'ar'), (reference_stock, 'stock')):
+            check_reference_generation(paths, requests, campaign, evidence_root=directory,
+                completed_unix=sessions[2][2]['completed_unix'], role=role)
     verdicts, deltas, stock_counts = [], [], []
     for number, rows in zip((1, 2), sessions[1][3]):
         stock = [root / f'round-{number:02d}-stock' / f'{request["id"]}.json' for request in requests]
         final = [root / f'round-{number:02d}-final' / f'{request["id"]}.json' for request in requests]
         check_scored_measurements(stock, rows['a'], requests, evidence_root=directory)
         check_scored_measurements(final, rows['b'], requests, evidence_root=directory)
-        for path in stock + final + autoregressive:
+        for path in stock + final + autoregressive + reference_stock:
             trace = json.loads(Path(path).read_text())
+            if trace['scorer']['tree_sha'] != reference:
+                raise ValueError('measured outputs were not forced with the canonical teacher')
             raw = read_reference(trace['raw_evidence'], directory)
             if raw.get('started_unix', -math.inf) < sessions[2][2]['completed_unix']:
                 raise ValueError('correctness scoring overlapped the paired performance campaign')
-        delta = calibrate_delta(stock, autoregressive, evidence_root=directory)
-        baseline = calibrate_stock(stock, delta, evidence_root=directory)
+        calibration_stock = reference_stock if separate else stock
+        delta = calibrate_delta(calibration_stock, autoregressive, evidence_root=directory)
+        baseline = calibrate_stock(calibration_stock, delta, evidence_root=directory)
+        if separate and (json.loads((root / f'round-{number:02d}-delta.json').read_text()) != delta or
+                         json.loads((root / f'round-{number:02d}-stock.json').read_text()) != baseline):
+            raise ValueError('stored canonical calibration differs from its original evidence')
         audits = sorted((root / f'round-{number:02d}-final-audits').glob('[0-9][0-9][0-9][0-9].json'))
         verdict = judge_scored_forcing(baseline, final, evidence_root=directory, prefill_audits=audits)
         stored = json.loads((root / f'round-{number:02d}-verdict.json').read_text())
@@ -220,6 +304,8 @@ def validate_campaign(directory):
         output_identical=output_identical, joint_acceptance_passed=verdict['eligible_for_promotion'],
         promoted=False, ledger_eligible=False,
         scope='author-product formal dev acceptance; not sealed, mathematical losslessness or independent discovery')
+    if 'reference_tree_sha' in campaign:
+        result.update(reference_tree_sha=reference, independent_reference_stock=separate)
     return dict(result, evidence_sha256=digest_record(result))
 
 

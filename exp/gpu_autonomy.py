@@ -87,7 +87,7 @@ def turn(role, prompt, counters):
     write(role['directory'] / f'turn-{number:02d}-request.json', dict(prompt=prompt, prompt_sha256=hashlib.sha256(prompt.encode()).hexdigest()))
     start = len(client.events)
     result = client.request('turn/start', dict(threadId=role['thread']['thread']['id'], input=[dict(type='text', text=prompt)]))
-    client.broker = ResearchBroker(role['manifest']['work'], role['directory'] / f'tools-{number:02d}',
+    client.broker = role.get('broker_factory', ResearchBroker)(role['manifest']['work'], role['directory'] / f'tools-{number:02d}',
         role['thread']['thread']['id'], result['turn']['id'],
         max_actions=min(role['actions'], ACTION_LIMIT - counters['actions']), max_runs=min(role['runs'], RUN_LIMITS['cpu_runs'] - counters['cpu_runs']))
     deadline = time.monotonic() + 300

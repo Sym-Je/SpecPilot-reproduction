@@ -23,8 +23,9 @@ from harness.research_protocol import ResearchBroker
 
 CODEX=Path('/gpfs/users/jixinpeng/.local/share/codex/0.163.0/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex')
 CODE_MODE=CODEX.with_name('codex-code-mode-host')
-TOOL=dict(type='function',name='research',description='Read authorized inputs/stock, write scratch experiments, run isolated CPU Python; no arbitrary shell or GPU submission.',
-    inputSchema=dict(type='object',properties=dict(action=dict(type='object')),required=['action'],additionalProperties=False))
+TOOL=dict(type='function',name='research',description='Actions require kind (not type). Use help for exact fields. Read authorized inputs/stock; follow read_file next_offset until null. Write scratch experiments, run isolated CPU Python or role-authorized offline skills; no arbitrary shell or GPU submission.',
+    inputSchema=dict(type='object',properties=dict(action=dict(type='object',
+        properties=dict(kind=dict(type='string')),required=['kind'])),required=['action'],additionalProperties=False))
 
 
 def bootstrap(directory,manifest):

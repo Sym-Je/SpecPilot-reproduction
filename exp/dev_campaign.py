@@ -13,7 +13,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from controller.dev_campaign import PHASES, PROTOCOL, validate_campaign, validate_session
+from controller.dev_campaign import PHASES, PROTOCOL, correctness_reference, validate_campaign, validate_session
 from controller.http_transport import Arm
 from controller.paper_policy import measurement_protocol_id
 from controller.scored_forcing import calibrate_delta, calibrate_stock, judge_scored_forcing
@@ -90,12 +90,21 @@ def run_session(directory, campaign, environment):
 
 
 def score_campaign(directory, campaign, environment):
+    reference, separate = correctness_reference(campaign)
+    specifications, _ = arm_specs(['ar'], environment)
+    arm = specifications[0]
+    if arm['tree_sha'] != reference:
+        raise ValueError('installed canonical scorer/AR engine differs from the declared reference')
+    reference_arm = None
+    if separate:
+        specifications, _ = arm_specs(['stock'], environment)
+        reference_arm = specifications[0]
+        if reference_arm['tree_sha'] != reference or reference_arm['block'] != 8 or reference_arm.get('env'):
+            raise ValueError('independent reference-stock must use the unchanged canonical engine')
     correctness = directory / 'correctness'
     correctness.mkdir()
     gpus = wait_for_idle([0, 1])
     check_ports([30120, 30130])
-    specifications, _ = arm_specs(['ar'], environment)
-    arm = specifications[0]
     with ExitStack() as resources:
         launch(arm, 'scorer', gpus[1], correctness, environment, resources)
         scorer = NativeClient('http://127.0.0.1:30130', correctness / 'scorer-raw')
@@ -109,6 +118,15 @@ def score_campaign(directory, campaign, environment):
             ar_paths, _, _ = bench.generate('ar', campaign['requests'], client, identity, 2048)
         check_ports([30120])
         wait_for_idle([0])
+        reference_paths = None
+        if separate:
+            with ExitStack() as generation:
+                launch(reference_arm, 'stock', gpus[0], correctness, environment, generation)
+                client = NativeClient('http://127.0.0.1:30120', correctness / 'reference-stock-raw')
+                identity = client.server_identity(reference)
+                reference_paths, _, _ = bench.generate('reference-stock', campaign['requests'], client, identity, 2048)
+            check_ports([30120])
+            wait_for_idle([0])
         for number in (1, 2):
             root = directory / 'candidate' / f'round-{number:02d}'
             traces = {}
@@ -121,8 +139,9 @@ def score_campaign(directory, campaign, environment):
                     paths.append(bench.save_trace(f'round-{number:02d}-{role}', request, row['output_ids'],
                                                  row['generator'], [row['raw_evidence']]))
                 traces[role] = paths
-            delta = calibrate_delta(traces['stock'], ar_paths, evidence_root=directory)
-            calibration = calibrate_stock(traces['stock'], delta, evidence_root=directory)
+            calibration_paths = reference_paths if separate else traces['stock']
+            delta = calibrate_delta(calibration_paths, ar_paths, evidence_root=directory)
+            calibration = calibrate_stock(calibration_paths, delta, evidence_root=directory)
             audits = bench.audit(f'round-{number:02d}-final', traces['final'], delta['delta'])
             verdict = judge_scored_forcing(calibration, traces['final'], evidence_root=directory, prefill_audits=audits)
             write_json(correctness / f'round-{number:02d}-delta.json', delta)

@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import time
 
-from controller.dev_campaign import PHASES, PROTOCOL, validate_campaign, validate_session
+from controller.dev_campaign import PHASES, PROTOCOL, correctness_reference, validate_campaign, validate_session
 from controller.paper_policy import measurement_protocol_id
 from exp.candidate_smoke import CapturedArm
 from exp.dev_campaign import score_campaign
@@ -12,7 +12,8 @@ from exp.engine_research import ROOT, ResearchServer, file_sha
 from exp.p3_pair_run import SUITES, SETTING, check_ports, run_round, summarize, wait_for_idle, write_json
 
 
-def run_gate(directory, record, spec, arms, gpus, requests, environment):
+def run_gate(directory, record, spec, arms, gpus, requests, environment, *,
+             server_factory=ResearchServer, arm_class=CapturedArm, candidate_origin=None):
     if len(requests) != 30 or record['action']['max_new_tokens'] != 2048:
         raise ValueError('controller dev gate requires the registered thirty-request protocol')
     candidate_arms = [dict(arms[0]), dict(arms[1], name='final')]
@@ -28,13 +29,16 @@ def run_gate(directory, record, spec, arms, gpus, requests, environment):
         sampling=dict(temperature=0.0, top_k=1, enable_thinking=True),
         model_path=spec['target'], declared_models=config['models'], gpus=gpus,
         candidate_arms=candidate_arms, null_arms=null_arms,
+        reference_tree_sha=spec['stock_tree_sha'],
         launch_protocol=dict(model_path=spec['target'], dtype='bfloat16', mem_fraction_static=.90,
             attention_backend='fa3', disable_radix_cache=True, random_seed=0, chunked_prefill_size=8192,
             enable_fp32_lm_head=False, speculative_draft_model_path=spec['draft'],
             mamba_ssm_dtype='float32', kv_cache_dtype='auto'),
         dev_sources={suite:file_sha(ROOT / 'assets/upstream/dev' / f'{suite}.jsonl') for suite in SUITES},
-        scope='agent startup-option dev gate; final is a schema slot, not author final',
-        candidate_origin=dict(spec_sha256=spec['spec_sha256'], value=spec['value'], source='direction request'))
+        scope=('agent source-option dev gate; final is a schema slot, not author final' if candidate_origin else
+               'agent startup-option dev gate; final is a schema slot, not author final'),
+        candidate_origin=candidate_origin or dict(spec_sha256=spec['spec_sha256'], value=spec['value'], source='direction request'))
+    correctness_reference(campaign)
     campaign['protocol_id'] = measurement_protocol_id(campaign)
     write_json(directory / 'manifest.json', campaign)
     for phase in PHASES:
@@ -48,9 +52,9 @@ def run_gate(directory, record, spec, arms, gpus, requests, environment):
             check_ports(campaign['ports'])
             root = phase_dir / f'round-{number + 1:02d}'
             def factory(name, url, **options):
-                return CapturedArm(name, url, directory=root, spec=spec, **options)
+                return arm_class(name, url, directory=root, spec=spec, **options)
             pairs.extend(run_round(selected, gpus, campaign['ports'], number, requests, root,
-                environment, 2048, 2, 1200, stable_null=True, server_factory=ResearchServer, arm_factory=factory))
+                environment, 2048, 2, 1200, stable_null=True, server_factory=server_factory, arm_factory=factory))
             wait_for_idle([0, 1])
         summary = summarize(pairs, requests, 2)
         summary.update(arms=[arm['name'] for arm in selected], max_new_tokens=2048,
@@ -68,5 +72,9 @@ def run_gate(directory, record, spec, arms, gpus, requests, environment):
         candidate_promoted=False, ledger_eligible=False, option_value=spec['value'],
         scope='registered independent dev gate, not sealed, author-final reproduction or algorithm discovery',
         controller_verdict=verdict, schema_final_slot='agent startup option, not author code')
+    if candidate_origin:
+        result.update(protocol='agent-source-dev-gate-v1', candidate_origin=candidate_origin,
+            schema_final_slot='agent source option, not author code',
+            scope='independent registered dev gate; not sealed, promotion or complete algorithm discovery')
     write_json(directory / 'result.json', result)
     return result

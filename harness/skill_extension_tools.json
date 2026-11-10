@@ -1,0 +1,8 @@
+{
+  "revision": "5df356636bf9da3a1446653043942ff3487c1430",
+  "files": {
+    "skills/llm-serving-capacity-planner/scripts/capacity_analyzer.py": "d34458b29cb2573b564ec4f3e39db958a64025f189b1d28edda155f0c26f0494",
+    "skills/llm-serving-capacity-planner/references/gpu-specs.json": "41116dc95f9d841cf7bbd126c9294fdfd6e1e7843befa6ff8882b65500df810a",
+    "skills/sglang-prod-incident-triage/SKILL.md": "39ad6e522426866a1de9eb252b5bba272b7e16e67d865a6b62bc68241a103535"
+  }
+}

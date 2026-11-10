@@ -117,9 +117,9 @@ class ResearchBoundaryTests(unittest.TestCase):
             self.assertNotEqual(result['exit_code'],0)
 
     def test_launcher_refuses_broad_or_unlisted_executable(self):
-        from harness.research_boundary import launch_command
+        from harness.research_boundary import ROOT,launch_command
         with self.assertRaises(ValueError):launch_command(self.work,['/bin/sh','-c','true'],executables=[sys.executable])
-        for root in ('/','/gpfs/users/jixinpeng'):
+        for root in (Path('/'),ROOT,ROOT.parent):
             with self.assertRaises(ValueError):launch_command(self.work,[sys.executable,'-V'],executables=[sys.executable],readonly=[root])
 
     def test_transport_binds_role_and_rejects_forged_tool_identity(self):

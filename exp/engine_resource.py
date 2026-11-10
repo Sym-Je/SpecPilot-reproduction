@@ -105,6 +105,13 @@ def monitor(directory, budget, record, pending, uuid, *, feedback_loader=None):
     started = next(row['reserved_unix'] for row in budget.read()['jobs'] if row['name'] == name)
     stop_sent = False
     observed = {}
+    previous = directory / 'lifecycle-observed.json'
+    if previous.is_file():
+        history = json.loads(previous.read_text())
+        if history['uuid'] != uuid:
+            raise RuntimeError('monitor history belongs to another job')
+        observed = history['pods']
+    absent_terminal_since = None
     while time.time() - started < deadline + 780:
         job = jobs_api.get_namespaced_custom_object('batch.volcano.sh', 'v1alpha1', 'qiji', 'jobs', uuid)
         podspec = job['spec']['tasks'][0]['template']['spec']
@@ -127,6 +134,32 @@ def monitor(directory, budget, record, pending, uuid, *, feedback_loader=None):
         save(directory / 'lifecycle-observed.json', dict(uuid=uuid, pods=observed,
             job_phase=job.get('status', {}).get('state', {}).get('phase'), queue=job['spec'].get('queue')))
         phase = job.get('status', {}).get('state', {}).get('phase')
+        if not pods and phase in ('Aborted', 'Failed', 'Terminated'):
+            if absent_terminal_since is None:
+                absent_terminal_since = time.time()
+            elif time.time()-absent_terminal_since >= 5:
+                from harness.ceiling_lifecycle import preemption_receipt
+                events = pods_api.list_namespaced_event('qiji', field_selector='involvedObject.name='+uuid).items
+                proofs = [dict(reason=event.reason, message=event.message,
+                    involved_name=event.involved_object.name,
+                    last_timestamp=str(event.last_timestamp)) for event in events]
+                receipt = preemption_receipt(job, proofs, live_pods=0,
+                    observed_end_unix=time.time(), gpus=pending['total_gpus'])
+                if receipt is not None:
+                    save(directory / 'preemption-proof.json', receipt)
+                    save(directory / 'lifecycle-final.json', dict(uuid=uuid, phase=phase, pods=observed,
+                        conservative_gpu_seconds=receipt['conservative_gpu_seconds'], queue=job['spec'].get('queue'),
+                        container_exit_code=None, preemption_receipt=dict(path=str(directory / 'preemption-proof.json'),
+                            sha256=digest(directory / 'preemption-proof.json'))))
+                    budget.update(name, terminal=phase, terminated=True,
+                        charged_gpu_seconds=receipt['conservative_gpu_seconds'])
+                    feedback = dict(status='failed', uuid=uuid, controller_accepted=False, preempted=True,
+                        container_exit_code=None, error='Confirmed job preemption and deleted Pod; partial evidence is not a complete experiment.')
+                    save(directory / 'feedback.json', feedback)
+                    print(json.dumps(dict(event='GPU_PREEMPTED', **feedback)), flush=True)
+                    return feedback
+        else:
+            absent_terminal_since = None
         if (pods and all(pod.status.phase in ('Succeeded', 'Failed') for pod in pods) and
                 phase in ('Completed', 'Failed', 'Aborted', 'Terminated') and
                 all('finished_at' in row for row in observed.values())):

@@ -27,14 +27,16 @@ def validate_plan(plan,evidence):
 
 def validate_action(action):
     if not isinstance(action,dict):raise ValueError('action object required')
-    required=dict(write_file={'kind','path','content'},read_file={'kind','path'},run_python={'kind','path'},
+    required=dict(help={'kind'},write_file={'kind','path','content'},read_file={'kind','path'},run_python={'kind','path'},
         list_stock={'kind','prefix','offset'},read_stock={'kind','path','offset'},
         finish={'kind','disposition','observations','tool_refs','limitations'})
     kind=action.get('kind')
+    if kind=='read_file' and 'offset' in action:
+        required['read_file']=required['read_file'] | {'offset'}
     if kind not in required or set(action)!=required[kind]:raise ValueError('unknown or malformed action; GPU is not authorized')
     if kind=='write_file':
         if not isinstance(action['content'],str) or len(action['content'].encode())>32768:raise ValueError('file payload exceeds limit')
-    if kind in ('list_stock','read_stock') and (type(action['offset']) is not int or action['offset']<0):
+    if kind in ('list_stock','read_stock','read_file') and (type(action.get('offset',0)) is not int or action.get('offset',0)<0):
         raise ValueError('invalid source offset')
     if kind=='finish':
         if action['disposition'] not in ('stop','needs_evidence','candidate_pending_validation'):raise ValueError('invalid direction disposition')

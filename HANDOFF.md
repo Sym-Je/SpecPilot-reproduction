@@ -111,7 +111,55 @@ stock在0.7/1.0采样正常；固定final完成两次greedy后，首次0.7请求
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
 > 最后更新：2026-11-10 北京时间（真实stock参数探索与两份dev联合验收通过，Master主动停止；完整RSI未完成）。
 
-## H100当前接续点：最小 Skills 诊断验证完成
+## H100当前接续点：BBuf角色接入与真实全流程执行中
+
+- 用户批准整体完成角色工具接入、controller验证、真实全流程；新上限32 GPU小时／24小时／4卡，
+  全部沿用已确认镜像/WeaverDev/qiji，显式priority3。另授权必要controller/eval维护者实现，
+  不放宽科学规则；研究角色仍无sealed/裁判/账本/直接提交权限。
+- 唯一预算和日志：`logs/skills-rsi-20261110-b01/`；计划`docs/experiments/skills-rsi-20261110.md`。
+  五次preflight均终态，累计3196 GPU秒；第五次`job-b9bf1d87f2ed-20261110230811`
+  Completed/exit0，两轮fresh与换卡、10pair/20臂行通过。不再重复预检。
+- 已完成67项原相关回归；新增controller故障/绑定/噪声检查37项、sealed协议13项通过，
+  都是工程fixture，不是真实sealed/GPU正确性通过。低层摘要接口不能直接信任agent回执，
+  正式入口必须完整独立重算。维护者工程协作者不是科学Direction，不把其代码当自主发现。
+- 真实预检依次发现固定ldconfig.real未授权、NUMA写共享/tmp、Landlock ABI1跨目录rename。
+  已显式对两臂关闭自动NUMA，固定ldconfig helper，可信Triton cache插件改同目录原子写，
+  实际ABI1 CPU边界及已安装Triton无CUDA测试通过；不扩大/tmp或研究角色权限。
+- Ninja所需setpgid仅允许(0,0)，仍拒绝setsid及其他进程组；真实预检已越过JIT。
+- 原`exp/skill_rsi.py`已自然research_complete，6原生角色全部exit0、8任务全部终态，
+  累计9234 GPU秒。3方向诊断分别0.999116 [0.996860,1.001485]、1.003641
+  [0.999300,1.008194]、0.994493 [0.991033,0.997896]；均未晋升。
+  Master stop，未送dev gate；Integration无共享补丁、Kernel证据不足，均诚实停止。
+  不能说已完成科学整合/kernel优化、sealed或真实RSI。
+- 原生谱系独立审计`real-audit-01.json`通过：13回合、53工具动作、3研究GPU，
+  4Python+4BBuf工具收费、30pair；工程探针不算科学角色。此为原科学轮收口快照，不是下文control02的实时状态。
+- 编排缺口与显式Master coverage-review入口已修，不删除marker、不重做原GPU。
+  旧运行host源码已保存`host-start-skill-rsi.py`和`host-loaded-identity.json`，后续修复不宣称热加载。
+- 下一步优先验收controller私有stock负对照（不是自主优化）：`phase4-preparation/cohort-spec.json`
+  已冻结公开源/原100dev排除/11已用manifest引用/每suite1题/seed，未读私有正文。
+  77项coverage/paging回归与68项Phase4回归通过，真实host停机观察已过。
+- coverage-review-01因12k截断/schema错误未完整读上下文；通用read_file已补分页/help，
+  显式repair-review-02逐6页核全68044字符，Master自主仍stop。两次review均自然exit0，
+  累计69动作/15回合/10CPU工具收费（含2次被拒CPU请求），无追加研究GPU；四个新进程有真实birth/exit。
+- control01已提交一次，code200、UUID`job-40a6fed8a1fa-20261111012436`、实际higher-priority-job，
+  最终Aborted/exit1，144 GPU秒。失败在PrivateSourceServer READY管道JSON解析，尚未测量/生成；
+  外部仅查看安全code frame，未读root私有请求/日志。control02提交前9job全终态、9378 GPU秒，无活动GPU。
+- umask077只读bootstrap/探针权限已修，不改controller私有权限；选题键改为稳定ID/suite/input SHA，
+  不依赖job私有路径。原任务在生成前设施失败，没有性能反馈，不据此挑题。
+- 审计器严格核对历史科学prefix与终态controller扩展，真实9任务/9378秒重算通过；
+  118项prefix/startup联合CPU回归和真实observe03通过，旧pipeline/账本不改。
+- **control02正在运行，勿重复提交**：UUID`job-1cca13109a99-20261111015305`，
+  2H100、14400秒deadline、higher-priority-job、code200；工具前台TTY会话60197，
+  日志`phase4-control-execute02.txt`，最终结果预期`phase4-control-result02.json`。
+  已观察两卡各77039MB显存、container Running；不是GPU测试/forcing通过。
+  source SHA=`ce19e56c1538724c83a4def34a45ce7b579de33e9cb7888f2a78c7307146627a`。
+  目前唯一预算包含第10项active预留；恢复先核任务/预算，不能再次create同任务。
+  原生角色全部停机，root私有请求/原始日志不得主助手读取；只看public aggregate/error/resource元数据。
+- 当前20个指定模块297项联合回归通过；公开选择性导出首次仅目录写死的旧测试失败，
+  已改为实际仓库root/parent（不改权限策略），单模块17项和公开子集297项复验通过。
+  只暂存本阶段源码/文档，旧ceiling新增/修改保留，不自动混入发布。
+
+## H100已收口历史：最小 Skills 诊断验证完成
 
 - 用户批准用可信 profile/接受量/粗粒度成本推进主线，不再以完整 ceiling 为硬前置；
   本阶段不新增 GPU、不恢复补采、不启动科学角色，不接管 Ascend。

@@ -100,7 +100,9 @@ Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后30
 
 **当前状态：**完整ceiling仍未知，不再作为自主探索硬前置；停止继续补采。旧17任务均终态，b16/b17被抢占，保守6.9283 GPU小时；树分支argmax分歧未解决，不称lossless或完整ceiling完成。
 
-**接下来：**审核Master据现有诊断自主分方向→多direction→Integration→Kernel→独立controller的研究阶段。单项、组合、kernel修改后都要独立dev正确性/token forcing与配对性能，最终冻结后才用sealed。后续GPU显式用`--k8s-priority 3`（`higher-priority-job`），仍须确认新预算/镜像并查重，不保证不会被抢占。
+**正在做：**[BBuf角色接入与真实全流程](docs/experiments/skills-rsi-20261110.md)：真实预检、三个自主源码诊断和独立谱系审计已完成，均未获可信收益；整合无输入、Kernel证据不足。当前补controller私有负对照与工程边界，未完成真实RSI或晋升。
+
+**接下来：**完成controller私有stock负对照、独立重算与归档。本轮Master完整读取证据后仍决定stop，不为补齐流程强造组合或优化；真实Integration、Kernel及合格final的T3通过路径仍待后续验证。当前任务沿用已批准32 GPU小时／24小时／4卡及已确认镜像，使用`higher-priority-job`但不保证免抢占。
 
 **已有基础：**三臂真实 server、dev验收、外部数据审计与mock闭环完成；**尚未复现论文原sealed数字或真实RSI方法结论。**
 

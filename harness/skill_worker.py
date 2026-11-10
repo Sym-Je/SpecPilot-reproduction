@@ -18,7 +18,8 @@ def main():
     scripts = dict(
         profiler='skills/llm-torch-profiler-analysis/scripts/analyze_llm_torch_profile.py',
         pipeline='skills/llm-pipeline-analysis/scripts/layer_timeline_analyzer.py',
-        compute='skills/model-compute-simulation/scripts/model_compute_simulator.py')
+        compute='skills/model-compute-simulation/scripts/model_compute_simulator.py',
+        capacity='skills/llm-serving-capacity-planner/scripts/capacity_analyzer.py')
     if tool == 'extract':
         sys.path.insert(0, str(Path(root) / 'skills/llm-torch-profiler-analysis/scripts'))
         from profile_common import load_trace_json

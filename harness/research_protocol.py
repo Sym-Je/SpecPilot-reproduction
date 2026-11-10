@@ -7,7 +7,7 @@ from harness.research_tools import dispatch
 
 
 class ResearchBroker:
-    def __init__(self,work,records,thread,turn,max_actions=24,max_runs=4):
+    def __init__(self,work,records,thread,turn,max_actions=24,max_runs=4,dispatcher=None):
         self.work=Path(work)
         self.records=Path(records)
         self.records.mkdir(parents=True,exist_ok=False)
@@ -18,6 +18,7 @@ class ResearchBroker:
         self.actions=0
         self.runs=0
         self.calls=set()
+        self.dispatcher=dispatch if dispatcher is None else dispatcher
 
     def handle(self,request):
         if (request.get('threadId')!=self.thread or request.get('turnId')!=self.turn or
@@ -36,10 +37,10 @@ class ResearchBroker:
             arguments=request['arguments']
             if not isinstance(arguments,dict) or set(arguments)!={'action'}:raise ValueError('only an action is accepted')
             action=arguments['action']
-            if isinstance(action,dict) and action.get('kind')=='run_python':
+            if isinstance(action,dict) and action.get('kind') in ('run_python','run_skill'):
                 if self.runs>=self.max_runs:raise ValueError('CPU run budget exhausted')
                 self.runs+=1
-            result=dispatch(self.work,action,record/'execution')
+            result=self.dispatcher(self.work,action,record/'execution')
             response=dict(success=True,contentItems=[dict(type='inputText',text=json.dumps(result))])
         except (ValueError,OSError,TypeError,KeyError) as error:
             response=dict(success=False,contentItems=[dict(type='inputText',text=json.dumps(dict(status='rejected',reason=str(error))))])
