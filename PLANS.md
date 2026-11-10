@@ -229,3 +229,5 @@ Ascend 监听阶段：D5 APC 和 D6 TP4/DP2/EP8 预检均 needs_evidence、零�
 Ascend 当前能力准备：Master7 请求完整 APC 遥测。第一阶段初始化 adapter 经独立受限 DSH 审查仅准入 capture-only，66项定向CPU检查通过，可信 caching-OFF/零生成的8卡采集正在进行。等待实际终态与基线恢复；之后仍须补齐请求遥测和 OFF/ON 对照，不将结构metadata当完整能力或性能优化。
 
 Ascend 当前：初始化结构采集8/8、每卡6组通过，但首次stock基线恢复OOM，已清理本次所属失败进程。用户要求维持串行等待；恢复脚本仍排队，不中断另一任务。当前不启动研究API，不声称服务健康。69项CPU检查通过；恢复后才向Master分享partial OFF事实，再决定补齐完整遥测/输出对照。
+
+Ascend 最新：同配置第一次恢复重试成功（32/32图、8 worker、health200、无插桩），Master7接续已测partial OFF缓存组事实。原捕获任务仍保留初次恢复失败状态，post-finalize recovery单列；不得误写为无故障。enabled推理仍需单独准入，74项CPU检查含未接入比较器原型，不等同模型精度/性能结果。

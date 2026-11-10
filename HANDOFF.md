@@ -92,6 +92,8 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 
 - 等锁时新增host-only三臂输出对照器原型：OFF/OFF先可复现才判断候选，正文/thinking/tool参数/结束原因/输出token数严格对照，忽略随机生成的tool-call协议ID；仅输出聚合计数/布尔。5项合成fixture通过，连同既有检查总74项；未发真实请求/未独立审查/未接入，不是模型精度或lossless证明。用户再次明确维持串行等待，恢复仍未启动，不中断另一任务。
 
+- 最新恢复终态：另一任务释放锁后，第一次同stock参数重试成功，FULL图32/32、8个worker、health200、模型ID正确、worker无PREFIX_CACHE_METADATA_ENABLE，原argv与3508fff5…脚本SHA一致。原capture status仍failed并保留首次restore_error，baseline_restored现true，另有post-finalize recovery回执；不篡改为全程成功。Master7已用新增partial OFF group facts恢复，当前role实际进程查私有supervisor；原19动作不重置，仅新增8次只读规划额度。APC enabled推理仍未准入，完整遥测/输出对照未完成，无新吞吐结果。
+
 ## 以下为H100独立轨道，不混用Ascend资源授权
 
 

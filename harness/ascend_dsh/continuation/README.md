@@ -241,3 +241,13 @@ OFF controls fail validation. Only aggregate booleans/counts leave the function.
 Seventy-four targeted CPU checks pass including the existing checks. The
 comparator has made no live request, has not received independent admission or
 been integrated, and measures neither model accuracy nor global losslessness.
+
+After the independent task released the shared lock, the first identical-stock
+recovery retry succeeded: FULL graph capture32/32, eight workers, health200,
+expected model and exact argv, with no metadata adapter enabled. The original
+experiment remains failed with its initial restoration error preserved; only
+`baseline_restored` and an explicit post-finalize recovery receipt now reflect
+recovery. Master7 resumed with the partial OFF facts and eight additional bounded
+read-only planning actions, retaining the original19 actions and cumulative fees.
+Enabled-prefix inference is still unadmitted; no new throughput or accuracy
+result is claimed.
