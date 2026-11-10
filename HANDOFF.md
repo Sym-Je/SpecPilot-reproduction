@@ -31,7 +31,44 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
 > 最后更新：2026-11-10 北京时间（真实stock参数探索与两份dev联合验收通过，Master主动停止；完整RSI未完成）。
 
-## H100接续点：真实stock参数探索已收口，下一阶段先提案
+## H100当前接续点：Phase 0诊断采集收口，完整ceiling仍缺
+
+- [Phase 0诊断](docs/experiments/ceiling-20261110.md)采集与复核已收口；完整Phase 0尚未完成，三因子仍为null。
+- 新资源授权16 H100 GPU小时/12小时/最多并发2卡，沿用已确认镜像/WeaverDev/qiji/只读模型PVC，旧余额不结转。
+- 原PDF已读：正文§3.1用best-first最佳预算及60%/90% floor；附录B历史数值用oracle/full-peak，不能混用。
+- 准备有限top16 lattice条件重放、独立无profiler计时及完整请求kernel profile；缺失最佳运行时预算、
+  完整byte/FLOP工作量或匹配无干扰步时间时，三因子/ceiling仍为null，不用普通profile冒充。
+- 唯一预算为`logs/ceiling-run-20261110-a01/resource-state.json`，两个任务均已终态。
+  首任务`job-b1bf6f83e255-20261110102708`身份适配错误/exit1，1114 GPU秒；
+  第二任务`job-ca3363cd2236-20261110104035`Completed/exit0，5794 GPU秒；总1.918889 GPU小时、峰值2卡，无余额结转。
+  40pair/80臂行全部输出一致；20份完整profile的5308提交步/5328 VERIFY标注覆盖20/20通过。
+  20份真实lattice重放、80故障拒绝、两次独立CPU审计与覆盖复核一致，331项定向CPU检查通过。
+  block8/top16格内stock tau=4.860407，N32=5.987720、N128=6.426686；只是条件接受量，不是速度收益或全局tau_best。
+  下一阶段先补kernel工作量映射/无干扰逐步时间/预算成本，不预设VERIFY优化，不启动科学角色或sealed。
+  5875文件/693033124字节两次全SHA通过，清单SHA为`78aba017df807f0d94af73f86333febc380234e2bef186e3ec922dd068f5e394`。
+  Git同步回执单列`logs/ceiling-publication-20261110-a01/`，原始证据不入公开Git。
+  prepare缺return导致首轮提前提交的缺陷及修复已披露并留证。旧源码通路修改保留，9次旧预检已终止，不恢复为待办。
+
+## 历史接续：用户要求按完整多角色主线重新规划
+
+- 本次最新请求是重新设计下一阶段，不是批准新增Integration/Kernel/sealed实验；先给方案审核，暂不新增提交。
+- 9次可信基础设施预检均已终止，无活动GPU预留；保守累计1996 GPU秒。尚未启动本阶段科学Master/direction，尚无源码优化或完整server配对结果。
+- 已验证受限真实H100矩阵乘、独立UID、父进程环境不可读；完整server先后暴露固定工具/系统数据依赖。
+  第9次已加载真实权重，因ldconfig执行受限失败，旧信号限制阻碍自身子进程清理；已定向清理该任务，未影响其他任务。
+- 当前工作树中的ldconfig/numactl及自身子进程信号修复尚未复验；不能把早先15项测试或GPU探针算成这些最新修复已通过。
+- 新主线提案应覆盖Master→至少两个独立direction→Integration组合→Kernel研究→原controller独立dev验收；先完成必要源码执行验收，不把该前置通路当最终架构。
+  sealed/晋升/可信记忆/真实多轮RSI仍未完成，不自动创建；执行新版阶段前确认范围和资源，不结转旧余额。
+
+### 本次源码通路的既有授权与准备（尚未达成科学目标）
+
+- 用户已批准本阶段实现与执行，另行确认16 H100 GPU小时、12小时、最多并发2卡；沿用镜像digest/WeaverDev/qiji与只读模型挂载，不继承旧余额。
+- 新计划与先行验收见`docs/experiments/source-autonomy-20261110.md`。入口`exp/source_autonomy.py`，唯一新预算状态`logs/source-autonomy-run-20261110-a01/resource-state.json`。
+- 当前仅完成部分可信引擎边界预检，尚未启动Master/direction源码研究。已经确认实际GPU矩阵乘及独立UID/父进程环境保护，完整server/换卡预检仍待完成。
+- 原始失败、各次冻结源码、提交/启动/终态和预算均独立保留；恢复前核对`preflight-plan.json`、提交UUID与资源状态，不重复create已有任务。
+- 仅保护必要红线，不改controller/判据/sealed，不读作者final；允许SGLang必要子进程/JIT/网络IPC，不声称网络隔离或硬件逐臂隔离。设备授权限Pod已分配两卡，CUDA_VISIBLE_DEVICES逐臂选择；不同UID保护可信父进程和另一臂文件。
+- 本会话不接管Ascend/DSH进程、计费或validation；后续科学决策仍由Master/direction自主完成，不由主助手代写优化。
+
+## 已收口历史：真实stock参数探索
 
 - 用户批准累计64 H100 GPU小时、最长24小时、最多并发8卡；失败和冷启动计入，上限非使用目标。
 - 沿用已确认镜像digest、WeaverDev、qiji、toleration及只读模型挂载。范围/先行验收见
@@ -51,7 +88,7 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 - 起点8bd6029；收尾机器状态见`logs/engine-autonomy-closeout-20261109-d01/stage-result.json`。
   321CPU测试、两次独立重放及6类篡改拒绝通过；新归档25836文件/523390549字节，SHA为
   9fd4dbc77a1a5e97fb831c25a7f852458171437ba0c498ebfe911363e84ee85f，两次全SHA通过。公开审查通过，最终同步身份以publication目录单列回执为准。
-  下一阶段先提案接通受限源码option通路，未授权执行；不读sealed/作者final，不自动integration/kernel/DSH或结转GPU余额。
+  当时的源码通路接续提案已在新阶段获批，见上方；不读sealed/作者final，不自动integration/kernel/DSH或结转旧GPU余额。
 - 首条通路仅startup option，非任意源码优化；不读作者final/sealed，不改controller或判据。
 
 ## 已收口历史：第三阶段有效微实验

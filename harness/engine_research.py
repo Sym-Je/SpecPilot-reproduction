@@ -50,15 +50,19 @@ def save(path, value):
 
 
 class Budget:
-    def __init__(self, path, *, now=None):
+    def __init__(self, path, *, now=None, limits=None):
         self.path = Path(path)
+        limits = dict(wall_seconds=86400, gpu_seconds=230400, concurrent_gpus=8) if limits is None else dict(limits)
+        if (set(limits) != {'wall_seconds', 'gpu_seconds', 'concurrent_gpus'} or
+                any(type(value) is not int or value < 1 for value in limits.values()) or
+                limits['concurrent_gpus'] > 8):
+            raise ValueError('invalid authorized resource ceilings')
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.lock():
             if not self.path.exists():
-                save(self.path, dict(started=time.time() if now is None else now,
-                    wall_seconds=86400, gpu_seconds=230400, concurrent_gpus=8, jobs=[]))
+                save(self.path, dict(started=time.time() if now is None else now, **limits, jobs=[]))
             state = self.read()
-            if (state['gpu_seconds'], state['wall_seconds'], state['concurrent_gpus']) != (230400, 86400, 8):
+            if any(state[key] != value for key, value in limits.items()):
                 raise ValueError('persisted authorized resource ceilings changed')
 
     @contextmanager
