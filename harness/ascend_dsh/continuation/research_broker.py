@@ -74,6 +74,8 @@ class Broker:
         self.state = json.loads(self.statefile.read_text()) if self.statefile.exists() else {'actions': 0, 'experiments': []}
 
     def names(self):
+        if self.allocation.get('analysis_only'):
+            return [n for n in SCHEMAS if n not in ('launch_experiment', 'wait_experiment')]
         if self.mode == 'direction': return list(SCHEMAS)
         if self.mode == 'probe': return ['read_evidence', 'list_source', 'read_source', 'write_scratch', 'run_cpu']
         return ['read_evidence', 'list_source', 'read_source', 'search_source']
@@ -121,6 +123,10 @@ class Broker:
         action_id = f"{self.role}-T{self.state['actions']:04d}"
         if name == 'read_evidence':
             result = self.evidence(args['name'])
+            from parallel_evidence import shared_updates
+            updates = shared_updates(OUT, analysis_only=self.allocation.get('analysis_only', False))
+            if updates:
+                result = dict(result, shared_research_updates=updates)
         elif name == 'list_source':
             root = SOURCE_ROOTS[args['tree']].resolve()
             prefix = normalize_source_prefix(args['tree'], args['prefix'])
@@ -208,12 +214,17 @@ class Broker:
             result = wait_final(folder / 'state.json', args['seconds'])
             if result['status'] == 'failed': result.update(failure_diagnostics(folder, result))
         elif name == 'read_profile':
-            if args['id'] not in self.state['experiments']: raise ValueError('Experiment not owned')
+            shared = self.allocation.get('shared_profile_csvs', {}).get(args['id'], {})
+            owned = args['id'] in self.state['experiments']
+            if not owned and args['path'] not in shared:
+                raise ValueError('Experiment not owned or explicitly shared')
             folder = OUT / 'experiments' / args['id']
             state = json.loads((folder / 'state.json').read_text())
             if state['status'] not in ('complete', 'failed'): raise ValueError('Profile is not yet finalized')
             path = local_path(folder / 'traces', args['path'])
             if path.suffix != '.csv' or not path.is_file() or path.stat().st_size > 64 * 1024**2: raise ValueError('Only bounded trace CSVs')
+            if not owned and sha(path) != shared[args['path']]:
+                raise ValueError('Shared profile changed after evidence freeze')
             offset = args['offset']
             if type(offset) is not int or offset < 0: raise ValueError('Invalid offset')
             content = path.read_text(errors='replace')

@@ -49,3 +49,27 @@ activity, and verify compressed timelines by full decompressed SHA256 before
 removing the uncompressed derived file. The archive manifest maps original paths
 to gzip paths; raw profiler files and kernel CSVs remain intact. Background heavy
 compression acquires the machine timing lock to avoid perturbing benchmarks.
+
+The subsequent three baseline captures exported all eight ranks successfully.
+The offered-C32 decode capture had seven active requests and 25 completed at its
+trigger; it is a tail window, not sustained active batch32. The first direction's
+provider refusal was preserved without repeated NPU work; its supervisor closure
+is explicitly not a model-authored scientific conclusion.
+
+The user additionally authorized parallel research. `parallel_research.py` asks a
+scientific Master to allocate two complementary source/trace/isolated-CPU lanes
+alongside the original serial NPU direction. An `analysis_only` broker allocation
+removes NPU launch/wait capabilities, and shared baseline CSVs are explicitly
+allowlisted and SHA-pinned. Analysts receive frozen evidence, not each other's
+reports. `parallel_evidence.py` shares attributed completed proposals and supervisor
+corrections with later primary-role evidence reads. No old live MCP process is
+claimed to hot reload. Proposals require review and serial measurement; the
+parallel supervisor neither edits primary state nor auto-deploys patches.
+
+All lanes share the existing locked Claude ledger. A trusted scheduler can activate the
+shared GPT phase only after a durable Claude budget denial, without rewriting the
+primary driver state or interrupting its experiment. Budgets are not multiplied
+by worker count. New validation remains sealed. Native
+DSH trajectories, calls, allocation, process state and reports remain private.
+Seven new boundary tests plus 13 related tests passed (20 total); this is focused
+adapter acceptance, not full repository coverage or evidence of a speedup.

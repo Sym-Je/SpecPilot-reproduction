@@ -32,7 +32,12 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 
 ## Ascend continuation — 2026-11-10 用户要求继续优化
 
-当前真实运行目录：`/data/northinfer-specpilot-cont-20261110`。首份graph配置下的long/C32/32-step采集完成，8/8 rank导出，无导出丢数据告警；baseline已恢复。第二份decode-window实验已提交，排在独立量化采集任务之后。研究进程仍运行；不把排队写成NPU正在执行。尚无新的性能收益。已压缩8份timeline并逐一SHA回读验证，原始采集与kernel CSV保留，路径映射见timeline-archive.json。
+当前真实运行目录：`/data/northinfer-specpilot-cont-20261110`。三份 graph 基线采集（long/C32 prefill、long/C32 decode、long/C1 decode）均完成八 rank 导出，无导出丢数据告警。C32 decode 触发时实际仅 7 请求仍活跃、25 已完成，不能称稳定 batch32。D1 因 provider refusal 缺少模型最终报告，保留原轨迹，由督导仅按回执收口，未重复 NPU 实验。D2 共享专家多流重叠候选已完成八 rank 导出，正在恢复基线；尚无无 profiler 的吞吐收益。压缩 timeline 均有 SHA 回读验证，原始采集与 kernel CSV 保留。
+
+- 用户新增授权多路并行。`parallel_research.py` 启动科学 Master 分配两路互不重复的源码/trace/CPU 分析，与原单路 NPU 研究并行；状态见 `research/parallel/state.json`。分析角色经 broker 禁止 launch/wait NPU，只能读授权源码和 SHA 固定的既有 dev CSV、运行隔离 CPU 分析和提交待审补丁。两路产出由后续主研究角色复核并串行实测；提案不是测量收益。
+- 两路继续共用原 Claude 200 美元保守预占账本；只有持久化 Claude 预算拒绝出现后，可信调度器才能启动共享 GPT 500 美元阶段；不改写主研究状态或中断其在途实验。不重置额度，不提前切换模型，不开放旧/新 validation。原生 DSH、MCP 和逐调用轨迹继续保留。
+- 已纠正 D2 Master 的归因：HcPre/HcPost 是本地 hyper-connection 运算，不能算 HCCL；不同算子族 union 相加不是关键路径占比。重叠优化不要求 AllReduce 次数下降，需实际重叠和无 profiler 计时。督导来源与纠正单独存档，通过新 broker 的证据回执向主研究角色共享；不声称旧 MCP 进程热加载。
+- 并行入口的 7 项新验收覆盖 NPU 禁止、共享 CSV SHA/路径限制、角色互不读取报告、两方向分配、截断续接和预算交接边界；连同既有相关验收共 20 项通过。源码快照不含原始数据、轨迹、计费或凭据。
 
 - 用户明确要求持续优化；本地新执行器取消三方向总上限，仍保留逐方向资源分配和统一NPU锁。Claude累计200美元、GPT独立500美元上限原样保留，Claude账本直接复用。
 - 新DSH Master/Direction已启动，真实进程与阶段状态记录在部署目录；首方向选择graph/C32成本归因，尚无新的NPU测量或收益。
