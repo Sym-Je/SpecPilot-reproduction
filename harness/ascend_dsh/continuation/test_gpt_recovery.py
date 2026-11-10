@@ -32,6 +32,7 @@ class RecoveryTests(unittest.TestCase):
         def result(message):
             return {'events': [{'type': 'turn/end', 'data': {'reason': {'error': {'message': message}}}}]}
         self.assertTrue(input_limit_failure(result('ValueError: Request exceeds input byte limit')))
+        self.assertTrue(input_limit_failure({'events':[{'type':'turn/end','data':{'reason':{'error':{'code':'CONTEXT_WINDOW_EXCEEDED','message':'context overflow'}}}}]}))
         self.assertFalse(input_limit_failure(result('500 USD budget admission denied')))
         self.assertFalse(input_limit_failure(result('Provider returned refusal')))
 

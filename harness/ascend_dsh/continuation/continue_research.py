@@ -43,17 +43,20 @@ def receipts(role):
 
 def invoke(state, role, mode, prompt):
     task_prompt = prompt
+    system = SYSTEM
+    if mode == 'master':
+        system += '\nYour current role is MASTER: choose and allocate the next bounded direction or name one precise missing capability. Detailed kernel/source implementation belongs to the direction role. Reuse completed reports with attribution; do not spend another long source-analysis loop reconstructing them. Aim for at most eight additional planning tool calls, then return the specified Master decision schema. No positive result is required.'
     for attempt in range(3):
         state.update(active_role=role, active_mode=mode, call_attempt=attempt, status='researching')
         write(OUT / 'research/state.json', state)
         try:
             if state['model'] == 'claude-opus-5-5':
                 from dsh_call import call
-                answer, receipt = call(role, prompt, SYSTEM, max_tokens=8192,
+                answer, receipt = call(role, prompt, system, max_tokens=8192,
                                        patch=patch_for(role, mode), deadline_seconds=14400)
             else:
                 from gpt_call import call
-                answer, receipt = call(role, mode, prompt, SYSTEM, max_tokens=8192, deadline_seconds=14400)
+                answer, receipt = call(role, mode, prompt, system, max_tokens=8192, deadline_seconds=14400)
             parsed = parse_answer(answer)
             if mode == 'master':
                 assert parsed.get('decision') in ('run_direction', 'needs_capability'), 'Return the Master decision schema, not a direction report'

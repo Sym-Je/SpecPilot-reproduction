@@ -64,6 +64,8 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 - 找到续接缺陷：旧检查点覆盖当前角色请求，格式重试又只保留泛化提示，丢失 Master 输出 schema。已保留长请求头尾、把当前角色/输出要求追加到 checkpoint 之后，并让格式重试保留原任务；Master schema 在 invoke 内校验。33 项定向检查通过，已恢复原 Master 3；不重复 NPU 实验或重置计费。
 - `collect_binding_evidence.py` 已通过实际安装扩展读取 HC pre/post、sparse-attention、dynamic-quant 四项注册/schema，并被动检查服务 worker 的库映射/inode/SHA。检查前后 torch.npu 均未初始化，未执行模型/算子或重启服务。独立 PR 验证 build 的两个扩展 SHA 与当前服务不同，不混用其性能/源码身份。新增 `binding_reference` 只读 stock csrc 源码树，明确它是参考而非已加载二进制的来源证明。新证据位于私有 `research/operator-binding-evidence.json`，不提交原始回执。
 
+- 随后还遇到显式 provider `CONTEXT_WINDOW_EXCEEDED`，原恢复仅识别本地字节准入错误。已将这一确切错误纳入有界 rollover、缩小近期工具摘录，保持预算拒绝/refusal 不重试；五项恢复测试通过。Master 角色提示明确要求尽快分配 direction，避免自身反复做长源码研究。原失败保留，实际进程已再次恢复；仍没有新增 NPU 实验或性能结论。
+
 ## 以下为H100独立轨道，不混用Ascend资源授权
 
 

@@ -19,7 +19,8 @@ def bounded_prompt(prompt):
 
 def input_limit_failure(result):
     return any(event.get('type') == 'turn/end'
-        and 'Request exceeds input byte limit' in event.get('data', {}).get('reason', {}).get('error', {}).get('message', '')
+        and ('Request exceeds input byte limit' in event.get('data', {}).get('reason', {}).get('error', {}).get('message', '')
+             or event.get('data', {}).get('reason', {}).get('error', {}).get('code') == 'CONTEXT_WINDOW_EXCEEDED')
         for event in result.get('events', []))
 
 
@@ -34,15 +35,15 @@ def rotate_session(root, role, previous_session, original_prompt, receipt_sha256
     broker = json.loads((folder / 'broker-state.json').read_text()) if (folder / 'broker-state.json').exists() else {}
     records = [json.loads(line) for line in (folder / 'broker.jsonl').read_text().splitlines()] if (folder / 'broker.jsonl').exists() else []
     inventory = []
-    for item in records[-120:]:
+    for item in records[-80:]:
         args = item.get('arguments', {})
         inventory.append({'id':item.get('id'), 'tool':item.get('tool'),
             'arguments':{k:v for k,v in args.items() if k != 'content'},
             'source_sha256':item.get('result',{}).get('sha256'), 'error':item.get('error')})
     recent = []
-    for item in records[-6:]:
+    for item in records[-4:]:
         encoded = json.dumps(item, ensure_ascii=False)
-        recent.append({'record_excerpt':encoded[:8000], 'excerpt_truncated':len(encoded)>8000})
+        recent.append({'record_excerpt':encoded[:3000], 'excerpt_truncated':len(encoded)>3000})
     scratch = []
     for path in sorted((folder/'scratch').rglob('*'))[-8:]:
         if not path.is_file() or path.is_symlink() or path.suffix not in ('.py','.json','.patch'):
