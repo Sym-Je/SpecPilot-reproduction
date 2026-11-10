@@ -47,6 +47,18 @@ DESCRIPTIONS = {
 }
 
 
+def normalize_source_prefix(tree, prefix):
+    if tree not in SOURCE_ROOTS or not isinstance(prefix, str):
+        raise ValueError('Invalid source prefix')
+    if prefix.startswith('/') or '..' in prefix.split('/'):
+        raise ValueError('Invalid prefix')
+    if prefix == tree or prefix == '.':
+        return ''
+    if prefix.startswith(tree + '/'):
+        return prefix[len(tree) + 1:]
+    return prefix
+
+
 class Broker:
     def __init__(self, role, mode):
         if not re.fullmatch(r'[a-z0-9-]{1,80}', role): raise ValueError('Invalid role')
@@ -111,11 +123,12 @@ class Broker:
             result = self.evidence(args['name'])
         elif name == 'list_source':
             root = SOURCE_ROOTS[args['tree']].resolve()
-            if args['prefix'].startswith('/') or '..' in args['prefix'].split('/'): raise ValueError('Invalid prefix')
+            prefix = normalize_source_prefix(args['tree'], args['prefix'])
             names = sorted(str(p.relative_to(root)) for p in root.rglob('*.py')
-                           if not p.is_symlink() and str(p.relative_to(root)).startswith(args['prefix']))
+                           if not p.is_symlink() and str(p.relative_to(root)).startswith(prefix))
             offset = args['offset']; assert type(offset) is int and offset >= 0
-            result = {'total': len(names), 'offset': offset, 'files': names[offset:offset + 80]}
+            result = {'total': len(names), 'offset': offset, 'files': names[offset:offset + 80],
+                      'requested_prefix': args['prefix'], 'resolved_prefix': prefix}
         elif name == 'read_source':
             p = self.source(args['tree'], args['path'])
             offset = args['offset']; assert type(offset) is int and offset >= 0
@@ -124,18 +137,25 @@ class Broker:
         elif name == 'search_source':
             tree, prefix, query = args['tree'], args['prefix'], args['query']
             if tree not in SOURCE_ROOTS or not isinstance(query, str) or not 2 <= len(query) <= 128: raise ValueError('Invalid search')
-            if prefix.startswith('/') or '..' in prefix.split('/'): raise ValueError('Invalid prefix')
+            prefix = normalize_source_prefix(tree, prefix)
             root = SOURCE_ROOTS[tree].resolve(); matches = []
+            searched_files = 0
             for path in sorted(root.rglob('*.py')):
                 relative = str(path.relative_to(root))
                 if not relative.startswith(prefix) or path.is_symlink(): continue
                 path = self.source(tree, relative)
+                searched_files += 1
                 for line_number, line in enumerate(path.read_text().splitlines(), 1):
                     if query in line:
                         matches.append({'path': relative, 'line': line_number, 'text': line[:300]})
                         if len(matches) >= 30: break
                 if len(matches) >= 30: break
-            result = {'matches': matches, 'limit': 30, 'truncated_at_limit': len(matches) == 30}
+            result = {'matches': matches, 'limit': 30, 'truncated_at_limit': len(matches) == 30,
+                      'requested_prefix': args['prefix'], 'resolved_prefix': prefix,
+                      'searched_files': searched_files}
+            if not matches:
+                result['search_guidance'] = ('No files matched this prefix; list_source can locate directories.'
+                    if searched_files == 0 else 'No literal match. A multi-word query is one exact phrase; search one symbol at a time.')
         elif name == 'write_scratch':
             p = local_path(self.work, args['path'])
             if p.suffix not in ('.py', '.json', '.patch') or len(args['content'].encode()) > 65536:
