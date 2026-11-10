@@ -29,7 +29,7 @@ COMPILE_BOOLS = {'enable_npugraph_ex', 'enable_static_kernel', 'fuse_norm_quant'
 def validate_config(config):
     if not isinstance(config, dict): raise ValueError('Config object required')
     limits = {'max_num_batched_tokens': (1024, 32768), 'max_num_seqs': (1, 32), 'num_speculative_tokens': (0, 12)}
-    allowed = set(limits) | {'gpu_memory_utilization', 'enable_prefix_caching', 'enforce_eager', 'additional_config', 'screen_concurrency', 'profile_stratum', 'profile_phase', 'profile_steps', 'cpu_work_metadata'}
+    allowed = set(limits) | {'gpu_memory_utilization', 'enable_prefix_caching', 'enforce_eager', 'additional_config', 'screen_concurrency', 'profile_stratum', 'profile_phase', 'profile_steps', 'cpu_work_metadata', 'cache_init_metadata'}
     if set(config) - allowed: raise ValueError('Unsupported deployment field')
     for k, v in config.items():
         if k in limits:
@@ -44,7 +44,7 @@ def validate_config(config):
             if type(v) is not int or not 1 <= v <= 32: raise ValueError('Profile steps outside bounds')
         elif k == 'gpu_memory_utilization':
             if type(v) not in (float, int) or not .8 <= v <= .94: raise ValueError('Memory utilization outside bounds')
-        elif k in ('enable_prefix_caching', 'enforce_eager', 'cpu_work_metadata'):
+        elif k in ('enable_prefix_caching', 'enforce_eager', 'cpu_work_metadata', 'cache_init_metadata'):
             if type(v) is not bool: raise ValueError('Boolean required')
         elif k == 'additional_config':
             if not isinstance(v, dict): raise ValueError('Additional config object required')
@@ -57,8 +57,13 @@ def validate_config(config):
                 else: raise ValueError('Unsupported additional field')
 
 
-def make_launch(config, directory, profile=False):
+def make_launch(config, directory, profile=False, initialization_only=False):
     validate_config(config)
+    if initialization_only:
+        if profile or config != {'cache_init_metadata': True}:
+            raise ValueError('Initialization metadata requires the exact unchanged caching-OFF configuration')
+    elif config.get('cache_init_metadata'):
+        raise ValueError('Initialization metadata cannot be used with generation or profiling')
     if config.get('cpu_work_metadata') and (not profile or config.get('profile_steps') != 2
             or config.get('profile_phase') != 'prefill' or config.get('profile_stratum') != 'long'):
         raise ValueError('CPU metadata diagnostic requires explicit long/prefill/two-step profile')
@@ -92,6 +97,16 @@ def make_launch(config, directory, profile=False):
                'max_iterations': config.get('profile_steps', 8)}))
     path = directory / 'launch.sh'
     prefix='\n'.join(l for l in lines if not l.startswith('exec '))
+    if initialization_only:
+        runtime=directory/'cache-init-runtime';runtime.mkdir()
+        (directory/'cache-init-metadata').mkdir(mode=0o700)
+        for name in ('cache_metadata_diag.py',):
+            (runtime/name).write_bytes((OUT/name).read_bytes())
+        (runtime/'network_guard.py').write_bytes((OUT/'runtime/network_guard.py').read_bytes())
+        (runtime/'sitecustomize.py').write_text((OUT/'runtime/sitecustomize.py').read_text()
+            +'\nfrom cache_metadata_diag import install as install_cache_metadata\ninstall_cache_metadata()\n')
+        prefix+='\nexport PREFIX_CACHE_METADATA_ENABLE=1\nexport PREFIX_CACHE_METADATA_DIR='+shlex.quote(str(directory/'cache-init-metadata'))
+        prefix+='\nexport PYTHONPATH='+shlex.quote(str(runtime))+':"${PYTHONPATH:-}"'
     if config.get('cpu_work_metadata'):
         runtime=directory/'diagnostic-runtime';runtime.mkdir()
         (runtime/'sparse_work_diag.py').write_bytes((OUT/'sparse_work_diag.py').read_bytes())
@@ -231,13 +246,22 @@ def run(experiment_id):
                 state['phase'] = 'reference'; save()
                 state['reference'] = run_screen(directory / 'reference', concurrency); save()
             assert metrics()['running'] == metrics()['waiting'] == 0
-            script = make_launch(request['config'], directory, profile=request['mode'] == 'profile')
+            script = make_launch(request['config'], directory, profile=request['mode'] == 'profile',
+                                 initialization_only=request['mode'] == 'cache_init')
             stop_owned(owner); stopped_baseline = True
             candidate = launch(script, directory / 'candidate-service')
             state.update(phase='candidate_startup', candidate_owner=candidate); save()
             wait_health(candidate)
             state['phase'] = request['mode']; save()
-            if request['mode'] == 'profile':
+            if request['mode'] == 'cache_init':
+                from cache_init_export import export_initialization
+                state.update(diagnostic_only=True,runner_submitted_generation_requests=0)
+                state['cache_init_metrics_before']=metrics()
+                state['cache_initialization']=export_initialization(directory)
+                state['cache_init_metrics_after']=metrics()
+                save()
+                assert state['cache_initialization']['structural_capture_complete'], 'Incomplete cache metadata; no enabled inference is admitted'
+            elif request['mode'] == 'profile':
                 from profile_workload import profile_request as concurrent_profile_request
                 state['profile'] = concurrent_profile_request(directory, request['config'])
                 if request['config'].get('cpu_work_metadata'):

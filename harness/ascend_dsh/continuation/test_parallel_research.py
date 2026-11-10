@@ -81,6 +81,18 @@ class ParallelTests(unittest.TestCase):
             write(area/'summary.json',report|{'status':'incomplete'})
             self.assertNotIn('prefix_reuse_audit',shared_updates(root))
 
+    def test_baseline_resource_observations_are_shared_with_source_pins_only_after_frozen_peer_boundary(self):
+        from parallel_evidence import shared_updates
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);(root/'research').mkdir()
+            source=root/'research/baseline-cache-resources.json'
+            write(source,{'logged_prefix_caching_enabled':False,'enabled_cache_support':None})
+            observation=shared_updates(root)['baseline_cache_resources']
+            self.assertEqual(observation['source_sha256'],sha(source))
+            self.assertIsNone(observation['report']['enabled_cache_support'])
+            self.assertFalse(observation['measured_gain'])
+            self.assertEqual(shared_updates(root,analysis_only=True),{})
+
     def test_parallel_plan_requires_two_distinct_bounded_directions(self):
         from parallel_research import validate_plan
         valid = {'directions': [{'name': n, 'objective': 'review', 'required_evidence': 'source',

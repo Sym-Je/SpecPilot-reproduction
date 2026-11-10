@@ -82,6 +82,10 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 - 持续监听新进展：D5 已交付 needs_evidence、0 实验，未证明 APC 状态恢复/continuation-equivalence 与实际命中计数能力，不把复用上界算收益。Master6 随后自主分配 TP4/DP2/EP8 feasibility（复用督导建议，非独立发现），限离线32动作/不授权拓扑启动。D6 报告 needs_evidence、0实验：实际分片/加载峰值/图池/缓存/通信工作区和主机资源尚未有完整数值，DSpark/W8A8/多DP支持未闭环；不能宣称不兼容或无收益。
 - Master7 曾因 PI_AI_ERROR（Responses stream completed with an unfinished read-only search_source tool call）退出。督导核对原生错误/进程归属后，从同一 Master7 会话恢复一次；按该回执SHA记录一次恢复额度，不重置工具/费用，不重复NPU。实际状态查当前 supervisor/state；旧 pending_decision 可能残留，不把它当当前 Master 决策。服务保留，新 holdout 未打开，无新增性能结论。
 
+- Master7 最终请求 trusted-effective-prefix-cache-telemetry。受限 DSH 设计角色 design_ready，独立代码审查仅 admit_initialization_capture_only；adapter SHA `f0509c52c7c3089bb67657aff21c578d810c53b03ecceff515b1c32a3de930db` 未改变。第一阶段不满足完整 APC 能力：命中/驻留/淘汰/reset、真实 tensor layout、可信 OFF/ON 输出 comparator 与 enabled-state 恢复仍缺。
+- 新可信 cache_init 模式只接受 {cache_init_metadata:true}，stock argv/TP8/DP1/EP8/W8A8/K7/缓存OFF不变，fresh0700隔离bootstrap、不提交生成请求。独立准入绑定 review/adapter SHA，所有执行依赖排队前后校验；66项定向CPU检查通过，涵盖零生成及失败恢复。采集校验8个默认组rank、final core/worker block与layer覆盖、文件权限/进程归属、截断/错误/overflow拒绝。不能把默认组rank称物理拓扑证明或把声明backing称实际驻留。
+- 督导提交 capability-cache-init-off-plan-v1（非科学角色自主launch），已拿到全机锁进入启动。实际状态见私有 experiment/state；finish_cache_init_capture 在终态恢复之后才归还 Master7 检查点，不自动声称完整能力已满足。13份设计source pin及3244个安装源码在提交前一致；仍需读取实测终态/基线恢复。被动日志parser另提取8卡startup rounded数值，原日志快照与JSON都私有，不算enabled支持或峰值HBM证明。
+
 ## 以下为H100独立轨道，不混用Ascend资源授权
 
 

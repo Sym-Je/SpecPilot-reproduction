@@ -34,6 +34,13 @@ def shared_updates(root, *, analysis_only=False):
     bindings = root / 'research/operator-binding-evidence.json'
     if bindings.exists():
         result['operator_binding_evidence'] = json.loads(bindings.read_text())
+    resources = root / 'research/baseline-cache-resources.json'
+    if resources.is_file() and not resources.is_symlink() and resources.stat().st_size <= 16384:
+        result['baseline_cache_resources'] = {
+            'origin': 'Trusted passive extraction of rounded disabled-cache baseline startup observations',
+            'source_sha256': sha(resources), 'report': json.loads(resources.read_text()),
+            'measured_gain': False,
+            'limitations': 'Not per-group metadata, enabled-prefix support, complete peak HBM or prospective topology fit.'}
     audit = root / 'research/prefix-reuse-audit/summary.json'
     if audit.is_file() and not audit.is_symlink() and audit.stat().st_size <= 32768:
         report = json.loads(audit.read_text())

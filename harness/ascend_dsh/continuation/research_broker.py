@@ -34,7 +34,7 @@ SCHEMAS = {
     'read_source': {'tree': {'type': 'string', 'enum': list(SOURCE_ROOTS)}, 'path': {'type': 'string'}, 'offset': {'type': 'integer', 'minimum': 0}},
     'write_scratch': {'path': {'type': 'string'}, 'content': {'type': 'string'}},
     'run_cpu': {'path': {'type': 'string'}},
-    'launch_experiment': {'id': {'type': 'string'}, 'config': {'type': 'object'}, 'mode': {'type': 'string', 'enum': ['benchmark', 'profile']}},
+    'launch_experiment': {'id': {'type': 'string'}, 'config': {'type': 'object'}, 'mode': {'type': 'string', 'enum': ['benchmark', 'profile', 'cache_init']}},
     'wait_experiment': {'id': {'type': 'string'}, 'seconds': {'type': 'integer', 'minimum': 0, 'maximum': 1200}},
     'read_profile': {'id': {'type': 'string'}, 'path': {'type': 'string'}, 'offset': {'type': 'integer', 'minimum': 0}},
     'search_source': {'tree': {'type': 'string', 'enum': list(SOURCE_ROOTS)}, 'query': {'type': 'string'}, 'prefix': {'type': 'string'}},
@@ -182,10 +182,23 @@ class Broker:
             result = execute_python(self.work, args['path'], self.directory / 'cpu' / action_id)
         elif name == 'launch_experiment':
             from experiment_runner import validate_config
+            if args['mode']=='cache_init':
+                admission=OUT/'research/cache-init-admission.json'
+                if (not admission.exists() or self.allocation.get('cache_init_admission_sha256')!=sha(admission)):
+                    raise ValueError('Explicit independent initialization-capture admission required')
+                record=json.loads(admission.read_text())
+                review=OUT/'research/parallel/roles/review-prefix-cache-init-metadata/result.json'
+                if (record.get('adapter_sha256')!=sha(OUT/'cache_metadata_diag.py')
+                        or record.get('review_sha256')!=sha(review)
+                        or json.loads(review.read_text())['report']['decision']!='admit_initialization_capture_only'
+                        or args['config']!={'cache_init_metadata':True}):
+                    raise ValueError('Initialization admission source or scope mismatch')
+            elif args['config'].get('cache_init_metadata'):
+                raise ValueError('Initialization metadata cannot run a generation mode')
             experiment_id = args['id']
             if not re.fullmatch(r'[a-z0-9-]{1,60}', experiment_id): raise ValueError('Invalid experiment ID')
             validate_config(args['config'])
-            if args['mode'] not in ('benchmark', 'profile'): raise ValueError('Unknown experiment mode')
+            if args['mode'] not in ('benchmark', 'profile','cache_init'): raise ValueError('Unknown experiment mode')
             experiment_id = self.role + '-' + experiment_id
             folder = OUT / 'experiments' / experiment_id
             if folder.exists():
@@ -211,6 +224,9 @@ class Broker:
                 if args['config'].get('cpu_work_metadata'):
                     request['execution_pins'].update({name:sha(OUT/name) for name in
                         ('sparse_work_diag.py','sparse_work_export.py','runtime/sitecustomize.py','runtime/network_guard.py')})
+                if args['mode']=='cache_init':
+                    request['execution_pins'].update({name:sha(OUT/name) for name in
+                        ('cache_metadata_diag.py','cache_init_export.py','runtime/sitecustomize.py','runtime/network_guard.py','research/cache-init-admission.json')})
                 write(folder / 'request.json', request)
                 with (folder / 'supervisor.log').open('xb') as log:
                     p = subprocess.Popen([str(ROOT / '.venv/bin/python'), str(OUT / 'experiment_runner.py'),

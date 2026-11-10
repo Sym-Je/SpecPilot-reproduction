@@ -169,3 +169,37 @@ checks retain the durable ledger minimum: changing code alone cannot raise an
 existing ledger. Fifty-one targeted CPU checks passed, including this boundary
 and pre-dispatch rejection at the amended ceiling. The local listener and
 healthy baseline service were preserved; no new performance result is implied.
+
+A later scientific Master requested effective prefix-cache metadata and telemetry.
+An isolated DSH design role returned a finite specification; a second independent
+DSH code review admitted only initialization capture of adapter SHA
+`f0509c52c7c3089bb67657aff21c578d810c53b03ecceff515b1c32a3de930db`.
+The adapter remains unchanged at that SHA. This is not full prefix-cache support,
+request telemetry, enabled correctness or performance admission.
+
+The trusted broker now has a separately admitted `cache_init` mode. It accepts
+only the exact `cache_init_metadata=true` configuration, preserves stock model
+argv and caching OFF, uses a fresh private isolated bootstrap, and submits no
+generation requests. The exporter requires eight unique default-group ranks,
+final-plan agreement with core, core/manager records, private owned files,
+source pins and no truncation/overflow/observer errors. Planned tensor descriptors
+are not observed physical allocations; null fields remain unknown. The original
+cleanup path restores fresh uninstrumented baseline processes even if capture
+validation fails. Admission is tied to the code review and adapter bytes.
+
+Sixty-six targeted CPU checks passed, including zero-generation execution and
+restoration after invalid metadata, default-off and original-call semantics,
+privacy, output permissions/bounds and incomplete-record rejection. Live process
+ownership and all-rank collection checks remain subject to the actual capture.
+Thirteen design
+source pins and 3244 installed source files matched before submission. A trusted
+supervisor submitted one initialization-only eight-NPU capture, explicitly not
+an autonomous scientific experiment. Its current result and restoration must be
+read from private runtime receipts. The primary Master checkpoint is preserved
+and is not automatically resumed as though this partial capability were complete.
+
+A separate passive parser exports only rounded numeric baseline startup resource
+fields from a private immutable log-byte snapshot. It does not publish raw logs,
+requests or trajectories and does not establish enabled-cache support or peak
+HBM. The phase-one capture still lacks request hit/miss/residency, reset/eviction
+telemetry, actual tensor layout and the trusted OFF/ON output comparator.
