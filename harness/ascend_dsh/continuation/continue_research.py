@@ -166,7 +166,8 @@ A separate authorized task may hold the common lock; your experiment will queue 
                 master = f'cont-master-{index}'
                 decision_path = OUT / 'research' / f'master-decision-{index}.json'
                 if pending_role and pending_role.startswith(f'cont-d{index}-') and decision_path.exists():
-                    decision = json.loads(decision_path.read_text())
+                    admitted=OUT/'research'/f'admitted-direction-{index}.json'
+                    decision = json.loads((admitted if admitted.exists() else decision_path).read_text())
                     assert pending_role == f'cont-d{index}-' + decision['direction']['name']
                     pending_role = None
                 else:

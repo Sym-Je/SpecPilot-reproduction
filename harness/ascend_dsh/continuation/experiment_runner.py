@@ -29,7 +29,7 @@ COMPILE_BOOLS = {'enable_npugraph_ex', 'enable_static_kernel', 'fuse_norm_quant'
 def validate_config(config):
     if not isinstance(config, dict): raise ValueError('Config object required')
     limits = {'max_num_batched_tokens': (1024, 32768), 'max_num_seqs': (1, 32), 'num_speculative_tokens': (0, 12)}
-    allowed = set(limits) | {'gpu_memory_utilization', 'enable_prefix_caching', 'enforce_eager', 'additional_config', 'screen_concurrency', 'profile_stratum', 'profile_phase', 'profile_steps'}
+    allowed = set(limits) | {'gpu_memory_utilization', 'enable_prefix_caching', 'enforce_eager', 'additional_config', 'screen_concurrency', 'profile_stratum', 'profile_phase', 'profile_steps', 'cpu_work_metadata'}
     if set(config) - allowed: raise ValueError('Unsupported deployment field')
     for k, v in config.items():
         if k in limits:
@@ -44,7 +44,7 @@ def validate_config(config):
             if type(v) is not int or not 1 <= v <= 32: raise ValueError('Profile steps outside bounds')
         elif k == 'gpu_memory_utilization':
             if type(v) not in (float, int) or not .8 <= v <= .94: raise ValueError('Memory utilization outside bounds')
-        elif k in ('enable_prefix_caching', 'enforce_eager'):
+        elif k in ('enable_prefix_caching', 'enforce_eager', 'cpu_work_metadata'):
             if type(v) is not bool: raise ValueError('Boolean required')
         elif k == 'additional_config':
             if not isinstance(v, dict): raise ValueError('Additional config object required')
@@ -59,6 +59,9 @@ def validate_config(config):
 
 def make_launch(config, directory, profile=False):
     validate_config(config)
+    if config.get('cpu_work_metadata') and (not profile or config.get('profile_steps') != 2
+            or config.get('profile_phase') != 'prefill' or config.get('profile_stratum') != 'long'):
+        raise ValueError('CPU metadata diagnostic requires explicit long/prefill/two-step profile')
     text = (OUT / 'launch-mrv1.sh').read_text()
     lines = text.splitlines()
     command = shlex.split(next(l[5:] for l in lines if l.startswith('exec ')))
@@ -88,7 +91,15 @@ def make_launch(config, directory, profile=False):
                'torch_profiler_with_memory': False, 'ignore_frontend': True,
                'max_iterations': config.get('profile_steps', 8)}))
     path = directory / 'launch.sh'
-    path.write_text('\n'.join(l for l in lines if not l.startswith('exec ')) + '\nexec ' + shlex.join(command) + '\n')
+    prefix='\n'.join(l for l in lines if not l.startswith('exec '))
+    if config.get('cpu_work_metadata'):
+        runtime=directory/'diagnostic-runtime';runtime.mkdir()
+        (runtime/'sparse_work_diag.py').write_bytes((OUT/'sparse_work_diag.py').read_bytes())
+        (runtime/'sitecustomize.py').write_text((OUT/'runtime/sitecustomize.py').read_text()
+            +'\nfrom sparse_work_diag import install as install_sparse_work_diag\ninstall_sparse_work_diag()\n')
+        prefix+='\nexport SPARSE_WORK_DIAG_ENABLE=1\nexport SPARSE_WORK_DIAG_DIR='+shlex.quote(str(directory/'work-metadata'))
+        prefix+='\nexport PYTHONPATH='+shlex.quote(str(runtime))+':"${PYTHONPATH:-}"'
+    path.write_text(prefix + '\nexec ' + shlex.join(command) + '\n')
     return path
 
 
@@ -229,6 +240,9 @@ def run(experiment_id):
             if request['mode'] == 'profile':
                 from profile_workload import profile_request as concurrent_profile_request
                 state['profile'] = concurrent_profile_request(directory, request['config'])
+                if request['config'].get('cpu_work_metadata'):
+                    from sparse_work_export import export_observations
+                    state['profile']['cpu_work_metadata']=export_observations(directory)
             else:
                 state['candidate'] = run_screen(directory / 'candidate', concurrency)
                 state['comparison'] = [{'case': a['case'], 'output_tok_s_ratio': b['e2e_output_tok_s'] / a['e2e_output_tok_s'],

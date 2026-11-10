@@ -1,8 +1,8 @@
 {
-  "continue_research.py": "d9e5b17a81e918091d1537d633b06f69f7f6cca3db999057526ddacc048a7b38",
+  "continue_research.py": "3dfb068bf0623db188367aff1d39a0052335d3648b0a3cb1ee08492e05c1d7c6",
   "profile_workload.py": "5010e3e338425664ef60841326fcba53a9b1a9b0b6fa2ffa589134530fc667ac",
-  "experiment_runner.py": "306ec2a504bc745f02d19689bdf6a14c4fd9823baa97ba66665686b6d19c93ed",
-  "research_broker.py": "b040f9bfe647cdc49073ac5d362739807b81f82a3ff7d0b5681297f3a44a623e",
+  "experiment_runner.py": "368e6e79493d347fae4c0aea7420d393ee5b15942a960dfb9bafd88ee6f5212d",
+  "research_broker.py": "9aec9e22be0506388ca03b407008862c56c4b17d7d12d6182089e1f943d66ae7",
   "test_continuation.py": "8c7b619706820b2c4694a596599b0db83fe3cfacc9a3fb13d5ecc33e46c8b904",
   "summarize_kernels.py": "ecf5c14803db68dbfaaf1d6a252121a85343c4b2f86b267a180ee1c8ea34fa81",
   "test_profile_summaries.py": "5c1251d4cfc4db7daecc2d151bd630e0b75047f114652cb46347ec0e3e790fd2",
@@ -19,5 +19,9 @@
   "test_gpt_recovery.py": "b6f7db7a27837aa0ebadd1ce504f90903d6d0b60b1f180d098abdf3892d747c2",
   "profile_dependency_export.py": "e790657bb1ed3cdca08bc6d36c0f946791b945721bddaad5961721e2860268ff",
   "test_dependency_export.py": "17c070d14829323414a93856e9d3c1a164db445031b562a042f0ff88f4687568",
-  "collect_binding_evidence.py": "c5ef006dd426a19d9ef7a389a2ed3aa3a329348515b6e02ac1cc000c1b69af2d"
+  "collect_binding_evidence.py": "c5ef006dd426a19d9ef7a389a2ed3aa3a329348515b6e02ac1cc000c1b69af2d",
+  "sparse_work_diag.py": "610bad41da6218faaea591b9bcf65c53f5d08106cfcbf9a6115a8cb0c402425a",
+  "sparse_work_export.py": "ba206ba60d374bd8d76275079af83363540db69dbc655a39c3ef6a1c5f20748c",
+  "test_sparse_work_diag.py": "deebd95ebc73f117fea8c0422c86e6fd21f598874f1598296f708683a7a6409e",
+  "resume_after_diagnostic.py": "f998d8556a6734855c02cfb3430d2678d235872df1aa188b57c1715c7d29d649"
 }

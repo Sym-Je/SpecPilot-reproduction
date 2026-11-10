@@ -66,6 +66,11 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 
 - 随后还遇到显式 provider `CONTEXT_WINDOW_EXCEEDED`，原恢复仅识别本地字节准入错误。已将这一确切错误纳入有界 rollover、缩小近期工具摘录，保持预算拒绝/refusal 不重试；五项恢复测试通过。Master 角色提示明确要求尽快分配 direction，避免自身反复做长源码研究。原失败保留，实际进程已再次恢复；仍没有新增 NPU 实验或性能结论。
 
+- 用户要求持续监听。当前没有可用的自动推送调度工具，主助手在活动会话中轮询，仅汇报阶段变化/失败。query provenance 设计角色耗尽 24 工具动作，未提交 patch；其完整报告建议低 ROI 降级。主助手明确以督导处置收口此能力审查（不是自主优化结果），Master4 转向约 5.59–5.60 秒/诊断窗口的 SparseAttnSharedkv 工作量核查。
+- 主助手实现默认关闭的 CPU metadata sampler，独立 DSH review 返回 admit_bounded_diagnostic。运行期 sampler 保持已审 SHA `610bad41da6218faaea591b9bcf65c53f5d08106cfcbf9a6115a8cb0c402425a`，新增后处理拆到独立模块；39 项定向检查通过。只读既有 CPU 长度数组，最多两个符合条件的本地 prepare counter × C4/C128，共四记录/rank。长度数组值确实被记录，tensor_values_captured:false 仅表示不记录 prompt/token/activation 内容；此标签歧义已在 admission 说明中纠正。
+- `cont-d4-sparse-attention-runtime-work-cpu-work-two-step-v1` 已由可信督导按 Master4 请求提交，非模型自主 launch。仅两个 profiler steps、long/offered-C32、原模型/W8A8/K7/stock argv，新增隔离 bootstrap 与 env 开关，不改已安装源码或库。经过全机锁排队，原始回执及 sampler/runtime guard 均 SHA 固定。实际状态见 experiments 对应 state，排队不算正在占卡。
+- 该诊断只提供 target scheduler/metadata-build work 描述；layer/device task/selected tiling/完整依赖仍明确 unresolved，不能写成完整注意力调用或性能证明。独立审查/条件在对应 role 的 diagnostic-admission.json。原 Master4 JSON 不改，`admitted-direction-4.json` 另存督导能力准入封套。`resume_after_diagnostic.py` 仅在该唯一实验收尾、baseline_restored 且研究角色/validation 范围未变后自动续接原 D4；不重复已提交实验。选用源码事实有明确边界，不能强行推导可达提速。
+
 ## 以下为H100独立轨道，不混用Ascend资源授权
 
 

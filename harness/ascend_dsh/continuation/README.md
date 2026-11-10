@@ -112,3 +112,15 @@ library mappings without NPU context initialization; a stock binding source tree
 is explicitly reference evidence, not proof of loaded-binary provenance. Separate
 PR-build binaries differ from the serving extension. Thirty-three focused tests
 pass; these are research-continuity/evidence changes, not performance improvements.
+
+The reviewed default-off sparse-work sampler observes only CPU preparation and
+metadata builders while profiling is armed. It samples two qualifying local
+preparation counters and C4/C128 descriptors, not attention execution or selected
+device tiling. CPU length-array values are included; prompts/token/activation
+payloads are excluded. The reviewed runtime SHA is preserved; receipt export is
+a separate module. The admitted two-step diagnostic uses isolated bootstrap,
+unchanged stock argv and pinned sources under the global workload lock. An
+explicit supervisor admission envelope is separate from the original Master
+decision; automatic research continuation waits for baseline restoration and
+checks unchanged role/validation scope. Thirty-nine focused tests pass. Device
+coverage, successful flush and performance remain unverified until actual run.

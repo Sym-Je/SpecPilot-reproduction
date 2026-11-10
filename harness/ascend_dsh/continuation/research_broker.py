@@ -208,6 +208,9 @@ class Broker:
                            'split': 'dev', 'created_epoch': time.time(), 'source_sha256': sha(OUT / 'experiment_runner.py'),
                            'execution_pins': {name: sha(OUT / name) for name in ('experiment_runner.py', 'profile_workload.py', 'activity_watchdog.py', 'run_baseline.py', 'audit_baseline.py', 'prepare_baseline.py', 'launch-mrv1.sh', 'plan.json', 'baseline-input-manifest.json')},
                            'installed_engine_manifest_sha256': sha(OUT / 'installed-engine-source-manifest.json')}
+                if args['config'].get('cpu_work_metadata'):
+                    request['execution_pins'].update({name:sha(OUT/name) for name in
+                        ('sparse_work_diag.py','sparse_work_export.py','runtime/sitecustomize.py','runtime/network_guard.py')})
                 write(folder / 'request.json', request)
                 with (folder / 'supervisor.log').open('xb') as log:
                     p = subprocess.Popen([str(ROOT / '.venv/bin/python'), str(OUT / 'experiment_runner.py'),
