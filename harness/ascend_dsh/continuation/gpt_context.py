@@ -11,6 +11,12 @@ import time
 from prepare_baseline import write, sha
 
 
+def bounded_prompt(prompt):
+    if len(prompt) <= 24000:
+        return prompt
+    return prompt[:12000] + '\n[Middle of long request omitted; its final task/schema follows.]\n' + prompt[-12000:]
+
+
 def input_limit_failure(result):
     return any(event.get('type') == 'turn/end'
         and 'Request exceeds input byte limit' in event.get('data', {}).get('reason', {}).get('error', {}).get('message', '')
@@ -55,7 +61,8 @@ def rotate_session(root, role, previous_session, original_prompt, receipt_sha256
             experiments.append(row)
     checkpoint = {'origin':'trusted_context_rollover_not_independent_rediscovery',
         'previous_session':previous_session, 'prior_receipt_sha256':receipt_sha256,
-        'original_prompt':original_prompt[:24000], 'original_prompt_truncated':len(original_prompt)>24000,
+        'original_prompt':bounded_prompt(original_prompt), 'original_prompt_truncated':len(original_prompt)>24000,
+        'original_prompt_sha256':hashlib.sha256(original_prompt.encode()).hexdigest(),
         'broker_state_unchanged':broker, 'completed_action_inventory':inventory,
         'recent_tool_receipts':recent, 'own_scratch':scratch, 'owned_experiments':experiments,
         'instruction':'Continue the same allocated task and return its requested JSON. Do not repeat completed experiments/source reads or reset allocations. Reuse evidence with attribution. Full original native logs remain preserved; omitted facts are unknown, not negative evidence. Existing scratch can be executed by its saved path. Read completed owned profiles through the broker if needed.'}

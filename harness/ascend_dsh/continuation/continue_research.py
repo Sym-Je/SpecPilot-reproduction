@@ -42,6 +42,7 @@ def receipts(role):
 
 
 def invoke(state, role, mode, prompt):
+    task_prompt = prompt
     for attempt in range(3):
         state.update(active_role=role, active_mode=mode, call_attempt=attempt, status='researching')
         write(OUT / 'research/state.json', state)
@@ -54,6 +55,8 @@ def invoke(state, role, mode, prompt):
                 from gpt_call import call
                 answer, receipt = call(role, mode, prompt, SYSTEM, max_tokens=8192, deadline_seconds=14400)
             parsed = parse_answer(answer)
+            if mode == 'master':
+                assert parsed.get('decision') in ('run_direction', 'needs_capability'), 'Return the Master decision schema, not a direction report'
             write(OUT / 'research/roles' / role / ('answer-' + str(time.time_ns()) + '.json'),
                   {'answer': parsed, 'call_id': receipt['call_id']})
             return parsed
@@ -81,7 +84,7 @@ def invoke(state, role, mode, prompt):
             if isinstance(error, (json.JSONDecodeError, AssertionError)) and attempt < 2:
                 if mode == 'direction':
                     receipts(role)
-                prompt = 'Continue this same session after the recorded transport/final-format failure. Do not repeat completed experiments. Finish your pending task and return only concise valid JSON.'
+                prompt = task_prompt + '\nContinue this same role after the recorded transport/final-format failure. Do not repeat completed experiments or source analysis. Return the JSON schema specified by the original role request.'
                 continue
             raise
     raise RuntimeError('Model recovery attempts exhausted; inspect durable receipts')
@@ -148,6 +151,9 @@ A separate authorized task may hold the common lock; your experiment will queue 
                        'No previous provider refusal is a successful report, and no model switch or billing reset occurred. '
                        'Choose the next evidence-supported optimization or necessary measurement.\n' + json.dumps(previous))
         try:
+            bindings = OUT / 'research/operator-binding-evidence.json'
+            if resume and bindings.exists():
+                context += '\nNew offline registration/binary evidence, no NPU experiment: '+bindings.read_text()
             export = OUT / 'research/profile-export-access.json'
             if resume and export.exists():
                 context += '\nNew trusted offline capability (no NPU rerun): master/direction read_profile can read these SHA-pinned CSVs from an already completed dev profile. Review actual exported fields/limitations rather than assuming full dependency or phase coverage.\n' + export.read_text()

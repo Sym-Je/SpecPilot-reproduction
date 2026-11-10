@@ -37,7 +37,7 @@ def patch_for(role, mode, destination, *, endpoint=GATEWAY + '/v1', hook=None):
 
 
 def call(role, mode, prompt, system, max_tokens=8192, deadline_seconds=10800):
-    from gpt_context import input_limit_failure, rotate_session
+    from gpt_context import input_limit_failure, rotate_session, bounded_prompt
     from prepare_baseline import sha
     original_prompt = prompt
     directory = HERE / 'research-gpt'
@@ -53,7 +53,10 @@ def call(role, mode, prompt, system, max_tokens=8192, deadline_seconds=10800):
     started = time.monotonic()
     for attempt in range(3):
         if routing:
-            prompt = 'Resume the same role from this attributed checkpoint; preserve the original task and experiment/budget state:\n' + (HERE/routing['checkpoint_path']).read_text()
+            prompt = ('Resume the same role from this attributed checkpoint; preserve the original task and experiment/budget state:\n'
+                      + (HERE/routing['checkpoint_path']).read_text()
+                      + '\nCurrent role and output contract take precedence over a stale checkpoint prompt:\n'
+                      + bounded_prompt(original_prompt))
         remaining = max(1, int(deadline_seconds - (time.monotonic()-started)))
         answer, receipt = _native_call(role, mode, prompt, system, max_tokens, remaining, session_id)
         if receipt['result']['finish_reason'] == 'completed':

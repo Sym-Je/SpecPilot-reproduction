@@ -31,4 +31,7 @@ def shared_updates(root, *, analysis_only=False):
     export = root / 'research/profile-export-access.json'
     if export.exists():
         result['completed_profile_export'] = json.loads(export.read_text())
+    bindings = root / 'research/operator-binding-evidence.json'
+    if bindings.exists():
+        result['operator_binding_evidence'] = json.loads(bindings.read_text())
     return result

@@ -1,8 +1,8 @@
 {
-  "continue_research.py": "207c1a76d5e1600b492993b7f8988eb609ec0cf19da9e5745dbfbb2f6f4aee4f",
+  "continue_research.py": "e5a694702d617478ab7c4eda233b25b7e508cf33219cf2566fa83bfbbbbc0006",
   "profile_workload.py": "5010e3e338425664ef60841326fcba53a9b1a9b0b6fa2ffa589134530fc667ac",
   "experiment_runner.py": "306ec2a504bc745f02d19689bdf6a14c4fd9823baa97ba66665686b6d19c93ed",
-  "research_broker.py": "87c8b2da22ed89e655bef81512d997667605c6ec9962d95ca7f8d84b6efece8a",
+  "research_broker.py": "b040f9bfe647cdc49073ac5d362739807b81f82a3ff7d0b5681297f3a44a623e",
   "test_continuation.py": "8c7b619706820b2c4694a596599b0db83fe3cfacc9a3fb13d5ecc33e46c8b904",
   "summarize_kernels.py": "ecf5c14803db68dbfaaf1d6a252121a85343c4b2f86b267a180ee1c8ea34fa81",
   "test_profile_summaries.py": "5c1251d4cfc4db7daecc2d151bd630e0b75047f114652cb46347ec0e3e790fd2",
@@ -10,13 +10,14 @@
   "postprocess_watch.py": "52a38346cfaf23b6241fda650d26a58a1c349559090d20ed3be3483bb574f391",
   "test_source_search.py": "a3374e6c2900445dc53465136f57de1a2b4e09ce8bb67d8efc9f5d3d15980562",
   "dsh_call.py": "b50b154ebe8eb522ab470b67b84076dd77f31ce3c11ed33e38c11f3985c430c8",
-  "parallel_evidence.py": "484784581183445a62493e1eb9794da11bd8f7b255fb5009128d19dda48022e0",
+  "parallel_evidence.py": "1f6aa85a1619c28be79b93ec4b3ff625e20e92e4f019b78a310b2efe783c22b4",
   "parallel_research.py": "2b98dd58fb6f120e8a6c3561aad34d8877058762c6f88fb1562019356c54987a",
   "test_parallel_research.py": "585c2ba644ed5f9c75dc9521e93a4be950da93f6f7a0014a7b84314dc214a2fe",
-  "gpt_context.py": "d14cb39303817d04c41a5ee52a181ef9230b1d8e1b30a2bee474a7e649800073",
-  "gpt_call.py": "87f2475989c1929db224767c6bffb1504a2d65ea9e701f17cdbef595b0e7beb6",
+  "gpt_context.py": "b1cd5ac6394ecb3d9056466608b23bc0c0ccf698f7f6c0618f2244d71de1ce92",
+  "gpt_call.py": "07cc6bbe97f3e09fa8d0e11fd3b57a546ceb17e01fbeab11e0c8d23cfed3baf1",
   "gpt_budget.py": "3a933f595985c85aec3141da0f64690d9315d18b5cd73075ce02542c0c6bebf8",
-  "test_gpt_recovery.py": "de15a8c1d6ebc2f6628a3d410fe4610d8dc68829ae764ed6a40b0d4750e21ab9",
+  "test_gpt_recovery.py": "f5243fab04507dbff6483076354020a95a45c52d1a5ee81f5844b0672f6a9353",
   "profile_dependency_export.py": "e790657bb1ed3cdca08bc6d36c0f946791b945721bddaad5961721e2860268ff",
-  "test_dependency_export.py": "17c070d14829323414a93856e9d3c1a164db445031b562a042f0ff88f4687568"
+  "test_dependency_export.py": "17c070d14829323414a93856e9d3c1a164db445031b562a042f0ff88f4687568",
+  "collect_binding_evidence.py": "c5ef006dd426a19d9ef7a389a2ed3aa3a329348515b6e02ac1cc000c1b69af2d"
 }

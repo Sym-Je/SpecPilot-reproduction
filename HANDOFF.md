@@ -60,6 +60,10 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 - 首卡 672 个匹配调用的 scale/quant 服务时间分别约 0.101617/0.256264 秒，合计约占该 24.929 秒诊断 span 的 1.44%；不是可实现收益、全模型收益上限或 phase 分解。其余卡及相关事件正在导出。首轮因单个派生 CSV 超过 60 MiB 中止，原文件保留；修复为分片并逐卡 checkpoint，未重跑 NPU。31 项定向检查通过。
 - 离线进程状态见 `research/profile-dependency-export/state.json`，完成八卡导出后自动恢复仍处于同一 needs_harness_capability/round3 的主研究；若状态发生变化则拒绝自动恢复。不要把此时的离线分析说成 NPU 压测仍在进行。所有新产物/轨迹/计费仍留私有部署目录。
 
+- 八卡离线导出全部完成，每卡 672 对匹配调用；scale/quant union 约 0.349826–0.369435 秒，相对约 24.929 秒诊断 span 为 1.40–1.48%。每卡扫描约 303 万 timeline 事件，flow/event 原始记录可读；没有 phase marker，不据此构造完整关键路径。Master 已完成更深入 sparse-attention 源码报告，但返回 direction 型报告造成主调度拒绝，原报告与失败完整保留。
+- 找到续接缺陷：旧检查点覆盖当前角色请求，格式重试又只保留泛化提示，丢失 Master 输出 schema。已保留长请求头尾、把当前角色/输出要求追加到 checkpoint 之后，并让格式重试保留原任务；Master schema 在 invoke 内校验。33 项定向检查通过，已恢复原 Master 3；不重复 NPU 实验或重置计费。
+- `collect_binding_evidence.py` 已通过实际安装扩展读取 HC pre/post、sparse-attention、dynamic-quant 四项注册/schema，并被动检查服务 worker 的库映射/inode/SHA。检查前后 torch.npu 均未初始化，未执行模型/算子或重启服务。独立 PR 验证 build 的两个扩展 SHA 与当前服务不同，不混用其性能/源码身份。新增 `binding_reference` 只读 stock csrc 源码树，明确它是参考而非已加载二进制的来源证明。新证据位于私有 `research/operator-binding-evidence.json`，不提交原始回执。
+
 ## 以下为H100独立轨道，不混用Ascend资源授权
 
 

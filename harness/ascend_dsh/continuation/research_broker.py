@@ -21,6 +21,7 @@ SOURCE_ROOTS = {
     'vllm': ROOT / 'vendor/vllm-0.30.0/vllm',
     'vllm_ascend': ROOT / '.venv/lib/python3.12/site-packages/vllm_ascend',
     'ascendc': ROOT / '.venv/lib/python3.12/site-packages/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_impl/ai_core/tbe/custom_transformer_impl/ascendc',
+    'binding_reference': ROOT / 'ascend-v99k/experiments/e4_hc_pre_a0/stock-source/vllm-ascend-c09d3e20b9c45c80b34ae3781440d90904a44023/csrc',
 }
 SOURCE_SUFFIXES = {'.py', '.cpp', '.h', '.hpp'}
 

@@ -103,3 +103,12 @@ Master receives no device or CPU execution capability. The offline runner resume
 the same pending capability review only after all eight ranks finish and the
 primary's pending round still matches. Thirty-one focused checks pass. No NPU
 replay, model change, benchmark gain or final-validation access is implied.
+
+Checkpoint continuation now preserves both ends of long role requests and appends
+the current output contract after any older checkpoint. Format retries retain
+the original task, and Master decision schemas are checked before dispatch. The
+read-only registration inspector has collected native schemas and live-worker
+library mappings without NPU context initialization; a stock binding source tree
+is explicitly reference evidence, not proof of loaded-binary provenance. Separate
+PR-build binaries differ from the serving extension. Thirty-three focused tests
+pass; these are research-continuity/evidence changes, not performance improvements.
