@@ -33,6 +33,17 @@ H100/Codex与Ascend/DSH是独立轨道。下面先保留Ascend既有计划，H10
 
 # H100独立轨道：计划与已收口记录
 
+## 最新专项：作者final的temperature>0验证（已收口）
+
+- [x] 冻结stock/final、20公开dev请求、正温度top_k=-1/top_p=1及独立预算。
+- [x] 6项CPU验收；唯一双H100兼容性任务code200/UUID/启动/终态分别确认。
+- [x] 确认stock能随机采样；final首次0.7请求在作者greedy-only树路径报错退出。
+- [x] 两次独立audit及配置/树SHA/原始请求/预算/清理复核；330 GPU秒，两卡释放。
+- [x] 因兼容性未通过停止正式测速；无加速比/CI、无sealed或晋升，更新主页与交接。
+
+详见[专项结果](docs/experiments/final-sampling-20261110.md)。1.0未在存活final上独立执行；
+不修改作者方案以绕过限制，不结转余额，不改变下面其他主线的接续点。
+
 日期：2026-11-09。新 session 先读 [HANDOFF](HANDOFF.md)，长期规则见 [AGENTS](AGENTS.md)。
 以下保留H100主线；历史证据留在阶段文档，不继承其中已失效的“下一步”和资源授权。
 

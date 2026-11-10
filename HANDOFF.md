@@ -96,6 +96,17 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 
 ## 以下为H100独立轨道，不混用Ascend资源授权
 
+### 最新专项收尾：作者final正温度验证
+
+用户要求的temperature>0验证已结束，见`docs/experiments/final-sampling-20261110.md`。
+唯一任务`job-e40732cde3aa-20261110233451`已Completed/exit0，诊断器完成不等于final通过：
+stock在0.7/1.0采样正常；固定final完成两次greedy后，首次0.7请求触发作者树模式仅支持greedy的NotImplementedError并退出。
+1.0后续连接失败不算独立实测；作者原始覆盖文件与派生worker逐字节相同。
+两次独立audit、6项CPU测试、原配置/引擎树/请求/预算/清理复核通过；330 GPU秒、两卡已释放。
+未提交正式测量、无加速比/CI、无sealed或晋升，不继续消耗本专项余额。
+证据在`logs/final-sampling-run-20261110-a01/`与`logs/final-sampling-prep-20261110-a01/`。
+其他H100与Ascend阶段的既有接续点原样保留，本专项不恢复或接管它们。
+
 
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
 > 最后更新：2026-11-10 北京时间（真实stock参数探索与两份dev联合验收通过，Master主动停止；完整RSI未完成）。
