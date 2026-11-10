@@ -183,6 +183,13 @@ A separate authorized task may hold the common lock; your experiment will queue 
                 audit = shared_updates(OUT).get('prefix_reuse_audit')
                 if audit:
                     context += '\nCompleted requested CPU-only development prefix audit; no measured gain or state-restoration certification:\n' + json.dumps(audit)
+            cache_facts=OUT/'research/cache-init-group-facts.json'
+            if resume and cache_facts.exists():
+                context += ('\nNew PARTIAL runtime evidence: caching OFF only; not full enabled telemetry or correctness. '
+                    'Actual coordinator is AscendHybridKVCacheCoordinator. Inspect the actual Ascend coordinator/block-size resolver source receipts, '
+                    'rather than assuming the generic coordinator was selected. No enabled inference is admitted. '
+                    'Confirm restoration using read_evidence(name="cache_initialization"). Reuse these source-pinned facts without repeating collection:\n'
+                    +cache_facts.read_text())
             index = len(state['rounds']) + 1
             pending_role = state.get('active_role') if resume and state.get('active_mode') == 'direction' else None
             while True:

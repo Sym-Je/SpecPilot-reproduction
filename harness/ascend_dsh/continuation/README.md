@@ -203,3 +203,31 @@ fields from a private immutable log-byte snapshot. It does not publish raw logs,
 requests or trajectories and does not establish enabled-cache support or peak
 HBM. The phase-one capture still lacks request hit/miss/residency, reset/eviction
 telemetry, actual tensor layout and the trusted OFF/ON output comparator.
+
+The actual initialization capture passed structural validation: all eight ranks
+and six groups per rank, one core/manager manifest, no truncation or observer
+errors, and zero generation requests submitted by the runner. Observed scheduling
+and hash units were both 4096 with caching OFF. The selected coordinator was
+`AscendHybridKVCacheCoordinator`; generic-coordinator analysis must not be assumed
+to describe the active path. Enabled configuration may choose different hashing.
+The offline fact exporter binds the private source JSONs and active source paths
+by SHA; these facts still cannot establish enabled state restoration.
+
+The first uninstrumented baseline restoration failed on rank3 during graph capture
+with a memory-allocation error. Capture data remain intact; the experiment is
+failed with a restoration failure, not an unqualified success. Only the verified
+owned failed process tree was stopped. Identical-stock recovery is queued on the
+common lock behind an independent task; the user explicitly chose to preserve
+serial ordering. The recovery helper has bounded retries and refuses duplicate
+unverified endpoints, reusing only an identified stock service. At this checkpoint
+recovery is pending and no API scientific role is running.
+
+A runner bug discovered during this failure omitted the terminal marker when
+restoration raised. The original exited runner was operationally finalized with
+restoration still false and a separate receipt. Future code now writes the marker,
+blocks further submission while a prior restoration is false, and keeps partial
+facts unavailable until restoration is confirmed. Enabled-prefix inference also
+requires its own explicit admission; initialization capture cannot grant it.
+Sixty-nine focused CPU checks passed, including these failure/permission paths.
+They do not certify the still-pending stock recovery retry. The original executed
+runner source is reproducible at commit4ce336b and matches its pinned request SHA.

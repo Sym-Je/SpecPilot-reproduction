@@ -29,7 +29,7 @@ SOURCE_SUFFIXES = {'.py', '.cpp', '.h', '.hpp'}
 def source_files(root):
     return sorted(p for p in root.rglob('*') if p.is_file() and p.suffix in SOURCE_SUFFIXES and not p.is_symlink())
 SCHEMAS = {
-    'read_evidence': {'name': {'type': 'string', 'enum': ['baseline', 'hardware', 'model', 'deployment', 'budget', 'prior_research']}},
+    'read_evidence': {'name': {'type': 'string', 'enum': ['baseline', 'hardware', 'model', 'deployment', 'budget', 'prior_research', 'cache_initialization']}},
     'list_source': {'tree': {'type': 'string', 'enum': list(SOURCE_ROOTS)}, 'prefix': {'type': 'string'}, 'offset': {'type': 'integer', 'minimum': 0}},
     'read_source': {'tree': {'type': 'string', 'enum': list(SOURCE_ROOTS)}, 'path': {'type': 'string'}, 'offset': {'type': 'integer', 'minimum': 0}},
     'write_scratch': {'path': {'type': 'string'}, 'content': {'type': 'string'}},
@@ -119,6 +119,21 @@ class Broker:
                     'patches': 'Source/kernel patches can be submitted for independent review; not auto-executed by the broker.'}
         if name == 'prior_research':
             return json.loads((OUT / 'prior-dev-research.json').read_text())
+        if name == 'cache_initialization':
+            receipt=OUT/'research/cache-init-observations.json'
+            facts=OUT/'research/cache-init-group-facts.json'
+            if not receipt.is_file() or not facts.is_file():return {'status':'not_collected','full_prefix_capability_ready':False}
+            observed=json.loads(receipt.read_text())
+            if observed.get('baseline_restored') is not True:
+                return {'status':'restoration_pending','full_prefix_capability_ready':False}
+            if (receipt.is_symlink() or facts.is_symlink() or facts.stat().st_size>16384):
+                raise ValueError('Invalid bounded metadata artifact')
+            if (self.allocation.get('analysis_only') and self.allocation.get('shared_cache_init_facts_sha256')!=sha(facts)):
+                raise ValueError('Initialization facts are outside this independent role frozen brief')
+            return {'status':'observed_caching_off_initialization_only','full_prefix_capability_ready':False,
+                    'experiment_status':observed.get('status'),
+                    'initial_restoration_failed':observed.get('initial_restoration_failed',False),
+                    'source_sha256':sha(facts),'facts':json.loads(facts.read_text())}
         if name == 'budget':
             ledger = 'billing-gpt' if os.environ.get('SP_BUDGET_PHASE') == 'gpt' else 'billing'
             x = json.loads((OUT / ledger / 'state.json').read_text())
@@ -182,6 +197,11 @@ class Broker:
             result = execute_python(self.work, args['path'], self.directory / 'cpu' / action_id)
         elif name == 'launch_experiment':
             from experiment_runner import validate_config
+            if args['config'].get('enable_prefix_caching') is True:
+                admission=OUT/'research/prefix-inference-admission.json'
+                if (not admission.is_file() or admission.is_symlink()
+                        or self.allocation.get('prefix_inference_admission_sha256')!=sha(admission)):
+                    raise ValueError('Separate enabled-prefix inference admission required; initialization metadata is insufficient')
             if args['mode']=='cache_init':
                 admission=OUT/'research/cache-init-admission.json'
                 if (not admission.exists() or self.allocation.get('cache_init_admission_sha256')!=sha(admission)):
@@ -214,7 +234,8 @@ class Broker:
                 for prior_id in self.state['experiments']:
                     from experiment_lifecycle import cleanup_pending
                     prior_state = json.loads((OUT / 'experiments' / prior_id / 'state.json').read_text())
-                    if prior_state['status'] not in ('complete', 'failed') or cleanup_pending(prior_state):
+                    if (prior_state['status'] not in ('complete', 'failed') or cleanup_pending(prior_state)
+                            or (prior_state.get('lock_acquired_epoch') and prior_state.get('baseline_restored') is not True)):
                         raise RuntimeError('Prior experiment must finish restoration before another submission')
                 folder.mkdir(mode=0o700, parents=True)
                 request = {'id': experiment_id, 'role': self.role, 'config': args['config'], 'mode': args['mode'],

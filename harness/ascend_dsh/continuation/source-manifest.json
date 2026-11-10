@@ -1,8 +1,8 @@
 {
-  "continue_research.py": "c08ce47dfd3e9625d244c2c39dd282d7b705b8d79b8b3bbf6014d810a69a7329",
+  "continue_research.py": "0073e7aff4c3a7bbf0f5a56a70f6845e2fd4a97ea2974b570993d33cac2eb022",
   "profile_workload.py": "5010e3e338425664ef60841326fcba53a9b1a9b0b6fa2ffa589134530fc667ac",
-  "experiment_runner.py": "5f5cf82f132f1cda4f4d54122718d2f43dee2267cc6e62ef01236b50f35496c9",
-  "research_broker.py": "71bc0eb005f374773281d1d6a6a8ae3ea5ad45cd14b1744def72d6c9af2a97d5",
+  "experiment_runner.py": "82f1edff681634a3e7ee45ac1fd0b2875badbb70795ebcb4c6c2e90ed623116b",
+  "research_broker.py": "deaed959a1615007304f90cf570c305a3787b2a23f199163e3a96a01ae21c3d3",
   "test_continuation.py": "8c7b619706820b2c4694a596599b0db83fe3cfacc9a3fb13d5ecc33e46c8b904",
   "summarize_kernels.py": "ecf5c14803db68dbfaaf1d6a252121a85343c4b2f86b267a180ee1c8ea34fa81",
   "test_profile_summaries.py": "5c1251d4cfc4db7daecc2d151bd630e0b75047f114652cb46347ec0e3e790fd2",
@@ -36,7 +36,9 @@
   "test_cache_metadata_diag.py": "4843a530239b0fa1af1ab81b0ee58ed5748add0bffe28f0cb1ffb169323675ef",
   "cache_init_export.py": "a1802c4e4f4c535dfd2fb603ee4e673baa9d503700d360197ead12ec436ecd55",
   "test_cache_init_export.py": "933a4464bd84b2d10cce72ee7c42aeda6a20a3066ef2b7434fc340ac19a026a6",
-  "test_cache_init_mode.py": "0796dfc7ee66d9206696a2d87c5855d28e1c41586d3c67bac0a27427be5929a4",
+  "test_cache_init_mode.py": "c5a273dd6adda0227fda565d71d9fadb7a24e2c325d475f2fb42a4abf6ce747b",
   "run_prefix_capability_design.py": "d62f71326806b2f7ddb8230bc5b3fcc36832f95ecf83a00734338a471c9e8710",
-  "finish_cache_init_capture.py": "9f1c08b862e4de15c0920e72f59a0a445848d02fcbdfcac3d0f7f0c02a10c7c8"
+  "finish_cache_init_capture.py": "9f1c08b862e4de15c0920e72f59a0a445848d02fcbdfcac3d0f7f0c02a10c7c8",
+  "export_cache_init_facts.py": "ab1ccba94a94845c630d49a3161fad518618b8df24cbc5a7f97bc751e9f75724",
+  "repair_cache_init_restoration.py": "1b744e1ef6a0cd0650fb1e24fdab3132a3839db3667671cdb4d8b09be8488612"
 }

@@ -39,8 +39,8 @@ class InitModeTests(unittest.TestCase):
     def test_runner_submits_no_generation_and_restores_after_capture_failure(self):
         import experiment_runner as runner
         from prepare_baseline import write,sha
-        for valid in (True,False):
-            with self.subTest(valid=valid),tempfile.TemporaryDirectory() as tmp:
+        for valid,restore_fails in ((True,False),(False,False),(True,True)):
+            with self.subTest(valid=valid,restore_fails=restore_fails),tempfile.TemporaryDirectory() as tmp:
                 root=Path(tmp);out=root/'runtime';out.mkdir();folder=out/'experiments/fixture';folder.mkdir(parents=True)
                 (root/'evaluation').mkdir();(root/'deployment/selected').mkdir(parents=True)
                 write(out/'installed-engine-source-manifest.json',{})
@@ -54,17 +54,58 @@ class InitModeTests(unittest.TestCase):
                         patch.object(runner,'metrics',return_value={'running':0,'waiting':0}), \
                         patch.object(runner,'make_launch',return_value=folder/'launch.sh') as builder, \
                         patch.object(runner,'launch',side_effect=[{'pid':2,'birth':2.0},{'pid':3,'birth':3.0}]) as launch, \
-                        patch.object(runner,'stop_owned'),patch.object(runner,'wait_health'), \
+                        patch.object(runner,'stop_owned'),patch.object(runner,'wait_health',
+                            side_effect=[None,RuntimeError('restore fixture failure')] if restore_fails else None), \
                         patch.object(runner,'run_screen',side_effect=AssertionError('Generation forbidden')) as generation, \
                         patch('cache_init_export.export_initialization',return_value={'structural_capture_complete':valid}):
-                    if valid:runner.run('fixture')
+                    if valid and not restore_fails:runner.run('fixture')
                     else:
-                        with self.assertRaisesRegex(AssertionError,'Incomplete cache metadata'):runner.run('fixture')
+                        expected=RuntimeError if restore_fails else AssertionError
+                        message='restore fixture failure' if restore_fails else 'Incomplete cache metadata'
+                        with self.assertRaisesRegex(expected,message):runner.run('fixture')
                     generation.assert_not_called();self.assertTrue(builder.call_args.kwargs['initialization_only'])
                     self.assertEqual(launch.call_count,2)
                 state=json.loads((folder/'state.json').read_text())
-                self.assertTrue(state['baseline_restored'])
-                self.assertEqual(state['status'],'complete' if valid else 'failed')
+                self.assertEqual(state['baseline_restored'],not restore_fails)
+                self.assertEqual(state['status'],'complete' if valid and not restore_fails else 'failed')
+                self.assertIsNotNone(state.get('completed_epoch'))
+
+    def test_finalized_restore_failure_still_blocks_next_submission(self):
+        from prepare_baseline import write
+        with tempfile.TemporaryDirectory() as tmp,patch('research_broker.OUT',Path(tmp)):
+            root=Path(tmp);broker=Broker('broken-baseline','direction')
+            folder=root/'experiments/broken-baseline-prior';folder.mkdir(parents=True)
+            write(folder/'state.json',{'status':'failed','lock_acquired_epoch':1,'completed_epoch':2,'baseline_restored':False})
+            broker.state['experiments']=[folder.name]
+            with self.assertRaisesRegex(RuntimeError,'restoration'):
+                broker.act('launch_experiment',{'id':'next','mode':'profile','config':{}})
+            self.assertFalse((root/'experiments/broken-baseline-next').exists())
+
+    def test_cache_facts_wait_for_restoration_and_keep_partial_scope(self):
+        from prepare_baseline import write
+        with tempfile.TemporaryDirectory() as tmp,patch('research_broker.OUT',Path(tmp)):
+            root=Path(tmp);(root/'research').mkdir()
+            write(root/'research/cache-init-observations.json',{'baseline_restored':False})
+            write(root/'research/cache-init-group-facts.json',{'enabled_state_restoration_validated':False,'groups':[]})
+            broker=Broker('facts-reader','master')
+            self.assertEqual(broker.evidence('cache_initialization')['status'],'restoration_pending')
+            write(root/'research/cache-init-observations.json',{'baseline_restored':True,'status':'failed','initial_restoration_failed':True})
+            result=broker.evidence('cache_initialization')
+            self.assertFalse(result['full_prefix_capability_ready'])
+            self.assertFalse(result['facts']['enabled_state_restoration_validated'])
+            self.assertEqual(result['experiment_status'],'failed')
+            self.assertTrue(result['initial_restoration_failed'])
+            write(broker.directory/'allocation.json',{'analysis_only':True,'max_actions':5,'max_experiments':0})
+            peer=Broker('facts-reader','direction')
+            with self.assertRaisesRegex(ValueError,'frozen'):
+                peer.evidence('cache_initialization')
+
+    def test_enabled_inference_requires_separate_admission(self):
+        with tempfile.TemporaryDirectory() as tmp,patch('research_broker.OUT',Path(tmp)):
+            broker=Broker('no-enabled-admission','direction')
+            with self.assertRaisesRegex(ValueError,'inference admission'):
+                broker.act('launch_experiment',{'id':'enabled','mode':'benchmark','config':{'enable_prefix_caching':True}})
+            self.assertFalse((Path(tmp)/'experiments').exists())
 
 
 if __name__=='__main__':unittest.main()

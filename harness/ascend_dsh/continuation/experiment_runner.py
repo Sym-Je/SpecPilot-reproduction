@@ -298,6 +298,7 @@ def run(experiment_id):
                     state['baseline_restored'] = True
                 except BaseException as exc:
                     state.update(status='failed', restore_error=f'{type(exc).__name__}: {exc}', baseline_restored=False)
+                    state['completed_epoch']=time.time()
                     save()
                     raise
             if state['status'] != 'failed': state['status'] = 'complete'

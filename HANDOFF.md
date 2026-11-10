@@ -86,6 +86,10 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 - 新可信 cache_init 模式只接受 {cache_init_metadata:true}，stock argv/TP8/DP1/EP8/W8A8/K7/缓存OFF不变，fresh0700隔离bootstrap、不提交生成请求。独立准入绑定 review/adapter SHA，所有执行依赖排队前后校验；66项定向CPU检查通过，涵盖零生成及失败恢复。采集校验8个默认组rank、final core/worker block与layer覆盖、文件权限/进程归属、截断/错误/overflow拒绝。不能把默认组rank称物理拓扑证明或把声明backing称实际驻留。
 - 督导提交 capability-cache-init-off-plan-v1（非科学角色自主launch），已拿到全机锁进入启动。实际状态见私有 experiment/state；finish_cache_init_capture 在终态恢复之后才归还 Master7 检查点，不自动声称完整能力已满足。13份设计source pin及3244个安装源码在提交前一致；仍需读取实测终态/基线恢复。被动日志parser另提取8卡startup rounded数值，原日志快照与JSON都私有，不算enabled支持或峰值HBM证明。
 
+- 实际初始化结构采集通过：8/8 rank、每卡6组、core/manager各1、无截断/observer错误、零生成。当前OFF scheduler/hash均4096，实际选中AscendHybridKVCacheCoordinator；APC开启可能改变hash几何，不能把OFF观测冒充enabled命中对齐。export_cache_init_facts保留6组/170个cache-layer组件及实际Ascend coordinator/resolver source SHA，170不是模型深度。
+- 首次未插桩基线恢复在rank3图捕获时申请内存失败（aclnnGroupedMatmulWeightNz），原任务终态failed；已仅清理核对归属的失败恢复进程树，初次采集仍可用但服务尚未恢复。相同stock脚本的最多2次恢复重试已排队，等待另一个8–15卡任务的全机锁。用户明确选择“维持串行等待”，不得中断另一任务或绕锁。付费研究暂停，当前服务不健康，不得照搬之前health200。
+- 修复原finally在restore_error时未写completed_epoch造成监听器挂起；原已退出runner通过单列操作回执标为失败终态，baseline_restored仍false。未来broker阻止未恢复基线继续提交，元数据getter在恢复前不开放partial事实，enabled-prefix推理需另行准入。69项定向CPU检查通过；恢复helper只做stock/同参数重试并检查已有stock服务避免重复启动，目前尚未真正重试。实际状态见私有restoration-recovery与state，源码原执行版可从4ce336b重建并匹配request SHA。
+
 ## 以下为H100独立轨道，不混用Ascend资源授权
 
 
