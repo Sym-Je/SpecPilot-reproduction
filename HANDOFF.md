@@ -79,6 +79,9 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 
 - 最新用户预算修订：用户明确要求“设置为1000美刀吧”，本地 GPT 累计上限由500改为1000美元，Claude仍200。原预占/扣费起点/153条历史记录不重置，旧拒绝事件归档；私有 amendment 回执绑定变更前SHA。51项定向CPU检查通过，包含新1000上限拒绝和不隐式提高旧账本。已恢复同一D5角色、会话与工具分配，监听器和原服务保留；实际状态仍查私有 supervisor/state，不将预算恢复写成科研收益。
 
+- 持续监听新进展：D5 已交付 needs_evidence、0 实验，未证明 APC 状态恢复/continuation-equivalence 与实际命中计数能力，不把复用上界算收益。Master6 随后自主分配 TP4/DP2/EP8 feasibility（复用督导建议，非独立发现），限离线32动作/不授权拓扑启动。D6 报告 needs_evidence、0实验：实际分片/加载峰值/图池/缓存/通信工作区和主机资源尚未有完整数值，DSpark/W8A8/多DP支持未闭环；不能宣称不兼容或无收益。
+- Master7 曾因 PI_AI_ERROR（Responses stream completed with an unfinished read-only search_source tool call）退出。督导核对原生错误/进程归属后，从同一 Master7 会话恢复一次；按该回执SHA记录一次恢复额度，不重置工具/费用，不重复NPU。实际状态查当前 supervisor/state；旧 pending_decision 可能残留，不把它当当前 Master 决策。服务保留，新 holdout 未打开，无新增性能结论。
+
 ## 以下为H100独立轨道，不混用Ascend资源授权
 
 
