@@ -9,6 +9,17 @@ from research_broker import Broker
 
 
 class ParallelTests(unittest.TestCase):
+    def test_terminal_report_after_adjacent_prose_preserves_numbers(self):
+        from parallel_research import parse_report
+        text = 'Evidence is incomplete.{"status":"needs_evidence","cost_floor":{"bytes":268238848}}'
+        self.assertEqual(parse_report(text)['cost_floor']['bytes'], 268238848)
+
+    def test_terminal_report_rejects_trailing_prose_or_incomplete_json(self):
+        from parallel_research import parse_report
+        for text in ('{"status":"needs_evidence"} unfinished discussion', 'Evidence.{"status":'):
+            with self.subTest(text=text), self.assertRaises(json.JSONDecodeError):
+                parse_report(text)
+
     def fixture(self, root):
         role = root / 'research/roles/parallel-fixture'
         role.mkdir(parents=True)

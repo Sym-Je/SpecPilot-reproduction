@@ -73,3 +73,12 @@ by worker count. New validation remains sealed. Native
 DSH trajectories, calls, allocation, process state and reports remain private.
 Eight new boundary tests plus 13 related tests passed (21 total); this is focused
 adapter acceptance, not full repository coverage or evidence of a speedup.
+
+Both initial parallel analyses completed without claiming measured gains. A prose
+preamble immediately adjacent to A1's terminal JSON was recovered from the
+unchanged native receipt without a repeated model call. The parser now accepts
+that bounded format and rejects trailing prose/incomplete JSON. Installed AscendC
+C++/headers are available through an explicit read-only source tree; analysis
+roles still cannot launch devices or execute source patches. A bounded follow-up
+checks the installed hyper-connection kernels' exact dispatch/aliasing contracts.
+Twenty-four focused adapter tests pass; native kernels remain unmodified.

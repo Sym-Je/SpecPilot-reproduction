@@ -7,6 +7,20 @@ from research_broker import Broker, normalize_source_prefix
 
 
 class SearchTests(unittest.TestCase):
+    def test_cpp_kernel_sources_are_readable_but_other_files_and_escape_are_denied(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); source = root / 'kernels'; source.mkdir()
+            (source / 'hc.cpp').write_text('void HcPre() {}\n')
+            (source / 'private.txt').write_text('not source')
+            with patch('research_broker.OUT', root), patch('research_broker.SOURCE_ROOTS', {'ascendc': source}):
+                broker = Broker('cpp-fixture', 'direction')
+                found = broker.act('search_source', {'tree': 'ascendc', 'prefix': '', 'query': 'HcPre'})['result']
+                self.assertEqual(found['matches'][0]['path'], 'hc.cpp')
+                self.assertEqual(broker.source('ascendc', 'hc.cpp'), source / 'hc.cpp')
+                for path in ('private.txt', '../outside.cpp'):
+                    with self.subTest(path=path), self.assertRaises(ValueError):
+                        broker.source('ascendc', path)
+
     def test_root_qualified_and_relative_searches_find_the_same_code(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -47,6 +47,10 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 - 旧validation已经打开，继续研究不读取或使用其结果；另冻结40条未使用的原validation分区请求组，仍不开放给研究角色。
 - 源码快照见`harness/ascend_dsh/continuation/`。此更新不修改H100轨道、正式controller/eval/ledger，也不声称论文复现或性能提升。
 
+- 后续回执：两路分析报告均已完成。A1 的原回答是引导句紧接完整 JSON，解析失败已按原始 native receipt 离线恢复，科学字段未改、未重复 API/NPU；`parallel_research.py` 增加有界终端 JSON 解析。A1 指出 Hadamard 缩放→动态量化的约 256 MiB/观测大调用中间读写是待核实融合点；尚无可部署 patch 或实测收益。A2 对 clone/缓冲复用保持 needs_evidence，CPU参考仅说明别名风险。
+- 共享专家多流重叠的八 rank 诊断 span 约 27.278 秒，原 profile 约 24.929 秒；不视为无 profiler 吞吐对照或因果退化定论。随后的 shared-expert DP 配置在图捕获/GroupedMatmulWeightNz 阶段失败，guard 触发原 runner 清理，恢复状态以 state 的 completed_epoch/baseline_restored 为准。
+- 主助手发现已安装 AscendC C++/头文件实际存在，旧 Python-only broker 导致研究角色无法阅读。新增只读 `ascendc` source tree 和受限源码后缀，保持隔离/无 NPU 执行；已启动 `parallel-b1-hc-kernel-contracts` 延续 A2 核查，要求先证明源码与 910B/npu_hc_pre_v2 的对应关系，不把 arch35 路径直接套用。角色预算 24 工具动作，共用既有 GPT 账本；旧会话不声称热加载新能力。24 项相关定向检查通过。
+
 ## 以下为H100独立轨道，不混用Ascend资源授权
 
 

@@ -22,6 +22,25 @@ from dsh_call import ProviderRefusal
 AREA = OUT / 'research/parallel'
 
 
+def parse_report(answer):
+    """Accept one terminal JSON report after prose; preserve its native receipt."""
+    try:
+        return parse_answer(answer)
+    except json.JSONDecodeError:
+        candidates = []
+        decoder = json.JSONDecoder()
+        for match in re.finditer(r'\{', answer):
+            try:
+                value, end = decoder.raw_decode(answer, match.start())
+            except json.JSONDecodeError:
+                continue
+            if isinstance(value, dict) and not answer[end:].strip():
+                candidates.append(value)
+        if len(candidates) != 1:
+            raise
+        return candidates[0]
+
+
 def validate_plan(plan):
     directions = plan.get('directions')
     if not isinstance(directions, list) or len(directions) != 2:
@@ -186,7 +205,7 @@ def call_role(role, mode, prompt):
                         prompt = original_prompt + '\nResume the same scope after budget handoff. Do not repeat completed source/CPU work. Prior role receipts:\n' + history
                         continue
                     raise
-                report = parse_answer(answer)
+                report = parse_report(answer)
                 if mode == 'master':
                     validate_plan(report)
                 if len(json.dumps(report).encode()) > 24000:

@@ -20,7 +20,13 @@ from cpu_sandbox import execute_python
 SOURCE_ROOTS = {
     'vllm': ROOT / 'vendor/vllm-0.30.0/vllm',
     'vllm_ascend': ROOT / '.venv/lib/python3.12/site-packages/vllm_ascend',
+    'ascendc': ROOT / '.venv/lib/python3.12/site-packages/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_impl/ai_core/tbe/custom_transformer_impl/ascendc',
 }
+SOURCE_SUFFIXES = {'.py', '.cpp', '.h', '.hpp'}
+
+
+def source_files(root):
+    return sorted(p for p in root.rglob('*') if p.is_file() and p.suffix in SOURCE_SUFFIXES and not p.is_symlink())
 SCHEMAS = {
     'read_evidence': {'name': {'type': 'string', 'enum': ['baseline', 'hardware', 'model', 'deployment', 'budget', 'prior_research']}},
     'list_source': {'tree': {'type': 'string', 'enum': list(SOURCE_ROOTS)}, 'prefix': {'type': 'string'}, 'offset': {'type': 'integer', 'minimum': 0}},
@@ -35,14 +41,14 @@ SCHEMAS = {
 }
 DESCRIPTIONS = {
     'read_evidence': 'Read frozen development-only baseline, hardware, model, launch configuration, or remaining API budget.',
-    'list_source': 'List authorized installed stock engine Python files; no controller, dataset or credentials access.',
-    'read_source': 'Read at most 12000 characters of one authorized stock source file at a byte-independent character offset.',
+    'list_source': 'List authorized installed stock engine Python/C++/header files, including the AscendC tree; no controller, dataset or credentials access.',
+    'read_source': 'Read at most 12000 characters of one authorized stock Python/C++/header source file at a byte-independent character offset.',
     'write_scratch': 'Write a bounded .py/.json/.patch file in your own scratch directory. This does not modify the deployment.',
     'run_cpu': 'Execute your scratch Python analysis inside a chroot, dropped UID and seccomp CPU sandbox: no network, devices, subprocess, host reads or writes; 3 CPU seconds. Standard-library analysis modules only.',
     'launch_experiment': 'Serial 8-NPU configuration benchmark or bounded diagnostic CPU+NPU profile; restores baseline. Config: max_num_batched_tokens, max_num_seqs, gpu_memory_utilization, enable_prefix_caching, enforce_eager, num_speculative_tokens, additional_config. screen_concurrency=1/8/32. Profile additionally accepts profile_stratum=short/mid/long, profile_phase=prefill/decode, profile_steps=1..32 (default 8). Profile launches the stated concurrent dev requests, caps output at 128, and records actual activity. Decode collection requires all requests to reach first token; if no window exists it fails explicitly. Offline export checks eight ranks and loss warnings. Profile timing is diagnostic, never a benchmark gain. No model, precision, topology, sampling or split changes.',
     'wait_experiment': 'Wait for trusted experiment progress/result without launching or duplicating work. Up to 1200 seconds; no model billing while waiting. Measurements are serial screening, not formal paired promotion.',
     'read_profile': 'Read at most 12000 characters from an owned completed experiment CSV under traces. Use profile_summary.csv_files for paths. No request or model output files are exposed.',
-    'search_source': 'Literal search in authorized engine Python sources, at most 30 matching lines and 12000 characters. Use a path prefix to narrow the search.',
+    'search_source': 'Literal search in authorized engine Python/C++/headers, at most 30 matching lines and 12000 characters. Use a path prefix to narrow the search.',
     'submit_patch': 'Submit a scratch patch for independent admission review. Records a proposal; does not execute or auto-approve code.',
 }
 
@@ -84,7 +90,7 @@ class Broker:
         if tree not in SOURCE_ROOTS: raise ValueError('Unknown source tree')
         root = SOURCE_ROOTS[tree].resolve()
         p = local_path(root, name)
-        if p.suffix != '.py' or not p.is_file(): raise ValueError('Only stock Python files are readable')
+        if p.suffix not in SOURCE_SUFFIXES or not p.is_file(): raise ValueError('Only stock Python/C++/header source files are readable')
         return p
 
     def evidence(self, name):
@@ -130,7 +136,7 @@ class Broker:
         elif name == 'list_source':
             root = SOURCE_ROOTS[args['tree']].resolve()
             prefix = normalize_source_prefix(args['tree'], args['prefix'])
-            names = sorted(str(p.relative_to(root)) for p in root.rglob('*.py')
+            names = sorted(str(p.relative_to(root)) for p in source_files(root)
                            if not p.is_symlink() and str(p.relative_to(root)).startswith(prefix))
             offset = args['offset']; assert type(offset) is int and offset >= 0
             result = {'total': len(names), 'offset': offset, 'files': names[offset:offset + 80],
@@ -146,7 +152,7 @@ class Broker:
             prefix = normalize_source_prefix(tree, prefix)
             root = SOURCE_ROOTS[tree].resolve(); matches = []
             searched_files = 0
-            for path in sorted(root.rglob('*.py')):
+            for path in source_files(root):
                 relative = str(path.relative_to(root))
                 if not relative.startswith(prefix) or path.is_symlink(): continue
                 path = self.source(tree, relative)
