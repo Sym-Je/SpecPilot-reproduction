@@ -29,6 +29,15 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 - 合并最新H100提交后，仓库303项回归在此容器未全过：12失败/29错误，涉及缺失旧H100固定路径和Landlock不可用。不要将新22项定向通过写成仓库全绿；未修改旧controller/eval/ledger/memory。
 - 上述串行实验不写论文配对晋升账本，不承诺正确率/无损。公开提交不含数据内容、原生研究轨迹、权重、密钥或计费原始日志。
 
+
+## Ascend continuation — 2026-11-10 用户要求继续优化
+
+- 用户明确要求持续优化；本地新执行器取消三方向总上限，仍保留逐方向资源分配和统一NPU锁。Claude累计200美元、GPT独立500美元上限原样保留，Claude账本直接复用。
+- 新DSH Master/Direction已启动，真实进程与阶段状态记录在部署目录；首方向选择graph/C32成本归因，尚无新的NPU测量或收益。
+- 已修正profile工作负载能力：实际C1/C8/C32、短中长输入、有界worker-step窗口、串行离线导出和八rank/数据丢失检查。8项新CPU验收及5项原startup-guard检查通过，NPU能力尚待实测。
+- 旧validation已经打开，继续研究不读取或使用其结果；另冻结40条未使用的原validation分区请求组，仍不开放给研究角色。
+- 源码快照见`harness/ascend_dsh/continuation/`。此更新不修改H100轨道、正式controller/eval/ledger，也不声称论文复现或性能提升。
+
 ## 以下为H100独立轨道，不混用Ascend资源授权
 
 

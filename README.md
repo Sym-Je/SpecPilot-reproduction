@@ -1,5 +1,7 @@
 # SpecPilot 复现工程
 
+Ascend 进展（2026-11-10）：已按用户要求启动新的 DSH 连续研究，取消三方向自动停止；累计费用上限保持不变。新的真实并发 profiling 执行器已过 CPU 验收，NPU 归因实验正在准备/排队，暂无新性能收益。见 [Ascend 接续记录](HANDOFF.md) 与 [执行器快照](harness/ascend_dsh/continuation/README.md)。
+
 复现 *SpecPilot: Autonomous Algorithm Discovery and Systems Optimization for Speculative
 Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性能；架构复现与数字复现分开报告。论文原件见
 `docs/` 中的引用；PDF 不在仓库内。
