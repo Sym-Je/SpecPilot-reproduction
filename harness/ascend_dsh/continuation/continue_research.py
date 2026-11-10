@@ -1,5 +1,7 @@
 """Persistent serial DSH research; cumulative API budgets, no direction-count stop."""
 import fcntl
+import argparse
+import csv
 import json
 import os
 import time
@@ -85,14 +87,45 @@ def invoke(state, role, mode, prompt):
     raise RuntimeError('Model recovery attempts exhausted; inspect durable receipts')
 
 
-def main():
+def compact_receipts(evidence):
+    compact = []
+    for item in evidence:
+        entry = {k: item[k] for k in ('id', 'status', 'error', 'baseline_restored', 'reference', 'candidate', 'comparison') if k in item}
+        entry['request'] = {k: item.get('request', {}).get(k) for k in ('config', 'mode')}
+        profile = item.get('profile')
+        if profile:
+            entry['profile'] = {k: profile.get(k) for k in ('all_eight_ranks_complete', 'rank_count', 'warnings', 'workload', 'scope')}
+            folder = OUT / 'experiments' / item['id']
+            paths = sorted((folder / 'traces').rglob('kernel_type_summary.csv'))
+            entry['profile']['operator_summary_paths'] = [str(p.relative_to(folder / 'traces')) for p in paths]
+            entry['profile']['operator_summaries'] = []
+            for index, source in enumerate(paths):
+                with source.open() as stream:
+                    rows = list(csv.DictReader(stream))
+                entry['profile']['operator_summaries'].append({'source': str(source.relative_to(folder / 'traces')),
+                    'sha256': sha(source), 'rows': rows[:12 if index == 0 else 3],
+                    'scope': 'One-rank summed durations and interval unions; overlapping families, not phase shares or causal speedup bounds'})
+            activity = folder / 'profile-start-activity.json'
+            if activity.exists():
+                entry['profile']['actual_activity_at_trigger'] = json.loads(activity.read_text())
+        compact.append(entry)
+    return compact
+
+
+def main(resume=False):
     os.umask(0o077)
     with (OUT / 'research/driver.lock').open('a+') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         path = OUT / 'research/state.json'
-        if path.exists():
+        if path.exists() and not resume:
             raise RuntimeError('Existing continuation state; explicitly resume its checkpoint instead of duplicate execution')
-        state = {'status': 'researching', 'model': 'claude-opus-5-5', 'rounds': [],
+        if resume:
+            state = json.loads(path.read_text())
+            assert not state.get('validation_opened'), 'Do not resume after holdout access'
+            state.update(status='researching', needs_local_supervision=False)
+            state.setdefault('supervisor_resumes', []).append({'epoch': time.time(), 'source_sha256': sha(__file__)})
+        else:
+            state = {'status': 'researching', 'model': 'claude-opus-5-5', 'rounds': [],
                  'started_epoch': time.time(), 'validation_opened': False, 'direction_limit': None,
                  'previous_campaign': str(ROOT / 'profiling/specpilot-ctrip-dsh-20261109'),
                  'cumulative_claude_budget_usd': 200, 'gpt_budget_usd': 500,
@@ -101,9 +134,21 @@ def main():
         context = '''Continue the prior campaign without resetting billing. The three-direction limit is removed by explicit user instruction.
 Prior dev conclusions: 8192->16384 prefill budget did not establish a gain; startup sometimes failed in NPU graph capture. Previous profiling was restricted to C1/mid/eager and produced incomplete events, so its prefill/decode attribution is NOT established.
 The broker has now been repaired to offer actual C1/C8/C32 dev replay, short/mid/long strata, bounded profiler windows, serial offline export and eight-rank quality checks. First establish trustworthy attribution on the actual graph configuration. Choose the concrete workload and any necessary diagnostics yourself. Read deployment/source evidence. The new profiler has CPU acceptance coverage but has not yet been validated on NPU.
-A separate authorized Qwen benchmark may hold the common lock; your experiment will queue without interfering. Do not count queue time as model latency.'''
+A separate authorized task may hold the common lock; your experiment will queue without interfering. Do not count queue time as model latency.'''
+        if resume:
+            previous = []
+            for row in state['rounds'][-5:]:
+                _, evidence = receipts(row['role'])
+                previous.append({'role': row['role'], 'report': row['report'], 'trusted_experiments': compact_receipts(evidence)})
+            context = ('Continue from the preserved checkpoint; do not repeat completed measurements. '
+                       'Reports marked supervisor_receipts_only are not researcher conclusions. '
+                       'The source-search tool now accepts root-qualified prefixes and reports the searched-file count; '
+                       'historical empty searches with duplicated tree prefixes are not evidence of absent implementations. '
+                       'Review actual workload at the profile trigger: offered C32 does not imply active decode batch 32. '
+                       'No previous provider refusal is a successful report, and no model switch or billing reset occurred. '
+                       'Choose the next evidence-supported optimization or necessary measurement.\n' + json.dumps(previous))
         try:
-            index = 1
+            index = len(state['rounds']) + 1
             while True:
                 master = f'cont-master-{index}'
                 decision = invoke(state, master, 'master', context + '\n' + MASTER_SCHEMA)
@@ -133,7 +178,7 @@ Return {"status":"candidate" or "no_gain" or "needs_admission" or "needs_evidenc
                 write(path, state)
                 context = 'Continue optimization using completed dev evidence. Do not repeat completed experiments. Prior direction conclusions: ' + json.dumps([
                     {'role': r['role'], 'status': r['report'].get('status'), 'conclusion': r['report'].get('conclusion')}
-                    for r in state['rounds'][-8:]]) + '\nLatest trusted experiment receipts: ' + json.dumps(evidence)
+                    for r in state['rounds'][-8:]]) + '\nLatest trusted experiment receipts: ' + json.dumps(compact_receipts(evidence))
                 if report.get('status') == 'needs_admission':
                     state.update(status='needs_patch_admission', next_round=index + 1, needs_local_supervision=True)
                     write(path, state)
@@ -148,4 +193,6 @@ Return {"status":"candidate" or "no_gain" or "needs_admission" or "needs_evidenc
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--resume', action='store_true')
+    main(parser.parse_args().resume)
