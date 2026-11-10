@@ -77,6 +77,9 @@ class Broker:
         self.statefile = self.directory / 'broker-state.json'
         allocation = self.directory / 'allocation.json'
         self.allocation = json.loads(allocation.read_text()) if allocation.exists() else {'max_experiments': 3, 'max_actions': 160}
+        shared_access = OUT / 'research/profile-export-access.json'
+        if shared_access.exists() and not self.allocation.get('analysis_only'):
+            self.allocation['shared_profile_csvs'] = json.loads(shared_access.read_text())['shared_profile_csvs']
         self.state = json.loads(self.statefile.read_text()) if self.statefile.exists() else {'actions': 0, 'experiments': []}
 
     def names(self):
@@ -84,7 +87,7 @@ class Broker:
             return [n for n in SCHEMAS if n not in ('launch_experiment', 'wait_experiment')]
         if self.mode == 'direction': return list(SCHEMAS)
         if self.mode == 'probe': return ['read_evidence', 'list_source', 'read_source', 'write_scratch', 'run_cpu']
-        return ['read_evidence', 'list_source', 'read_source', 'search_source']
+        return ['read_evidence', 'list_source', 'read_source', 'search_source'] + (['read_profile'] if self.allocation.get('shared_profile_csvs') else [])
 
     def source(self, tree, name):
         if tree not in SOURCE_ROOTS: raise ValueError('Unknown source tree')

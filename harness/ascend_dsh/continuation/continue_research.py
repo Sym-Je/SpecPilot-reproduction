@@ -148,6 +148,9 @@ A separate authorized task may hold the common lock; your experiment will queue 
                        'No previous provider refusal is a successful report, and no model switch or billing reset occurred. '
                        'Choose the next evidence-supported optimization or necessary measurement.\n' + json.dumps(previous))
         try:
+            export = OUT / 'research/profile-export-access.json'
+            if resume and export.exists():
+                context += '\nNew trusted offline capability (no NPU rerun): master/direction read_profile can read these SHA-pinned CSVs from an already completed dev profile. Review actual exported fields/limitations rather than assuming full dependency or phase coverage.\n' + export.read_text()
             index = len(state['rounds']) + 1
             pending_role = state.get('active_role') if resume and state.get('active_mode') == 'direction' else None
             while True:

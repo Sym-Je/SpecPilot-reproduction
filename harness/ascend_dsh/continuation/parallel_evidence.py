@@ -28,4 +28,7 @@ def shared_updates(root, *, analysis_only=False):
         reports.append({'role': path.parent.name, 'source_sha256': sha(path),
                         'measured_gain': False, 'report': report})
     result['parallel_reports'] = reports
+    export = root / 'research/profile-export-access.json'
+    if export.exists():
+        result['completed_profile_export'] = json.loads(export.read_text())
     return result

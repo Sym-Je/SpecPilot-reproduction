@@ -92,3 +92,14 @@ unfinished direction allocation. Settlement of an already admitted request may
 complete after a primary failure, while new admission keeps all existing gates.
 Twenty-seven focused checks pass; resumed native roles have emitted new tool
 receipts. These recovery changes do not constitute a model performance gain.
+
+The completed-profile adapter now exports exact-decimal query scale/quantization
+shape neighborhoods and streams the preserved timelines into flow/event/phase
+CSV shards. It records missing correlations explicitly; same-stream adjacency
+is not storage identity, and raw flow categories do not establish a full device
+dependency DAG. Completed ranks are checkpointed; failed derived exports remain
+preserved. Master and direction roles can read only the trusted SHA allowlist;
+Master receives no device or CPU execution capability. The offline runner resumes
+the same pending capability review only after all eight ranks finish and the
+primary's pending round still matches. Thirty-one focused checks pass. No NPU
+replay, model change, benchmark gain or final-validation access is implied.

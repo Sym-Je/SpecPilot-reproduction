@@ -55,6 +55,11 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 - 已修复：`gpt_context.py` 在明确 input-byte-limit 错误后创建有来源/SHA 的有界检查点和新 native session，保留原 broker role、动作计数、scratch、实验归属与累计费用；最多两次运行中 rollover，不扩大字节上限。主调度恢复未完成 direction 时复用已批准的 Master 分配，不重选/重跑。settle 可在主研究暂停后完成已准入请求记账，reserve 仍执行原阶段/预算/validation 门禁。
 - 已恢复原 D2 主研究与 `parallel-b1-hc-kernel-contracts`，实际新工具记录已出现；此次恢复未提交 NPU 实验。27 项定向检查通过，原生实跑仍需继续监测；完整 native 日志与新的 session-routing/checkpoint 私有保存。最新 supervisor 身份与研究状态以部署目录为准。
 
+- D2 与 AscendC follow-up 已正常提交完整报告。D2 撤回此前 2.2 秒/5–9% headroom 推测，确认部分共享专家重叠但未证明增量收益；shared-DP 图捕获失败原因未确定，未跑 AIPerf 候选。AscendC 报告发现条件性的 FP32 workspace staging，但 v2 binding/已加载二进制/910B tiling 对应仍缺，未提出可部署 patch。
+- Master 3 选定 indexer scale→quantization 暴露成本核查，因 Master 不能读取既有 profile 而请求能力。已增加只读、SHA 固定的已完成 profile CSV 授权，Master 不获得 NPU/CPU 执行能力；direction 保留原限制。`profile_dependency_export.py` 对已完成基线的八卡 CSV/压缩 timeline 做离线导出，涵盖形状匹配的量化/相邻算子、全部 flow/event/phase markers；不会凭时间相邻推断内存依赖或完整关键路径。
+- 首卡 672 个匹配调用的 scale/quant 服务时间分别约 0.101617/0.256264 秒，合计约占该 24.929 秒诊断 span 的 1.44%；不是可实现收益、全模型收益上限或 phase 分解。其余卡及相关事件正在导出。首轮因单个派生 CSV 超过 60 MiB 中止，原文件保留；修复为分片并逐卡 checkpoint，未重跑 NPU。31 项定向检查通过。
+- 离线进程状态见 `research/profile-dependency-export/state.json`，完成八卡导出后自动恢复仍处于同一 needs_harness_capability/round3 的主研究；若状态发生变化则拒绝自动恢复。不要把此时的离线分析说成 NPU 压测仍在进行。所有新产物/轨迹/计费仍留私有部署目录。
+
 ## 以下为H100独立轨道，不混用Ascend资源授权
 
 
