@@ -377,6 +377,8 @@ class ResourceTests(unittest.TestCase):
             source_sha256=reference(self.job / 'source.tar')['sha256'], candidate_tree_sha=record['candidate_tree_sha'],
             cohort=dict(counts={'fixture': 1}, selected=1, pool_records=5, excluded_records=4, prompt_protocol_sha256='a' * 64),
             protocol_evidence_passed=True, scientific_ready=True, runtime_status='evidence-ready-awaiting-independent-final',
+            judge_regression=dict(healthy_controls_passed=True, faulty_event_rejected=True,
+                                  post2048_tokens=1024, injection_coverage_passed=True),
             purpose='scientific-candidate', execution_completed=True, protocol_verified=True,
             expected_rejection=False, correctness_passed=True, performance_passed=True,
             private_evidence_seal_sha256='e' * 64, private_replay_sha256='f' * 64,
@@ -395,6 +397,19 @@ class ResourceTests(unittest.TestCase):
         summary['cohort']['input_ids'] = [1, 2]
         write(summary)
         with self.assertRaisesRegex(ValueError, 'aggregate'): resource.feedback(output, record)
+
+    def test_judge_aggregate_never_exports_private_trace_or_request_fields(self):
+        verdicts = {name: dict(correctness_passed=True, request_id='PRIVATE', raw_evidence='PRIVATE')
+                    for name in ('healthy_stock', 'ar', 'healthy_segmented', 'equivalent_head')}
+        verdicts['faulty'] = dict(correctness_passed=False, event_flagged=True, raw_evidence='PRIVATE')
+        result = resource.judge_aggregate(dict(verdicts=verdicts, post2048_tokens=1234))
+        self.assertEqual(result, dict(healthy_controls_passed=True, faulty_event_rejected=True,
+                                     post2048_tokens=1234, injection_coverage_passed=True))
+        self.assertNotIn('PRIVATE', json.dumps(result))
+        with self.assertRaisesRegex(ValueError, 'aggregate'):
+            resource.checked_judge_aggregate(dict(result, raw_evidence='PRIVATE'))
+        with self.assertRaisesRegex(ValueError, 'coverage'):
+            resource.checked_judge_aggregate(dict(result, post2048_tokens=100))
 
     def test_job_local_replay_seals_closed_evidence_not_live_logs_and_never_t3(self):
         from controller.phase4_final import identity
@@ -466,6 +481,158 @@ class ResourceTests(unittest.TestCase):
         (output / 'error.json').write_text(json.dumps(public))
         with self.assertRaisesRegex(ValueError, 'safe code frame'):
             resource.safe_error_feedback(output)
+
+
+class JudgeAggregateIndependentTests(unittest.TestCase):
+    """Preregistered independent CPU acceptance, before adding test methods:
+
+    python -B -m unittest
+    harness.test_phase4_resource.JudgeAggregateIndependentTests -v
+    Log: logs/skills-rsi-20261110-b01/controller-tests/judge-aggregate-independent-first.log
+    Non-sensitive temporary fixtures only; no model/GPU or existing fixture changes.
+    Reject missing/extra fields, invalid types, coverage/readiness inconsistency,
+    and wire/replay tampering; preserve false outcomes without scientific promotion.
+    """
+
+    def aggregate(self, **changes):
+        return dict(dict(healthy_controls_passed=True, faulty_event_rejected=True,
+                         post2048_tokens=1024, injection_coverage_passed=True), **changes)
+
+    def summary(self):
+        return dict(protocol=resource.PROTOCOL, request_sha256='a' * 64, source_sha256='b' * 64,
+            candidate_tree_sha='c' * 64, purpose='controller-negative-control',
+            cohort=dict(counts={'fixture': 1}, selected=1, pool_records=5, excluded_records=4,
+                        prompt_protocol_sha256='d' * 64),
+            protocol_evidence_passed=False, scientific_ready=True, execution_completed=True,
+            runtime_status='maintenance-stock-control-complete', protocol_verified=True,
+            expected_rejection=True, correctness_passed=True, performance_passed=False,
+            judge_regression=self.aggregate(), private_evidence_seal_sha256='e' * 64,
+            private_replay_sha256='f' * 64, sealed_file_count=10, post_terminal_t3_finalizer_executed=False,
+            caps=[dict(cap=cap, interval=stratified_geomean_ci({'fixture': [1.0]}), threshold=.01,
+                       noise=0, correctness_passed=True) for cap in (2048, 4096)],
+            t3_passed=False, promoted=False, ledger_eligible=False, controller_accepted=False)
+
+    def test_exact_four_fields_and_missing_or_additional_fields(self):
+        valid = self.aggregate()
+        self.assertEqual(resource.checked_judge_aggregate(valid), valid)
+        for key in valid:
+            with self.subTest(missing=key), self.assertRaisesRegex(ValueError, 'aggregate'):
+                resource.checked_judge_aggregate({name:value for name, value in valid.items() if name != key})
+        for key in ('request_id', 'input_ids', 'output_ids', 'raw_evidence', 'verdicts', 'extra'):
+            with self.subTest(extra=key), self.assertRaisesRegex(ValueError, 'aggregate'):
+                resource.checked_judge_aggregate(dict(valid, **{key:'SYNTHETIC_PRIVATE_MARKER'}))
+        for value in (None, [], 'true', 1):
+            with self.subTest(container=value), self.assertRaisesRegex(ValueError, 'aggregate'):
+                resource.checked_judge_aggregate(value)
+
+    def test_boolean_flags_reject_numeric_string_and_container_coercion(self):
+        for key in ('healthy_controls_passed', 'faulty_event_rejected', 'injection_coverage_passed'):
+            for value in (0, 1, 1.0, 'true', 'false', None, [], {}):
+                with self.subTest(key=key, value=value), self.assertRaisesRegex(ValueError, 'aggregate'):
+                    resource.checked_judge_aggregate(self.aggregate(**{key:value}))
+
+    def test_post2048_count_is_nonnegative_integer_not_boolean(self):
+        for value in (-1, True, False, 1024.0, '1024', None, [], float('nan'), float('inf')):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'aggregate'):
+                resource.checked_judge_aggregate(self.aggregate(post2048_tokens=value))
+
+    def test_coverage_boundary_cannot_be_forged_in_either_direction(self):
+        for count in (0, 1, 1023, 1024, 2048):
+            expected = count >= 1024
+            value = self.aggregate(post2048_tokens=count, injection_coverage_passed=expected)
+            with self.subTest(count=count):
+                self.assertEqual(resource.checked_judge_aggregate(value), value)
+                with self.assertRaisesRegex(ValueError, 'coverage'):
+                    resource.checked_judge_aggregate(dict(value, injection_coverage_passed=not expected))
+
+    def test_summary_readiness_is_exact_conjunction_not_an_independent_bool(self):
+        for healthy in (False, True):
+            for faulty in (False, True):
+                for covered in (False, True):
+                    summary = self.summary()
+                    summary['judge_regression'] = self.aggregate(healthy_controls_passed=healthy,
+                        faulty_event_rejected=faulty, post2048_tokens=1024 if covered else 1023,
+                        injection_coverage_passed=covered)
+                    summary['scientific_ready'] = healthy and faulty and covered
+                    with self.subTest(healthy=healthy, faulty=faulty, covered=covered):
+                        resource._aggregate(summary, {'fixture': 1})
+                        summary['scientific_ready'] = not summary['scientific_ready']
+                        with self.assertRaisesRegex(ValueError, 'readiness differs'):
+                            resource._aggregate(summary, {'fixture': 1})
+
+    def test_export_requires_every_healthy_control_and_real_fault_rejection(self):
+        verdicts = {name:dict(correctness_passed=True) for name in
+                    ('healthy_stock', 'ar', 'healthy_segmented', 'equivalent_head')}
+        verdicts['faulty'] = dict(event_flagged=True, correctness_passed=False)
+        for name in ('healthy_stock', 'ar', 'healthy_segmented', 'equivalent_head'):
+            changed = copy.deepcopy(verdicts)
+            changed[name]['correctness_passed'] = False
+            with self.subTest(unhealthy=name):
+                self.assertFalse(resource.judge_aggregate(dict(verdicts=changed, post2048_tokens=1024))['healthy_controls_passed'])
+        for flagged, passed in ((False, False), (False, True), (True, True), (True, False)):
+            changed = copy.deepcopy(verdicts)
+            changed['faulty'] = dict(event_flagged=flagged, correctness_passed=passed)
+            with self.subTest(event=flagged, correct=passed):
+                actual = resource.judge_aggregate(dict(verdicts=changed, post2048_tokens=1024))
+                self.assertEqual(actual['faulty_event_rejected'], flagged and not passed)
+
+    def test_summary_rejects_nested_raw_fields_and_ill_typed_readiness(self):
+        for value in (dict(self.aggregate(), raw_evidence='SYNTHETIC_PRIVATE_MARKER'),
+                      self.aggregate(healthy_controls_passed=1), self.aggregate(post2048_tokens=True)):
+            summary = self.summary()
+            summary['judge_regression'] = value
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'aggregate'):
+                resource._aggregate(summary, {'fixture': 1})
+        for value in (0, 1, 'true', None):
+            summary = self.summary()
+            summary['scientific_ready'] = value
+            with self.subTest(readiness=value), self.assertRaises(ValueError):
+                resource._aggregate(summary, {'fixture': 1})
+
+    def test_feedback_rejects_tampering_even_when_public_replay_is_rehashed(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        directory = Path(temporary.name)
+        output = directory / 'remote'
+        output.mkdir()
+        (directory / 'request.json').write_text('{"fixture":true}')
+        (directory / 'source.tar').write_bytes(b'non-sensitive hash fixture; never executed')
+        (directory / 'lifecycle-final.json').write_text(json.dumps(dict(uuid='job-fixture', phase='Completed',
+            pods={'fixture':dict(phase='Succeeded', exit_code=0, restarts=0, finished_at='2026-11-10T00:00:00Z')})))
+        summary = self.summary()
+        summary.update(request_sha256=reference(directory / 'request.json')['sha256'],
+                       source_sha256=reference(directory / 'source.tar')['sha256'])
+        record = dict(candidate_tree_sha=summary['candidate_tree_sha'], purpose=summary['purpose'],
+                      cohort={'counts': {'fixture': 1}})
+        def write(value):
+            (output / 'replay-summary.json').write_text(json.dumps(value))
+            (output / 'result.json').write_text(json.dumps(dict(value,
+                recompute_sha256=reference(output / 'replay-summary.json')['sha256'])))
+        write(summary)
+        self.assertFalse(resource.feedback(output, record)['t3_passed'])
+        changed = json.loads((output / 'result.json').read_text())
+        changed['judge_regression']['healthy_controls_passed'] = False
+        (output / 'result.json').write_text(json.dumps(changed))
+        with self.assertRaisesRegex(ValueError, 'trusted request/source/recompute'):
+            resource.feedback(output, record)
+        for regression in (self.aggregate(healthy_controls_passed=False),
+                           self.aggregate(faulty_event_rejected=False), self.aggregate(post2048_tokens=1023),
+                           dict(self.aggregate(), input_ids=[1, 2])):
+            with self.subTest(regression=regression):
+                write(dict(summary, judge_regression=regression))
+                with self.assertRaisesRegex(ValueError, 'aggregate|readiness|coverage'):
+                    resource.feedback(output, record)
+
+    def test_export_does_not_mutate_or_forward_private_verdict_payload(self):
+        verdicts = {name:dict(correctness_passed=True, request_id='SYNTHETIC_PRIVATE_MARKER', output_ids=[17, 18])
+                    for name in ('healthy_stock', 'ar', 'healthy_segmented', 'equivalent_head')}
+        verdicts['faulty'] = dict(event_flagged=True, correctness_passed=False, raw_evidence='SYNTHETIC_PRIVATE_MARKER')
+        science = dict(verdicts=verdicts, post2048_tokens=2048, input_ids=[11, 12])
+        before = copy.deepcopy(science)
+        result = resource.judge_aggregate(science)
+        self.assertEqual(science, before)
+        self.assertEqual(set(result), set(self.aggregate()))
+        self.assertNotIn('SYNTHETIC_PRIVATE_MARKER', json.dumps(result))
 
 
 if __name__ == '__main__':

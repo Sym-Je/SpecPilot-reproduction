@@ -29,11 +29,15 @@ from controller.http_transport import sha_ids
 from controller.scoring import NativeClient
 from controller.paper_policy import valid_digest
 from controller.sealed_protocol import CAPS, PHASES, PROTOCOL, _frozen, _private, _save, freeze_candidate, open_phase4, validate_phase4
-from exp.p3_pair_run import check_ports, clean_environment, gpu_lock, run_round, wait_for_idle, write_json
+from exp.p3_pair_run import SUITES, check_ports, clean_environment, gpu_lock, load_requests, run_round, wait_for_idle, write_json
 from exp.p5_real_run import Campaign, fresh_generations, head_process, launch
 from exp.source_research import SourceCapturedArm, SourceServer, sandbox_payload
 from harness.candidate import expected_arguments
 from harness.source_candidate import candidate_arm, load_bundle
+
+
+READINESS_PROTOCOL = 'fixed-public-dev-readiness-v1'
+PUBLIC_DEV_SOURCES = tuple(f'assets/upstream/dev/{suite}.jsonl' for suite in SUITES)
 
 
 SOURCES = (
@@ -46,7 +50,7 @@ SOURCES = (
     'controller/http_transport.py', 'harness/telemetry.py', 'harness/sglang/env.sh',
     'harness/source_cache.py', 'harness/source_open_trace.c',
     'controller/phase4_final.py',
-)
+) + PUBLIC_DEV_SOURCES
 
 
 def execution_sources(additional=()):
@@ -333,30 +337,65 @@ def checked_head(source, *, root, mode, frozen, not_before):
     return result
 
 
+def load_readiness_requests(frozen):
+    from transformers import AutoTokenizer
+    for name in PUBLIC_DEV_SOURCES:
+        path = ROOT / name
+        if path.is_symlink() or frozen['artifacts'].get(name) != reference(path):
+            raise ValueError('readiness requires frozen unchanged public dev sources')
+    tokenizer = AutoTokenizer.from_pretrained(frozen['launch_protocol']['model_path'], local_files_only=True)
+    return load_requests(4, SUITES, tokenizer, dev_dir=ROOT / 'assets/upstream/dev')
+
+
 def validate_science(source, *, root, frozen, phase4_sha256, not_before):
     science = read_reference(source, root)
     if science.get('phase4_sha256') != phase4_sha256:
         raise ValueError('head/regressions do not belong to the current Phase4 opening')
-    state = json.loads((root / 'phase4.json').read_text())
-    if read_reference(science['reference'], root) != dict(requests=state['requests']):
-        raise ValueError('head reference differs from the frozen private Phase4 request cohort')
-    checked_head(science['preflight'], root=root, mode='preflight', frozen=frozen, not_before=not_before)
+    requests = load_readiness_requests(frozen)
+    if (science.get('readiness_protocol') != READINESS_PROTOCOL or
+            read_reference(science['reference'], root) != dict(requests=requests)):
+        raise ValueError('head readiness reference differs from the fixed public dev cohort')
+    preflight = checked_head(science['preflight'], root=root, mode='preflight', frozen=frozen, not_before=not_before)
+    if preflight['checks'][0]['prefix_sha256'] != sha_ids(requests[0]['input_ids']):
+        raise ValueError('FP32 head preflight must use the first fixed public dev prompt')
     control = checked_head(science['control'], root=root, mode='control', frozen=frozen, not_before=not_before)
-    cohorts = {}
+    cohorts, traces = {}, {}
+    by_id = {request['id']: request for request in requests}
     for name in ('stock', 'ar', 'stock_long', 'healthy_stock', 'healthy_segmented', 'faulty', 'equivalent_head'):
         sources = science['cohorts'][name]
         if not sources:
             raise ValueError('missing healthy/fault/reduction cohort')
+        traces[name] = []
         for item in sources:
             read_reference(item, root)
             trace = load_score_trace(item['path'], evidence_root=root)
             started = read_reference(trace['raw_evidence'], root).get('started_unix')
+            request = by_id.get(trace['request_id'])
+            if request is None or trace['prompt_ids'] != request['input_ids']:
+                raise ValueError('readiness trace is not from the fixed public dev cohort')
             if (trace['scorer']['tree_sha'] != frozen['arms'][0]['tree_sha'] or
                     trace['generator']['tree_sha'] != frozen['arms'][0]['tree_sha'] or
                     trace['scorer']['server_args'].get('model_path') != frozen['launch_protocol']['model_path'] or
                     type(started) not in (int, float) or not math.isfinite(started) or started < not_before):
                 raise ValueError('regressions must use current frozen stock generation and scoring')
+            traces[name].append(trace)
         cohorts[name] = [item['path'] for item in sources]
+    eligible = []
+    for trace in traces['ar']:
+        raw = read_reference(trace['generation_segments'][0], root)
+        if (len(trace['output_ids']) == 2048 and
+                raw['response'].get('meta_info', {}).get('finish_reason', {}).get('type') == 'length'):
+            eligible.append(trace['request_id'])
+    if not eligible:
+        raise ValueError('no public AR request reached the registered injection boundary')
+    first_per_suite = {}
+    for request in requests:
+        first_per_suite.setdefault(request['suite'], request['id'])
+    for name, values in traces.items():
+        expected = (list(first_per_suite.values()) if name == 'equivalent_head' else eligible
+                    if name in ('stock_long', 'healthy_segmented', 'faulty') else list(by_id))
+        if [trace['request_id'] for trace in values] != expected:
+            raise ValueError('readiness cohort coverage/order differs from the fixed public dev protocol')
     if cohorts['equivalent_head'] != control['traces']:
         raise ValueError('reduction traces do not come from the executed head control')
     steps = []
@@ -456,7 +495,8 @@ class LiveRuntime:
         directory.mkdir(mode=0o700)
         reference_dir = directory / 'reference'
         reference_dir.mkdir()
-        head_reference = _save(reference_dir / 'manifest.json', dict(requests=requests))
+        readiness_requests = load_readiness_requests(self.frozen)
+        head_reference = _save(reference_dir / 'manifest.json', dict(requests=readiness_requests))
         stock = self.frozen['arms'][0]
         gpus = self.frozen['gpus']
         with ExitStack() as resources:
@@ -468,11 +508,11 @@ class LiveRuntime:
                          frozen=self.frozen, not_before=completed)
             campaign = Campaign(directory, scorer, evidence_root=root)
             cohorts = fresh_generations(campaign, directory, [dict(stock, name='ar'), stock],
-                                         gpus, self.environment, requests)
+                                         gpus, self.environment, readiness_requests)
             head = head_process('control', directory / 'head-control', reference_dir, stock['tree_sha'])
             cohorts['equivalent_head'] = head['traces']
             delta = calibrate_delta(cohorts['stock'], cohorts['ar'], evidence_root=root)
-            science = dict(phase4_sha256=opening, reference=head_reference,
+            science = dict(phase4_sha256=opening, readiness_protocol=READINESS_PROTOCOL, reference=head_reference,
                 preflight=reference(directory / 'head-preflight/result.json'),
                 control=reference(directory / 'head-control/result.json'),
                 cohorts={name: [reference(path) for path in paths] for name, paths in cohorts.items()},
@@ -481,12 +521,16 @@ class LiveRuntime:
             science_ref = _save(directory / 'science.json', science)
             validate_science(science_ref, root=root, frozen=self.frozen,
                              phase4_sha256=opening, not_before=completed)
-            ar = {2048: cohorts['ar']}
+            actual_directory = directory / 'actual'
+            actual_directory.mkdir(mode=0o700)
+            actual = Campaign(actual_directory, scorer, evidence_root=root)
+            ar = {}
             with ExitStack() as generation:
-                launch(stock, 'ar', gpus[0], directory, self.environment, generation)
-                client = NativeClient('http://127.0.0.1:30120', directory / 'ar-long-raw')
+                launch(stock, 'ar', gpus[0], actual_directory, self.environment, generation)
+                client = NativeClient('http://127.0.0.1:30120', actual_directory / 'ar-raw')
                 identity = client.server_identity(stock['tree_sha'])
-                ar[4096], _, _ = campaign.generate('ar-long', requests, client, identity, 4096)
+                for cap in CAPS:
+                    ar[cap], _, _ = actual.generate(f'ar-cap-{cap}', requests, client, identity, cap)
             wait_for_idle([0])
             forcing = []
             for cap in CAPS:
@@ -495,13 +539,13 @@ class LiveRuntime:
                     paths = {}
                     pairs = records[cap, 'candidate'][number - 1]['pairs']
                     for role, key in (('stock', 'a'), ('candidate', 'b')):
-                        paths[role] = [campaign.save_trace(f'cap-{cap}-round-{number}-{role}', request,
+                        paths[role] = [actual.save_trace(f'cap-{cap}-round-{number}-{role}', request,
                             pair[key]['output_ids'], pair[key]['generator'], [pair[key]['raw_evidence']])
                             for request, pair in zip(requests, pairs)]
                         entry[role] = [reference(path) for path in paths[role]]
                     delta = calibrate_delta(paths['stock'], ar[cap], evidence_root=root)
                     entry['prefill_audits'] = [reference(path) for path in
-                        campaign.audit(f'cap-{cap}-round-{number}-candidate', paths['candidate'], delta['delta'])]
+                        actual.audit(f'cap-{cap}-round-{number}-candidate', paths['candidate'], delta['delta'])]
                     forcing.append(entry)
         check_ports([30100, 30110, 30120, 30130])
         write_json(directory / 'cleanup.json', wait_for_idle([0, 1]))

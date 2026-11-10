@@ -111,7 +111,7 @@ stock在0.7/1.0采样正常；固定final完成两次greedy后，首次0.7请求
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
 > 最后更新：2026-11-10 北京时间（真实stock参数探索与两份dev联合验收通过，Master主动停止；完整RSI未完成）。
 
-## H100当前接续点：BBuf角色接入与真实全流程执行中
+## H100当前接续点：BBuf角色接入与裁判负对照收口
 
 - 用户批准整体完成角色工具接入、controller验证、真实全流程；新上限32 GPU小时／24小时／4卡，
   全部沿用已确认镜像/WeaverDev/qiji，显式priority3。另授权必要controller/eval维护者实现，
@@ -148,16 +148,29 @@ stock在0.7/1.0采样正常；固定final完成两次greedy后，首次0.7请求
   不依赖job私有路径。原任务在生成前设施失败，没有性能反馈，不据此挑题。
 - 审计器严格核对历史科学prefix与终态controller扩展，真实9任务/9378秒重算通过；
   118项prefix/startup联合CPU回归和真实observe03通过，旧pipeline/账本不改。
-- **control02正在运行，勿重复提交**：UUID`job-1cca13109a99-20261111015305`，
-  2H100、14400秒deadline、higher-priority-job、code200；工具前台TTY会话60197，
-  日志`phase4-control-execute02.txt`，最终结果预期`phase4-control-result02.json`。
-  已观察两卡各77039MB显存、container Running；不是GPU测试/forcing通过。
+- **control02已Aborted/exit1，勿重复提交**：UUID`job-1cca13109a99-20261111015305`，
+  11792 GPU秒，前台TTY会话60197已退出；公共结果`phase4-control-result02.json`。
+  12轮计时已执行、FP32 head预检通过，但私有AR均2048前EOS，故障注入覆盖不足被拒。
   source SHA=`ce19e56c1538724c83a4def34a45ce7b579de33e9cb7888f2a78c7307146627a`。
-  目前唯一预算包含第10项active预留；恢复先核任务/预算，不能再次create同任务。
+  control03提交前唯一预算10任务全部终态、21170 GPU秒，无活动GPU。修复计划见阶段文档：
+  固定公开dev探针独立验证裁判，私有实际输出保留匹配校准/forcing，不重抽题、不改判据。
+  旧freeze/source/原始数据保持；新任务全量重跑，避免混用新评分代码与旧执行身份。
+  control03已Completed/exit0，UUID`job-b8b4bbffbc29-20261111035140`、2H100，
+  零重启、priority为higher-priority-job；monitor前台TTY91151已退出，勿重复create。
+  健康/故障回归及私有实际输出2048/4096上限forcing通过，故障长尾8272 token；
+  stock/stock性能按预期拒绝，T3/晋升/账本/记忆始终false。job内独立重算封存2231文件，
+  host仅核公共SHA与终态，未读取私有原包。每suite1题的bootstrap退化，不作正式置信度结论。
+  最终11任务全终态、35608 GPU秒（9.891111小时），无活动GPU，原预算不结转。
   原生角色全部停机，root私有请求/原始日志不得主助手读取；只看public aggregate/error/resource元数据。
 - 当前20个指定模块297项联合回归通过；公开选择性导出首次仅目录写死的旧测试失败，
   已改为实际仓库root/parent（不改权限策略），单模块17项和公开子集297项复验通过。
   只暂存本阶段源码/文档，旧ceiling新增/修改保留，不自动混入发布。
+- 最新独立公开副本316项指定回归通过；两个依赖真实Git的fixture已隔离mock，
+  未改生产身份规则。科学prefix加controller扩展审计通过，正常post-terminal T3仍未验收。
+- 9326个host可见产物双次SHA回读一致，root私有目录不遍历；44个旧ceiling文件SHA不变。
+  最终机读结果`closeout/stage-result.json`明确三个研究目标并非全部完成，发布身份见publication回执。
+- 本轮以无合格候选结束，不恢复科学角色。下次先提案按需stock profile/真实形状能力，
+  补足Master/Kernel所需证据；科学Integration/Kernel优化和多轮RSI仍未完成。
 
 ## H100已收口历史：最小 Skills 诊断验证完成
 

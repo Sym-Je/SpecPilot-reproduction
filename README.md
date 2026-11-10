@@ -100,9 +100,11 @@ Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后30
 
 **当前状态：**完整ceiling仍未知，不再作为自主探索硬前置；停止继续补采。旧17任务均终态，b16/b17被抢占，保守6.9283 GPU小时；树分支argmax分歧未解决，不称lossless或完整ceiling完成。
 
-**正在做：**[BBuf角色接入与真实全流程](docs/experiments/skills-rsi-20261110.md)：真实预检、三个自主源码诊断和独立谱系审计已完成，均未获可信收益；整合无输入、Kernel证据不足。当前补controller私有负对照与工程边界，未完成真实RSI或晋升。
+**最新完成：**[BBuf角色接入与裁判负对照](docs/experiments/skills-rsi-20261110.md)：三方向自主源码研究无合格收益，Master停止。真实裁判健康/故障回归及私有2048/4096上限forcing通过，故障尾部8272 token；stock/stock性能按预期拒绝。公开副本316项指定测试通过；11任务全终态，共9.8911 H100 GPU小时。
 
-**接下来：**完成controller私有stock负对照、独立重算与归档。本轮Master完整读取证据后仍决定stop，不为补齐流程强造组合或优化；真实Integration、Kernel及合格final的T3通过路径仍待后续验证。当前任务沿用已批准32 GPU小时／24小时／4卡及已确认镜像，使用`higher-priority-job`但不保证免抢占。
+**正在做：**本轮已收口，无活动GPU任务，等待下一阶段提案；pipeline真实层归因、科学整合/kernel优化、正常候选T3与多轮RSI均未完成，不宣称论文数字已复现。
+
+**接下来：**先提案按需stock profile/实际形状能力，再由Master自主决定新研究方向；不把已打开的本轮私有验证反馈给研究角色，不强造正结果。新阶段资源另行确认，后续仍显式使用`higher-priority-job`（不保证免抢占）。
 
 **已有基础：**三臂真实 server、dev验收、外部数据审计与mock闭环完成；**尚未复现论文原sealed数字或真实RSI方法结论。**
 

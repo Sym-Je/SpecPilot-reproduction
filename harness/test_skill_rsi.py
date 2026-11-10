@@ -120,6 +120,7 @@ class SkillRsiTests(unittest.TestCase):
         self.assertEqual(sorted(result['cached'] for result in results), [False, True])
 
     def test_parallel_role_counters_are_aggregated_without_cross_role_overwrite(self):
+        """Archive CPU acceptance: python -B -m unittest harness.test_skill_rsi -v."""
         from concurrent.futures import ThreadPoolExecutor
         import threading
         from exp.skill_rsi import Campaign
@@ -129,7 +130,9 @@ class SkillRsiTests(unittest.TestCase):
             counters['actions'] += role['increment']
             counters['model_turns'] += 1
             return {'role': role['increment']}
-        with patch('exp.skill_rsi.Budget') as budget, patch('exp.skill_rsi.roles.turn', side_effect=fake_turn):
+        fixture_pin = '0123456789abcdef0123456789abcdef01234567'
+        with patch('exp.skill_rsi.Budget') as budget, patch('exp.skill_rsi.roles.turn', side_effect=fake_turn), \
+                patch('exp.skill_rsi.subprocess.check_output', return_value=fixture_pin + '\n') as git_pin:
             budget.return_value.read.return_value = {'started': 10**12, 'wall_seconds': 86400}
             campaign = Campaign(self.root, self.inputs, self.tools)
             roles = [dict(increment=increment, counters=dict(campaign.counters)) for increment in (2, 3)]
@@ -137,6 +140,8 @@ class SkillRsiTests(unittest.TestCase):
                 futures = [executor.submit(campaign.ask, role, 'fixture') for role in roles]
                 for future in futures:
                     future.result()
+        git_pin.assert_called_once()
+        self.assertEqual(campaign.pin, fixture_pin)
         self.assertEqual(campaign.counters['actions'], 5)
         self.assertEqual(campaign.counters['model_turns'], 2)
         self.assertEqual([role['counters']['actions'] for role in roles], [2, 3])
@@ -157,8 +162,11 @@ class SkillRsiTests(unittest.TestCase):
             validate_plan(altered)
 
     def test_no_research_before_real_preflight_and_no_replay_of_started_campaign(self):
+        """Use an explicit fixture Git pin without changing production identity checks."""
         from exp.skill_rsi import Campaign
-        with patch('exp.skill_rsi.Budget'), patch('exp.skill_rsi.roles.session') as session:
+        fixture_pin = '0123456789abcdef0123456789abcdef01234567'
+        with patch('exp.skill_rsi.Budget'), patch('exp.skill_rsi.roles.session') as session, \
+                patch('exp.skill_rsi.subprocess.check_output', return_value=fixture_pin + '\n') as git_pin:
             campaign = Campaign(self.root, self.inputs, self.tools)
             with self.assertRaises(ValueError):
                 campaign.run()
@@ -167,6 +175,8 @@ class SkillRsiTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 campaign.run()
             session.assert_not_called()
+        git_pin.assert_called_once()
+        self.assertEqual(campaign.pin, fixture_pin)
 
     def test_same_directory_cache_preserves_text_binary_and_rejects_escape(self):
         from types import SimpleNamespace

@@ -214,7 +214,31 @@ def _terminal(directory):
     return value
 
 
+def checked_judge_aggregate(value):
+    fields = {'healthy_controls_passed', 'faulty_event_rejected', 'post2048_tokens', 'injection_coverage_passed'}
+    if (not isinstance(value, dict) or set(value) != fields or
+            any(type(value[key]) is not bool for key in fields - {'post2048_tokens'}) or
+            type(value['post2048_tokens']) is not int or value['post2048_tokens'] < 0):
+        raise ValueError('judge aggregate must contain only registered counts and booleans')
+    if value['injection_coverage_passed'] != (value['post2048_tokens'] >= 1024):
+        raise ValueError('judge aggregate injection coverage differs from the registered threshold')
+    return value
+
+
+def judge_aggregate(science):
+    verdicts = science['verdicts']
+    return checked_judge_aggregate(dict(
+        healthy_controls_passed=all(verdicts[name]['correctness_passed'] for name in
+            ('healthy_stock', 'ar', 'healthy_segmented', 'equivalent_head')),
+        faulty_event_rejected=verdicts['faulty']['event_flagged'] and not verdicts['faulty']['correctness_passed'],
+        post2048_tokens=science['post2048_tokens'], injection_coverage_passed=science['post2048_tokens'] >= 1024))
+
+
 def _aggregate(summary, counts):
+    judge = checked_judge_aggregate(summary['judge_regression'])
+    if summary['scientific_ready'] != all(judge[key] for key in
+            ('healthy_controls_passed', 'faulty_event_rejected', 'injection_coverage_passed')):
+        raise ValueError('judge aggregate readiness differs from the independent regression')
     cohort = summary['cohort']
     if (set(cohort) != {'counts', 'selected', 'pool_records', 'excluded_records', 'prompt_protocol_sha256'} or
             cohort['counts'] != counts or not valid_digest(cohort['prompt_protocol_sha256']) or
@@ -249,7 +273,7 @@ def feedback(output, record):
     summary = json.loads((output / 'result.json').read_text())
     replay = json.loads((output / 'replay-summary.json').read_text())
     expected = {'protocol', 'request_sha256', 'candidate_tree_sha', 'source_sha256', 'cohort', 'purpose',
-                'protocol_evidence_passed', 'scientific_ready', 'caps', 'runtime_status',
+                'protocol_evidence_passed', 'scientific_ready', 'caps', 'runtime_status', 'judge_regression',
                 'execution_completed', 'protocol_verified', 'expected_rejection', 'correctness_passed', 'performance_passed',
                 'private_evidence_seal_sha256', 'private_replay_sha256', 'sealed_file_count',
                 'post_terminal_t3_finalizer_executed',
@@ -391,6 +415,8 @@ def replay_private(private):
         candidate_tree_sha=execution['candidate_tree_sha'], source_sha256=execution['source_sha256'],
         cohort=summary, protocol_evidence_passed=protocol['protocol_evidence_passed'],
         scientific_ready=science is not None and science['scientific_ready'], runtime_status=runtime['runtime_status'],
+        judge_regression=judge_aggregate(science) if science is not None else dict(
+            healthy_controls_passed=False, faulty_event_rejected=False, post2048_tokens=0, injection_coverage_passed=False),
         execution_completed=science is not None, protocol_verified=True,
         correctness_passed=all(entry['correctness']['correctness_passed'] for entry in protocol['caps']),
         performance_passed=all(entry['performance']['performance_passed'] for entry in protocol['caps']),
