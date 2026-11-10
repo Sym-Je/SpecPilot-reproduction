@@ -5,7 +5,7 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 
 ## Ascend轨道接续点：本地开发集 baseline → DSH＋Claude 5.5 自主研究
 
-用户已授权：选定100条本地agent数据（dev60/validation40），先baseline，再DSH＋Claude 5.5运行SpecPilot；Claude总额上限200美元，预算保护触发后用`gpt-6.1-sol`接续，GPT独立上限500美元。不得使用`gpt-5.5`；MRV2不是要求。
+用户已授权：选定100条本地agent数据（dev60/validation40），先baseline，再DSH＋Claude 5.5运行SpecPilot；Claude总额上限200美元，预算保护触发后用`gpt-6.1-sol`接续，GPT累计上限现为1000美元（用户在原500美元保护触发后明确调高，历史费用继续累计）。不得使用`gpt-5.5`；MRV2不是要求。
 唯一阶段记录：[Ascend执行计划与验收](docs/experiments/ascend-ctrip-dsh-20261109.md)。当前源码归档在`harness/ascend_dsh/`，真实运行目录在部署工作区`profiling/specpilot-ctrip-dsh-20261109/`。
 
 - 本地8卡910B2C，V4 Flash W8A8，MRV1、图模式、固定DSpark K7。异步调度的C32失败已保留；改同步调度建立新baseline，不能把这个修复记成优化收益。
@@ -28,6 +28,71 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 - 本轮模型报告用均值/中位数重建的prefill/decode占比、约94%排队和overlap解释均未获trace独立验证，不能作为实测phase分解。研究收尾不代表用户的优化/profile目标已达成；后续应先补齐可信profile与真实源码option能力，保留本轮验证隔离。研究/预算切换/启动监测/离线导出监督进程均已退出，仅服务保留；不能对用户声称仍在后台优化。
 - 合并最新H100提交后，仓库303项回归在此容器未全过：12失败/29错误，涉及缺失旧H100固定路径和Landlock不可用。不要将新22项定向通过写成仓库全绿；未修改旧controller/eval/ledger/memory。
 - 上述串行实验不写论文配对晋升账本，不承诺正确率/无损。公开提交不含数据内容、原生研究轨迹、权重、密钥或计费原始日志。
+
+
+## Ascend continuation — 2026-11-10 用户要求继续优化
+
+当前真实运行目录：`/data/northinfer-specpilot-cont-20261110`。三份 graph 基线采集（long/C32 prefill、long/C32 decode、long/C1 decode）均完成八 rank 导出，无导出丢数据告警。C32 decode 触发时实际仅 7 请求仍活跃、25 已完成，不能称稳定 batch32。D1 因 provider refusal 缺少模型最终报告，保留原轨迹，由督导仅按回执收口，未重复 NPU 实验。D2 共享专家多流重叠候选已完成八 rank 导出，正在恢复基线；尚无无 profiler 的吞吐收益。压缩 timeline 均有 SHA 回读验证，原始采集与 kernel CSV 保留。
+
+- 用户新增授权多路并行。`parallel_research.py` 启动科学 Master 分配两路互不重复的源码/trace/CPU 分析，与原单路 NPU 研究并行；状态见 `research/parallel/state.json`。分析角色经 broker 禁止 launch/wait NPU，只能读授权源码和 SHA 固定的既有 dev CSV、运行隔离 CPU 分析和提交待审补丁。两路产出由后续主研究角色复核并串行实测；提案不是测量收益。
+- 并行两角色现已实际启动并各执行了 broker 源码/证据读取：长 prefill 的 sparse attention/indexer 数据流，以及本地 HcPre/HcPost 中间张量开销。规划结果仅因 topic 名称 42 字符超出入口 40 字符限制被拒，放宽至仍满足 broker 80 字符角色上限的 60 字符后，原模型 JSON 原样验收复用，未重复付费规划。Claude 预算拒绝已触发，主研究和两路分析现共用获授权的 GPT 阶段，未改动原账本上限。
+
+- 两路继续共用原 Claude 200 美元保守预占账本；只有持久化 Claude 预算拒绝出现后，可信调度器才能启动共享 GPT 500 美元阶段；不改写主研究状态或中断其在途实验。不重置额度，不提前切换模型，不开放旧/新 validation。原生 DSH、MCP 和逐调用轨迹继续保留。
+- 已纠正 D2 Master 的归因：HcPre/HcPost 是本地 hyper-connection 运算，不能算 HCCL；不同算子族 union 相加不是关键路径占比。重叠优化不要求 AllReduce 次数下降，需实际重叠和无 profiler 计时。督导来源与纠正单独存档，通过新 broker 的证据回执向主研究角色共享；不声称旧 MCP 进程热加载。
+- 并行入口的 8 项新验收覆盖 NPU 禁止、共享 CSV SHA/路径限制、角色互不读取报告、两方向分配、截断续接和预算交接边界；连同既有相关验收共 21 项通过。源码快照不含原始数据、轨迹、计费或凭据。
+
+- 用户明确要求持续优化；本地新执行器取消三方向总上限，仍保留逐方向资源分配和统一NPU锁。Claude累计200美元、GPT独立500美元上限原样保留，Claude账本直接复用。
+- 新DSH Master/Direction已启动，真实进程与阶段状态记录在部署目录；首方向选择graph/C32成本归因，尚无新的NPU测量或收益。
+- 已修正profile工作负载能力：实际C1/C8/C32、短中长输入、有界worker-step窗口、串行离线导出和八rank/数据丢失检查。8项新CPU验收及5项原startup-guard检查通过，NPU能力尚待实测。
+- 旧validation已经打开，继续研究不读取或使用其结果；另冻结40条未使用的原validation分区请求组，仍不开放给研究角色。
+- 源码快照见`harness/ascend_dsh/continuation/`。此更新不修改H100轨道、正式controller/eval/ledger，也不声称论文复现或性能提升。
+
+- 后续回执：两路分析报告均已完成。A1 的原回答是引导句紧接完整 JSON，解析失败已按原始 native receipt 离线恢复，科学字段未改、未重复 API/NPU；`parallel_research.py` 增加有界终端 JSON 解析。A1 指出 Hadamard 缩放→动态量化的约 256 MiB/观测大调用中间读写是待核实融合点；尚无可部署 patch 或实测收益。A2 对 clone/缓冲复用保持 needs_evidence，CPU参考仅说明别名风险。
+- 共享专家多流重叠的八 rank 诊断 span 约 27.278 秒，原 profile 约 24.929 秒；不视为无 profiler 吞吐对照或因果退化定论。随后的 shared-expert DP 配置在图捕获/GroupedMatmulWeightNz 阶段失败，guard 触发原 runner 清理，恢复状态以 state 的 completed_epoch/baseline_restored 为准。
+- 主助手发现已安装 AscendC C++/头文件实际存在，旧 Python-only broker 导致研究角色无法阅读。新增只读 `ascendc` source tree 和受限源码后缀，保持隔离/无 NPU 执行；已启动 `parallel-b1-hc-kernel-contracts` 延续 A2 核查，要求先证明源码与 910B/npu_hc_pre_v2 的对应关系，不把 arch35 路径直接套用。角色预算 24 工具动作，共用既有 GPT 账本；旧会话不声称热加载新能力。24 项相关定向检查通过。
+
+- 之后主研究因 native 会话累计内容超过 512 KiB 请求准入上限退出；原样重试不能修复该错误。它的 needs_attention 状态又使并行已准入请求的 settle 检查失败。两类原始错误和轨迹已保存，并非设备故障或 GPT 预算耗尽。
+- 已修复：`gpt_context.py` 在明确 input-byte-limit 错误后创建有来源/SHA 的有界检查点和新 native session，保留原 broker role、动作计数、scratch、实验归属与累计费用；最多两次运行中 rollover，不扩大字节上限。主调度恢复未完成 direction 时复用已批准的 Master 分配，不重选/重跑。settle 可在主研究暂停后完成已准入请求记账，reserve 仍执行原阶段/预算/validation 门禁。
+- 已恢复原 D2 主研究与 `parallel-b1-hc-kernel-contracts`，实际新工具记录已出现；此次恢复未提交 NPU 实验。27 项定向检查通过，原生实跑仍需继续监测；完整 native 日志与新的 session-routing/checkpoint 私有保存。最新 supervisor 身份与研究状态以部署目录为准。
+
+- D2 与 AscendC follow-up 已正常提交完整报告。D2 撤回此前 2.2 秒/5–9% headroom 推测，确认部分共享专家重叠但未证明增量收益；shared-DP 图捕获失败原因未确定，未跑 AIPerf 候选。AscendC 报告发现条件性的 FP32 workspace staging，但 v2 binding/已加载二进制/910B tiling 对应仍缺，未提出可部署 patch。
+- Master 3 选定 indexer scale→quantization 暴露成本核查，因 Master 不能读取既有 profile 而请求能力。已增加只读、SHA 固定的已完成 profile CSV 授权，Master 不获得 NPU/CPU 执行能力；direction 保留原限制。`profile_dependency_export.py` 对已完成基线的八卡 CSV/压缩 timeline 做离线导出，涵盖形状匹配的量化/相邻算子、全部 flow/event/phase markers；不会凭时间相邻推断内存依赖或完整关键路径。
+- 首卡 672 个匹配调用的 scale/quant 服务时间分别约 0.101617/0.256264 秒，合计约占该 24.929 秒诊断 span 的 1.44%；不是可实现收益、全模型收益上限或 phase 分解。其余卡及相关事件正在导出。首轮因单个派生 CSV 超过 60 MiB 中止，原文件保留；修复为分片并逐卡 checkpoint，未重跑 NPU。31 项定向检查通过。
+- 离线进程状态见 `research/profile-dependency-export/state.json`，完成八卡导出后自动恢复仍处于同一 needs_harness_capability/round3 的主研究；若状态发生变化则拒绝自动恢复。不要把此时的离线分析说成 NPU 压测仍在进行。所有新产物/轨迹/计费仍留私有部署目录。
+
+- 八卡离线导出全部完成，每卡 672 对匹配调用；scale/quant union 约 0.349826–0.369435 秒，相对约 24.929 秒诊断 span 为 1.40–1.48%。每卡扫描约 303 万 timeline 事件，flow/event 原始记录可读；没有 phase marker，不据此构造完整关键路径。Master 已完成更深入 sparse-attention 源码报告，但返回 direction 型报告造成主调度拒绝，原报告与失败完整保留。
+- 找到续接缺陷：旧检查点覆盖当前角色请求，格式重试又只保留泛化提示，丢失 Master 输出 schema。已保留长请求头尾、把当前角色/输出要求追加到 checkpoint 之后，并让格式重试保留原任务；Master schema 在 invoke 内校验。33 项定向检查通过，已恢复原 Master 3；不重复 NPU 实验或重置计费。
+- `collect_binding_evidence.py` 已通过实际安装扩展读取 HC pre/post、sparse-attention、dynamic-quant 四项注册/schema，并被动检查服务 worker 的库映射/inode/SHA。检查前后 torch.npu 均未初始化，未执行模型/算子或重启服务。独立 PR 验证 build 的两个扩展 SHA 与当前服务不同，不混用其性能/源码身份。新增 `binding_reference` 只读 stock csrc 源码树，明确它是参考而非已加载二进制的来源证明。新证据位于私有 `research/operator-binding-evidence.json`，不提交原始回执。
+
+- 随后还遇到显式 provider `CONTEXT_WINDOW_EXCEEDED`，原恢复仅识别本地字节准入错误。已将这一确切错误纳入有界 rollover、缩小近期工具摘录，保持预算拒绝/refusal 不重试；五项恢复测试通过。Master 角色提示明确要求尽快分配 direction，避免自身反复做长源码研究。原失败保留，实际进程已再次恢复；仍没有新增 NPU 实验或性能结论。
+
+- 用户要求持续监听。当前没有可用的自动推送调度工具，主助手在活动会话中轮询，仅汇报阶段变化/失败。query provenance 设计角色耗尽 24 工具动作，未提交 patch；其完整报告建议低 ROI 降级。主助手明确以督导处置收口此能力审查（不是自主优化结果），Master4 转向约 5.59–5.60 秒/诊断窗口的 SparseAttnSharedkv 工作量核查。
+- 主助手实现默认关闭的 CPU metadata sampler，独立 DSH review 返回 admit_bounded_diagnostic。运行期 sampler 保持已审 SHA `610bad41da6218faaea591b9bcf65c53f5d08106cfcbf9a6115a8cb0c402425a`，新增后处理拆到独立模块；39 项定向检查通过。只读既有 CPU 长度数组，最多两个符合条件的本地 prepare counter × C4/C128，共四记录/rank。长度数组值确实被记录，tensor_values_captured:false 仅表示不记录 prompt/token/activation 内容；此标签歧义已在 admission 说明中纠正。
+- `cont-d4-sparse-attention-runtime-work-cpu-work-two-step-v1` 已由可信督导按 Master4 请求提交，非模型自主 launch。仅两个 profiler steps、long/offered-C32、原模型/W8A8/K7/stock argv，新增隔离 bootstrap 与 env 开关，不改已安装源码或库。经过全机锁排队，原始回执及 sampler/runtime guard 均 SHA 固定。实际状态见 experiments 对应 state，排队不算正在占卡。
+- 该诊断只提供 target scheduler/metadata-build work 描述；layer/device task/selected tiling/完整依赖仍明确 unresolved，不能写成完整注意力调用或性能证明。独立审查/条件在对应 role 的 diagnostic-admission.json。原 Master4 JSON 不改，`admitted-direction-4.json` 另存督导能力准入封套。`resume_after_diagnostic.py` 仅在该唯一实验收尾、baseline_restored 且研究角色/validation 范围未变后自动续接原 D4；不重复已提交实验。选用源码事实有明确边界，不能强行推导可达提速。
+
+- 监听后续：D4 两步诊断 complete、8/8 rank、零导出警告、baseline_restored；每 rank 四条 CPU metadata，两个 counter 均为单活跃请求/8186 tokens，不能叫 active batch32。92 个 SparseAttn 调用/rank 按 stream/task/精确时间戳匹配，kernelName 精确关联安装 manifest 的 tilingKey；动态 tile、layer/phase、DAG、launch-time device binary 身份仍缺失。离线 counter 不是 FLOPs 效率或可达收益。新安全 CSV 分享器/监听器不开放请求内容或 holdout。
+- Master5 请求前缀缓存支持与复用审计。可信 CPU tokenizer-only 审计完成全部60个唯一 dev payload、9 case，token count 全部匹配冻结 manifest；只导出聚合。32/128/4096 对齐场景是容量无限、文件顺序上界，真实调度/驻留/预热复用未知，完整缓存状态恢复与 candidate 有效开关尚未证明。聚合证据交回 Master，不据此直接部署 APC。49 项定向 CPU 检查通过；可信 runner Python 需同时具备 DSH SDK 与 psutil，恢复时曾选错环境，失败在 API admission 前，随后修正。
+- 本地 progress_listener 每30秒记录状态/终态并发布已恢复的 dev 安全 CSV；没有活动会话外自动聊天推送能力。实际进程/阶段以私有 supervisor、state 和 listener 事件为准；不要因文档称“正在”而假定进程存活。累计预算未重置，验证集未打开，无新性能收益。
+
+- 监听终态：GPT 保守预占准入已拒绝下一请求，主执行器为 api_budgets_exhausted；这不是实际已扣满500美元，也不是优化任务完成。D5 prefix-cache-state-and-realized-reuse 尚无完整方向报告/卡上实验，不自动恢复付费调用或重置预算。原生轨迹与私有预算停止回执已保存。全机无本轮活动实验，基线健康检查200，本地监听器仍存活，新holdout未打开。实时数字查私有 billing-gpt 和 progress-listener/budget-stop-receipt.json。
+
+- 最新用户预算修订：用户明确要求“设置为1000美刀吧”，本地 GPT 累计上限由500改为1000美元，Claude仍200。原预占/扣费起点/153条历史记录不重置，旧拒绝事件归档；私有 amendment 回执绑定变更前SHA。51项定向CPU检查通过，包含新1000上限拒绝和不隐式提高旧账本。已恢复同一D5角色、会话与工具分配，监听器和原服务保留；实际状态仍查私有 supervisor/state，不将预算恢复写成科研收益。
+
+- 持续监听新进展：D5 已交付 needs_evidence、0 实验，未证明 APC 状态恢复/continuation-equivalence 与实际命中计数能力，不把复用上界算收益。Master6 随后自主分配 TP4/DP2/EP8 feasibility（复用督导建议，非独立发现），限离线32动作/不授权拓扑启动。D6 报告 needs_evidence、0实验：实际分片/加载峰值/图池/缓存/通信工作区和主机资源尚未有完整数值，DSpark/W8A8/多DP支持未闭环；不能宣称不兼容或无收益。
+- Master7 曾因 PI_AI_ERROR（Responses stream completed with an unfinished read-only search_source tool call）退出。督导核对原生错误/进程归属后，从同一 Master7 会话恢复一次；按该回执SHA记录一次恢复额度，不重置工具/费用，不重复NPU。实际状态查当前 supervisor/state；旧 pending_decision 可能残留，不把它当当前 Master 决策。服务保留，新 holdout 未打开，无新增性能结论。
+
+- Master7 最终请求 trusted-effective-prefix-cache-telemetry。受限 DSH 设计角色 design_ready，独立代码审查仅 admit_initialization_capture_only；adapter SHA `f0509c52c7c3089bb67657aff21c578d810c53b03ecceff515b1c32a3de930db` 未改变。第一阶段不满足完整 APC 能力：命中/驻留/淘汰/reset、真实 tensor layout、可信 OFF/ON 输出 comparator 与 enabled-state 恢复仍缺。
+- 新可信 cache_init 模式只接受 {cache_init_metadata:true}，stock argv/TP8/DP1/EP8/W8A8/K7/缓存OFF不变，fresh0700隔离bootstrap、不提交生成请求。独立准入绑定 review/adapter SHA，所有执行依赖排队前后校验；66项定向CPU检查通过，涵盖零生成及失败恢复。采集校验8个默认组rank、final core/worker block与layer覆盖、文件权限/进程归属、截断/错误/overflow拒绝。不能把默认组rank称物理拓扑证明或把声明backing称实际驻留。
+- 督导提交 capability-cache-init-off-plan-v1（非科学角色自主launch），已拿到全机锁进入启动。实际状态见私有 experiment/state；finish_cache_init_capture 在终态恢复之后才归还 Master7 检查点，不自动声称完整能力已满足。13份设计source pin及3244个安装源码在提交前一致；仍需读取实测终态/基线恢复。被动日志parser另提取8卡startup rounded数值，原日志快照与JSON都私有，不算enabled支持或峰值HBM证明。
+
+- 实际初始化结构采集通过：8/8 rank、每卡6组、core/manager各1、无截断/observer错误、零生成。当前OFF scheduler/hash均4096，实际选中AscendHybridKVCacheCoordinator；APC开启可能改变hash几何，不能把OFF观测冒充enabled命中对齐。export_cache_init_facts保留6组/170个cache-layer组件及实际Ascend coordinator/resolver source SHA，170不是模型深度。
+- 首次未插桩基线恢复在rank3图捕获时申请内存失败（aclnnGroupedMatmulWeightNz），原任务终态failed；已仅清理核对归属的失败恢复进程树，初次采集仍可用但服务尚未恢复。相同stock脚本的最多2次恢复重试已排队，等待另一个8–15卡任务的全机锁。用户明确选择“维持串行等待”，不得中断另一任务或绕锁。付费研究暂停，当前服务不健康，不得照搬之前health200。
+- 修复原finally在restore_error时未写completed_epoch造成监听器挂起；原已退出runner通过单列操作回执标为失败终态，baseline_restored仍false。未来broker阻止未恢复基线继续提交，元数据getter在恢复前不开放partial事实，enabled-prefix推理需另行准入。69项定向CPU检查通过；恢复helper只做stock/同参数重试并检查已有stock服务避免重复启动，目前尚未真正重试。实际状态见私有restoration-recovery与state，源码原执行版可从4ce336b重建并匹配request SHA。
+
+- 等锁时新增host-only三臂输出对照器原型：OFF/OFF先可复现才判断候选，正文/thinking/tool参数/结束原因/输出token数严格对照，忽略随机生成的tool-call协议ID；仅输出聚合计数/布尔。5项合成fixture通过，连同既有检查总74项；未发真实请求/未独立审查/未接入，不是模型精度或lossless证明。用户再次明确维持串行等待，恢复仍未启动，不中断另一任务。
+
+- 最新恢复终态：另一任务释放锁后，第一次同stock参数重试成功，FULL图32/32、8个worker、health200、模型ID正确、worker无PREFIX_CACHE_METADATA_ENABLE，原argv与3508fff5…脚本SHA一致。原capture status仍failed并保留首次restore_error，baseline_restored现true，另有post-finalize recovery回执；不篡改为全程成功。Master7已用新增partial OFF group facts恢复，当前role实际进程查私有supervisor；原19动作不重置，仅新增8次只读规划额度。APC enabled推理仍未准入，完整遥测/输出对照未完成，无新吞吐结果。
 
 ## 以下为H100独立轨道，不混用Ascend资源授权
 
