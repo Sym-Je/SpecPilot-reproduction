@@ -82,3 +82,13 @@ C++/headers are available through an explicit read-only source tree; analysis
 roles still cannot launch devices or execute source patches. A bounded follow-up
 checks the installed hyper-connection kernels' exact dispatch/aliasing contracts.
 Twenty-four focused adapter tests pass; native kernels remain unmodified.
+
+Native GPT contexts that exceed the unchanged 512 KiB admission bound now roll
+over through an attributed, size-bounded checkpoint while keeping the same
+broker role, tool allocation, scratch, experiment IDs and cumulative ledger.
+Original native trajectories remain intact. Only the specific input-size failure
+triggers rollover, not refusal or budget exhaustion. A primary resume reuses its
+unfinished direction allocation. Settlement of an already admitted request may
+complete after a primary failure, while new admission keeps all existing gates.
+Twenty-seven focused checks pass; resumed native roles have emitted new tool
+receipts. These recovery changes do not constitute a model performance gain.

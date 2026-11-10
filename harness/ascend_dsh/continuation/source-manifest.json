@@ -1,5 +1,5 @@
 {
-  "continue_research.py": "a96b20511426f28bd9fb308e79d7f85ae5c452721d4ff26976f7e5450fa22de1",
+  "continue_research.py": "fee087ddc2a33ab999008cdca531c39f16c882c594310f6edaf84c7079e5b880",
   "profile_workload.py": "5010e3e338425664ef60841326fcba53a9b1a9b0b6fa2ffa589134530fc667ac",
   "experiment_runner.py": "306ec2a504bc745f02d19689bdf6a14c4fd9823baa97ba66665686b6d19c93ed",
   "research_broker.py": "bc769efdd0eeb384253664fb0c3b69ffa7aec087ee7ca2d4f3fedada1f29e446",
@@ -12,5 +12,9 @@
   "dsh_call.py": "b50b154ebe8eb522ab470b67b84076dd77f31ce3c11ed33e38c11f3985c430c8",
   "parallel_evidence.py": "727094571f7576410f0b857eecc7d0925457347f77efef55a6c71dd99d4fcdb7",
   "parallel_research.py": "2b98dd58fb6f120e8a6c3561aad34d8877058762c6f88fb1562019356c54987a",
-  "test_parallel_research.py": "585c2ba644ed5f9c75dc9521e93a4be950da93f6f7a0014a7b84314dc214a2fe"
+  "test_parallel_research.py": "585c2ba644ed5f9c75dc9521e93a4be950da93f6f7a0014a7b84314dc214a2fe",
+  "gpt_context.py": "d14cb39303817d04c41a5ee52a181ef9230b1d8e1b30a2bee474a7e649800073",
+  "gpt_call.py": "87f2475989c1929db224767c6bffb1504a2d65ea9e701f17cdbef595b0e7beb6",
+  "gpt_budget.py": "3a933f595985c85aec3141da0f64690d9315d18b5cd73075ce02542c0c6bebf8",
+  "test_gpt_recovery.py": "de15a8c1d6ebc2f6628a3d410fe4610d8dc68829ae764ed6a40b0d4750e21ab9"
 }

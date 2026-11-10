@@ -149,10 +149,17 @@ A separate authorized task may hold the common lock; your experiment will queue 
                        'Choose the next evidence-supported optimization or necessary measurement.\n' + json.dumps(previous))
         try:
             index = len(state['rounds']) + 1
+            pending_role = state.get('active_role') if resume and state.get('active_mode') == 'direction' else None
             while True:
                 master = f'cont-master-{index}'
-                decision = invoke(state, master, 'master', context + '\n' + MASTER_SCHEMA)
-                write(OUT / 'research' / f'master-decision-{index}.json', decision)
+                decision_path = OUT / 'research' / f'master-decision-{index}.json'
+                if pending_role and pending_role.startswith(f'cont-d{index}-') and decision_path.exists():
+                    decision = json.loads(decision_path.read_text())
+                    assert pending_role == f'cont-d{index}-' + decision['direction']['name']
+                    pending_role = None
+                else:
+                    decision = invoke(state, master, 'master', context + '\n' + MASTER_SCHEMA)
+                    write(decision_path, decision)
                 if decision.get('decision') == 'needs_capability':
                     state.update(status='needs_harness_capability', pending_decision=decision,
                                  next_round=index, needs_local_supervision=True)

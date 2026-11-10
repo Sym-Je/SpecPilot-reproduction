@@ -51,6 +51,10 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 - 共享专家多流重叠的八 rank 诊断 span 约 27.278 秒，原 profile 约 24.929 秒；不视为无 profiler 吞吐对照或因果退化定论。随后的 shared-expert DP 配置在图捕获/GroupedMatmulWeightNz 阶段失败，guard 触发原 runner 清理，恢复状态以 state 的 completed_epoch/baseline_restored 为准。
 - 主助手发现已安装 AscendC C++/头文件实际存在，旧 Python-only broker 导致研究角色无法阅读。新增只读 `ascendc` source tree 和受限源码后缀，保持隔离/无 NPU 执行；已启动 `parallel-b1-hc-kernel-contracts` 延续 A2 核查，要求先证明源码与 910B/npu_hc_pre_v2 的对应关系，不把 arch35 路径直接套用。角色预算 24 工具动作，共用既有 GPT 账本；旧会话不声称热加载新能力。24 项相关定向检查通过。
 
+- 之后主研究因 native 会话累计内容超过 512 KiB 请求准入上限退出；原样重试不能修复该错误。它的 needs_attention 状态又使并行已准入请求的 settle 检查失败。两类原始错误和轨迹已保存，并非设备故障或 GPT 预算耗尽。
+- 已修复：`gpt_context.py` 在明确 input-byte-limit 错误后创建有来源/SHA 的有界检查点和新 native session，保留原 broker role、动作计数、scratch、实验归属与累计费用；最多两次运行中 rollover，不扩大字节上限。主调度恢复未完成 direction 时复用已批准的 Master 分配，不重选/重跑。settle 可在主研究暂停后完成已准入请求记账，reserve 仍执行原阶段/预算/validation 门禁。
+- 已恢复原 D2 主研究与 `parallel-b1-hc-kernel-contracts`，实际新工具记录已出现；此次恢复未提交 NPU 实验。27 项定向检查通过，原生实跑仍需继续监测；完整 native 日志与新的 session-routing/checkpoint 私有保存。最新 supervisor 身份与研究状态以部署目录为准。
+
 ## 以下为H100独立轨道，不混用Ascend资源授权
 
 
