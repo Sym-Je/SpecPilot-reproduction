@@ -151,3 +151,11 @@ independent peer analysts. Forty-nine targeted CPU tests passed in the trusted
 runner Python environment; the isolated DSH-only environment lacks runner
 dependencies and is not the correct test entry point. Native trajectories,
 request content, runtime receipts and billing remain private.
+
+Monitoring subsequently observed a durable GPT reservation-admission denial.
+The driver is `api_budgets_exhausted`; this refers to the conservative ceiling,
+not actual gateway spending. The prefix-cache direction remains incomplete and
+launched no cache-enabled NPU experiment. Native trajectories are preserved, no
+new holdout was opened, and baseline health was 200 with no active campaign NPU
+experiment. The local listener remains alive. Do not automatically reset the
+ledger, raise the limit, or report the research objective as achieved.

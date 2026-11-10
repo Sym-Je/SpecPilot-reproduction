@@ -75,6 +75,8 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 - Master5 请求前缀缓存支持与复用审计。可信 CPU tokenizer-only 审计完成全部60个唯一 dev payload、9 case，token count 全部匹配冻结 manifest；只导出聚合。32/128/4096 对齐场景是容量无限、文件顺序上界，真实调度/驻留/预热复用未知，完整缓存状态恢复与 candidate 有效开关尚未证明。聚合证据交回 Master，不据此直接部署 APC。49 项定向 CPU 检查通过；可信 runner Python 需同时具备 DSH SDK 与 psutil，恢复时曾选错环境，失败在 API admission 前，随后修正。
 - 本地 progress_listener 每30秒记录状态/终态并发布已恢复的 dev 安全 CSV；没有活动会话外自动聊天推送能力。实际进程/阶段以私有 supervisor、state 和 listener 事件为准；不要因文档称“正在”而假定进程存活。累计预算未重置，验证集未打开，无新性能收益。
 
+- 监听终态：GPT 保守预占准入已拒绝下一请求，主执行器为 api_budgets_exhausted；这不是实际已扣满500美元，也不是优化任务完成。D5 prefix-cache-state-and-realized-reuse 尚无完整方向报告/卡上实验，不自动恢复付费调用或重置预算。原生轨迹与私有预算停止回执已保存。全机无本轮活动实验，基线健康检查200，本地监听器仍存活，新holdout未打开。实时数字查私有 billing-gpt 和 progress-listener/budget-stop-receipt.json。
+
 ## 以下为H100独立轨道，不混用Ascend资源授权
 
 
