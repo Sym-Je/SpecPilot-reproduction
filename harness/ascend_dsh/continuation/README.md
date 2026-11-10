@@ -71,5 +71,5 @@ shared GPT phase only after a durable Claude budget denial, without rewriting th
 primary driver state or interrupting its experiment. Budgets are not multiplied
 by worker count. New validation remains sealed. Native
 DSH trajectories, calls, allocation, process state and reports remain private.
-Seven new boundary tests plus 13 related tests passed (20 total); this is focused
+Eight new boundary tests plus 13 related tests passed (21 total); this is focused
 adapter acceptance, not full repository coverage or evidence of a speedup.

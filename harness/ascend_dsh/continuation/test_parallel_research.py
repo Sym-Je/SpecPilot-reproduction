@@ -65,6 +65,16 @@ class ParallelTests(unittest.TestCase):
         valid['directions'][1]['name'] = 'one'
         with self.assertRaises(ValueError): validate_plan(valid)
 
+    def test_long_direction_slug_still_fits_broker_role_limit(self):
+        from parallel_research import validate_plan
+        plan = {'directions': [{'name': name, 'objective': 'review', 'required_evidence': 'source',
+                                'cost_floor_plan': 'unknown', 'max_actions': 24}
+                               for name in ('local-hyperconnection-materialization-cost', 'a' * 60)]}
+        validate_plan(plan)
+        self.assertTrue(all(len('parallel-a1-' + d['name']) <= 80 for d in plan['directions']))
+        plan['directions'][1]['name'] += 'a'
+        with self.assertRaises(ValueError): validate_plan(plan)
+
     def test_parallel_budget_route_waits_for_authorized_handoff(self):
         from parallel_research import route
         with tempfile.TemporaryDirectory() as tmp:

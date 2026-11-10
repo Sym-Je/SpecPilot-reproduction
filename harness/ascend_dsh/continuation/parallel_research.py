@@ -29,7 +29,7 @@ def validate_plan(plan):
     names = set()
     for item in directions:
         name = item.get('name', '')
-        if not re.fullmatch(r'[a-z0-9-]{1,40}', name) or name in names:
+        if not re.fullmatch(r'[a-z0-9-]{1,60}', name) or name in names:
             raise ValueError('Unique bounded direction names required')
         names.add(name)
         if type(item.get('max_actions')) is not int or not 12 <= item['max_actions'] <= 40:

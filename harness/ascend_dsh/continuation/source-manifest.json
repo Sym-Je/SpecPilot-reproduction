@@ -11,6 +11,6 @@
   "test_source_search.py": "d69f46e1b16f5fcf1225b5f6e3fe9460078688c518f549ffb25647d84d5a30f1",
   "dsh_call.py": "b50b154ebe8eb522ab470b67b84076dd77f31ce3c11ed33e38c11f3985c430c8",
   "parallel_evidence.py": "727094571f7576410f0b857eecc7d0925457347f77efef55a6c71dd99d4fcdb7",
-  "parallel_research.py": "cd239a49a657902b91c59fa89f254e43241b795dd3dc555ba6f8a3580e0ab9bf",
-  "test_parallel_research.py": "b3f3d3c39334d8ed6a1068114de7c8dd4d8f05d8d3416c62f21d5a4de331fa82"
+  "parallel_research.py": "25f13162895b1b149f07731d0b706b812fdf4531564682d53c638c82f8cf14c8",
+  "test_parallel_research.py": "433efe9c20072e2a032c9f26b29cc07d92a45061c5d6945fe678779168047802"
 }
