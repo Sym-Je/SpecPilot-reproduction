@@ -8,7 +8,7 @@ the runtime directory. Baseline manifests still reference the frozen dev inputs.
 
 The continuation shares the original Claude billing directory (USD 200 cumulative,
 including previous calls). Exact `gpt-6.1-sol` can start only after a durable Claude
-budget denial and keeps its separate USD 500 ceiling. No ledger reset or automatic
+budget denial and keeps its separate cumulative USD 1000 ceiling after explicit user amendment. No ledger reset or automatic
 holdout opening is performed. The old three-direction ceiling is removed. Each
 individual direction retains bounded actions/experiments, while the Master may
 allocate subsequent directions. Missing capabilities or source-patch proposals
@@ -159,3 +159,13 @@ launched no cache-enabled NPU experiment. Native trajectories are preserved, no
 new holdout was opened, and baseline health was 200 with no active campaign NPU
 experiment. The local listener remains alive. Do not automatically reset the
 ledger, raise the limit, or report the research objective as achieved.
+
+The user subsequently explicitly raised the cumulative GPT ceiling from USD 500
+to USD 1000. The trusted operator archived the old denial and preserved every
+reservation, gateway baseline, observed charge and creation timestamp. Claude
+remains USD 200. The same D5 role/session and broker allocation were resumed;
+this is not an additional USD 1000 tranche or an accounting reset. New admission
+checks retain the durable ledger minimum: changing code alone cannot raise an
+existing ledger. Fifty-one targeted CPU checks passed, including this boundary
+and pre-dispatch rejection at the amended ceiling. The local listener and
+healthy baseline service were preserved; no new performance result is implied.

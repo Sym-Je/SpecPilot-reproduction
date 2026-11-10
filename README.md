@@ -1,6 +1,6 @@
 # SpecPilot 复现工程
 
-Ascend 进展（2026-11-10）：新增两步 sparse-attention 诊断已完成八卡导出和基线恢复，CPU 工作量与精确 kernel manifest 关联已核对。开发集聚合前缀复用上界审计已完成，状态恢复复核尚未完成；GPT 累计保守预占保护触发，付费角色已停止，尚无新吞吐收益。串行 NPU、累计 200/500 美元预算与新验证集隔离不变；本地监听器记录进度，活动会话汇报变化。见 [接续记录](HANDOFF.md) 与 [执行器快照](harness/ascend_dsh/continuation/README.md)。
+Ascend 进展（2026-11-10）：新增两步 sparse-attention 诊断已完成八卡导出和基线恢复，CPU 工作量与精确 kernel manifest 关联已核对。开发集聚合前缀复用上界审计已完成，状态恢复复核尚未完成；原500美元保守预占保护触发后，用户已将GPT累计上限提高到1000美元并恢复同一D5方向，尚无新吞吐收益。串行 NPU、Claude累计200美元预算与新验证集隔离保持；本地监听器记录进度，活动会话汇报变化。见 [接续记录](HANDOFF.md) 与 [执行器快照](harness/ascend_dsh/continuation/README.md)。
 
 复现 *SpecPilot: Autonomous Algorithm Discovery and Systems Optimization for Speculative
 Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性能；架构复现与数字复现分开报告。论文原件见

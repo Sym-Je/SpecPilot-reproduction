@@ -78,7 +78,7 @@ def activate_gpt_phase(root):
         if statefile.exists() and json.loads(statefile.read_text()).get('status') == 'gpt_running':
             return
         record = {'status': 'gpt_running', 'activated_epoch': time.time(),
-                  'claude_limit_usd': 200, 'gpt_limit_usd': 500,
+                  'claude_limit_usd': 200, 'gpt_limit_usd': 1000,
                   'reason': 'Cumulative Claude admission budget exhausted',
                   'activated_by': 'trusted_parallel_scheduler',
                   'claude_ledger_sha256': sha(root / 'billing/state.json')}
@@ -256,7 +256,7 @@ def supervise(resume=False):
             write(AREA / f'interrupted-state-{time.time_ns()}.json', previous)
         state = {'status': 'planning', 'pid': os.getpid(), 'started_epoch': time.time(),
                  'analysis_lanes': 2, 'npu_experiment_lanes': 1,
-                 'shared_claude_limit_usd': 200, 'shared_gpt_limit_usd': 500,
+                 'shared_claude_limit_usd': 200, 'shared_gpt_limit_usd': 1000,
                  'validation_opened': False, 'source_sha256': sha(__file__)}
         write(path, state)
         try:

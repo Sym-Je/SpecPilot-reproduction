@@ -138,7 +138,7 @@ class ParallelTests(unittest.TestCase):
             write(root / 'billing/state.json', ledger | {'budget_exhausted': {'reason': 'admission_ceiling'}})
             activate_gpt_phase(root)
             result = json.loads((root / 'handoff/state.json').read_text())
-            self.assertEqual(result['gpt_limit_usd'], 500)
+            self.assertEqual(result['gpt_limit_usd'], 1000)
             self.assertFalse((root / 'research/state.json').exists())
             self.assertEqual(json.loads((root / 'billing/state.json').read_text())['limit_micro_usd'], 200_000_000)
 

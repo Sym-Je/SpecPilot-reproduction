@@ -8,6 +8,38 @@ from prepare_baseline import write
 
 
 class RecoveryTests(unittest.TestCase):
+    def test_gpt_ceiling_1000_does_not_implicitly_raise_existing_ledger(self):
+        import gpt_budget
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger=gpt_budget.Budget(Path(tmp))
+            self.assertEqual(ledger.limit,1_000_000_000)
+            snapshot={'total_used_quota':0}
+            ledger.transact('status',{},snapshot)
+            state=json.loads(ledger.state_path.read_text())
+            state['limit_micro_usd']=500_000_000
+            state['conservative_reserved_micro_usd']=495_728_070
+            state['budget_exhausted']={'reason':'admission_ceiling'}
+            ledger.state_path.write_text(json.dumps(state))
+            result=ledger.transact('status',{},snapshot)
+            self.assertEqual(result['limit_usd'],500)
+            saved=json.loads(ledger.state_path.read_text())
+            self.assertEqual(saved['conservative_reserved_micro_usd'],495_728_070)
+            self.assertEqual(saved['budget_exhausted']['reason'],'admission_ceiling')
+
+    def test_gpt_1000_ceiling_rejects_request_before_dispatch(self):
+        import gpt_budget
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger=gpt_budget.Budget(Path(tmp));snapshot={'total_used_quota':0}
+            ledger.transact('status',{},snapshot)
+            state=json.loads(ledger.state_path.read_text());state['conservative_reserved_micro_usd']=999_999_999
+            ledger.state_path.write_text(json.dumps(state))
+            request={'model':'gpt-6.1-sol','input_bytes':1000,'max_tokens':8192,'role_id':'fixture'}
+            with self.assertRaisesRegex(RuntimeError,'1000 USD budget admission denied'):
+                ledger.transact('reserve',request,snapshot)
+            saved=json.loads(ledger.state_path.read_text())
+            self.assertEqual(saved['reservations'],{})
+            self.assertEqual(saved['conservative_reserved_micro_usd'],999_999_999)
+
     def test_checkpoint_replay_keeps_current_role_contract(self):
         import gpt_call
         with tempfile.TemporaryDirectory() as tmp:

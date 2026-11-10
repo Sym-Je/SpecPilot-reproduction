@@ -5,7 +5,7 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 
 ## Ascend轨道接续点：本地开发集 baseline → DSH＋Claude 5.5 自主研究
 
-用户已授权：选定100条本地agent数据（dev60/validation40），先baseline，再DSH＋Claude 5.5运行SpecPilot；Claude总额上限200美元，预算保护触发后用`gpt-6.1-sol`接续，GPT独立上限500美元。不得使用`gpt-5.5`；MRV2不是要求。
+用户已授权：选定100条本地agent数据（dev60/validation40），先baseline，再DSH＋Claude 5.5运行SpecPilot；Claude总额上限200美元，预算保护触发后用`gpt-6.1-sol`接续，GPT累计上限现为1000美元（用户在原500美元保护触发后明确调高，历史费用继续累计）。不得使用`gpt-5.5`；MRV2不是要求。
 唯一阶段记录：[Ascend执行计划与验收](docs/experiments/ascend-ctrip-dsh-20261109.md)。当前源码归档在`harness/ascend_dsh/`，真实运行目录在部署工作区`profiling/specpilot-ctrip-dsh-20261109/`。
 
 - 本地8卡910B2C，V4 Flash W8A8，MRV1、图模式、固定DSpark K7。异步调度的C32失败已保留；改同步调度建立新baseline，不能把这个修复记成优化收益。
@@ -76,6 +76,8 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 - 本地 progress_listener 每30秒记录状态/终态并发布已恢复的 dev 安全 CSV；没有活动会话外自动聊天推送能力。实际进程/阶段以私有 supervisor、state 和 listener 事件为准；不要因文档称“正在”而假定进程存活。累计预算未重置，验证集未打开，无新性能收益。
 
 - 监听终态：GPT 保守预占准入已拒绝下一请求，主执行器为 api_budgets_exhausted；这不是实际已扣满500美元，也不是优化任务完成。D5 prefix-cache-state-and-realized-reuse 尚无完整方向报告/卡上实验，不自动恢复付费调用或重置预算。原生轨迹与私有预算停止回执已保存。全机无本轮活动实验，基线健康检查200，本地监听器仍存活，新holdout未打开。实时数字查私有 billing-gpt 和 progress-listener/budget-stop-receipt.json。
+
+- 最新用户预算修订：用户明确要求“设置为1000美刀吧”，本地 GPT 累计上限由500改为1000美元，Claude仍200。原预占/扣费起点/153条历史记录不重置，旧拒绝事件归档；私有 amendment 回执绑定变更前SHA。51项定向CPU检查通过，包含新1000上限拒绝和不隐式提高旧账本。已恢复同一D5角色、会话与工具分配，监听器和原服务保留；实际状态仍查私有 supervisor/state，不将预算恢复写成科研收益。
 
 ## 以下为H100独立轨道，不混用Ascend资源授权
 

@@ -1,4 +1,4 @@
-"""Separate USD 500 GPT phase. No proxy, no credential in configuration/logs.
+"""Separate USD 1000 GPT phase. No proxy, no credential in configuration/logs.
 
 The local ceiling is not an account-wide quota. Reservations deliberately exceed
 standard model prices; the gateway's cumulative actual charge is checked as well.
@@ -18,7 +18,7 @@ import urllib.request
 from budget import Budget as PersistentBudget, HERE
 
 MODEL = 'gpt-6.1-sol'
-LIMIT_MICRO_USD = 500_000_000
+LIMIT_MICRO_USD = 1_000_000_000
 GATEWAY = 'https://dreamwalk.club'
 KEY_FILE = Path.home() / '.config/northinfer/credentials/dreamwalk.key'
 
