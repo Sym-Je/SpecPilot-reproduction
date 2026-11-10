@@ -32,6 +32,8 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 
 ## Ascend continuation — 2026-11-10 用户要求继续优化
 
+当前真实运行目录：`/data/northinfer-specpilot-cont-20261110`。首份graph配置下的long/C32/32-step采集完成，8/8 rank导出，无导出丢数据告警；baseline已恢复。第二份decode-window实验已提交，排在独立量化采集任务之后。研究进程仍运行；不把排队写成NPU正在执行。尚无新的性能收益。已压缩8份timeline并逐一SHA回读验证，原始采集与kernel CSV保留，路径映射见timeline-archive.json。
+
 - 用户明确要求持续优化；本地新执行器取消三方向总上限，仍保留逐方向资源分配和统一NPU锁。Claude累计200美元、GPT独立500美元上限原样保留，Claude账本直接复用。
 - 新DSH Master/Direction已启动，真实进程与阶段状态记录在部署目录；首方向选择graph/C32成本归因，尚无新的NPU测量或收益。
 - 已修正profile工作负载能力：实际C1/C8/C32、短中长输入、有界worker-step窗口、串行离线导出和八rank/数据丢失检查。8项新CPU验收及5项原startup-guard检查通过，NPU能力尚待实测。

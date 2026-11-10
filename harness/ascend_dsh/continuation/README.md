@@ -33,3 +33,19 @@ The previous holdout is retired. A fresh 40-request holdout was frozen from unus
 original-validation groups with no group or exact-prompt overlap with the previous
 100 selected requests. Its prompts/results are not exposed to research roles.
 No new performance gain is claimed by this source checkpoint.
+
+The first continuation profile subsequently completed on the exact graph-enabled
+baseline, long-input replay at offered concurrency 32, with all eight rank CSV and
+timeline exports and no export data-loss warnings. The request activity recorded
+32 submitted requests but a smaller peak of active server requests; offered
+concurrency must not be relabeled as active decode batch size. Detailed step/phase
+attribution and performance gains remain unqualified. The serving baseline was
+restored successfully, and the next decode-window experiment is queued on the
+shared lock behind a separate quantization collection task.
+
+The postprocessing helpers aggregate operator types using exact decimal timestamp
+arithmetic and interval unions (two focused tests passed), publish actual workload
+activity, and verify compressed timelines by full decompressed SHA256 before
+removing the uncompressed derived file. The archive manifest maps original paths
+to gzip paths; raw profiler files and kernel CSVs remain intact. Background heavy
+compression acquires the machine timing lock to avoid perturbing benchmarks.
