@@ -67,6 +67,20 @@ class ParallelTests(unittest.TestCase):
             self.assertEqual(len(data['parallel_reports']), 1)
             self.assertFalse(data['parallel_reports'][0]['measured_gain'])
 
+    def test_completed_cpu_prefix_audit_is_attributed_and_not_shared_with_independent_peers(self):
+        from parallel_evidence import shared_updates
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); area=root/'research/prefix-reuse-audit';area.mkdir(parents=True)
+            report={'status':'complete','support_gate':{'all_required_state_restoration_proven':False},'cases':[]}
+            write(area/'summary.json',report)
+            audit=shared_updates(root)['prefix_reuse_audit']
+            self.assertEqual(audit['report'],report)
+            self.assertFalse(audit['measured_gain'])
+            self.assertEqual(audit['source_sha256'],sha(area/'summary.json'))
+            self.assertEqual(shared_updates(root,analysis_only=True),{})
+            write(area/'summary.json',report|{'status':'incomplete'})
+            self.assertNotIn('prefix_reuse_audit',shared_updates(root))
+
     def test_parallel_plan_requires_two_distinct_bounded_directions(self):
         from parallel_research import validate_plan
         valid = {'directions': [{'name': n, 'objective': 'review', 'required_evidence': 'source',

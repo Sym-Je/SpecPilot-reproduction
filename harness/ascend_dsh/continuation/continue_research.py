@@ -42,6 +42,10 @@ def receipts(role):
 
 
 def invoke(state, role, mode, prompt):
+    if mode == 'direction':
+        _, existing = receipts(role)
+        if existing:
+            prompt += '\nAlready owned/completed trusted experiments (including supervisor-admitted launches); reuse these IDs and results, do not submit a duplicate:\n' + json.dumps(compact_receipts(existing))
     task_prompt = prompt
     system = SYSTEM
     if mode == 'master':
@@ -100,8 +104,18 @@ def compact_receipts(evidence):
         entry['request'] = {k: item.get('request', {}).get(k) for k in ('config', 'mode')}
         profile = item.get('profile')
         if profile:
-            entry['profile'] = {k: profile.get(k) for k in ('all_eight_ranks_complete', 'rank_count', 'warnings', 'workload', 'scope')}
+            entry['profile'] = {k: profile.get(k) for k in ('all_eight_ranks_complete', 'rank_count', 'warnings', 'workload', 'scope', 'cpu_work_metadata')}
             folder = OUT / 'experiments' / item['id']
+            if item.get('status')=='complete' and item.get('baseline_restored'):
+                from completed_profile_access import register
+                try:
+                    register(folder)
+                    entry['profile']['shared_csv_access']='Registered restored, complete development CSVs for subsequent roles'
+                except (ValueError,OSError,KeyError) as error:
+                    entry['profile']['shared_csv_access_error']=repr(error)
+            counters=folder/'counter-export.json'
+            if counters.exists():
+                entry['profile']['available_counter_export']=json.loads(counters.read_text())
             paths = sorted((folder / 'traces').rglob('kernel_type_summary.csv'))
             entry['profile']['operator_summary_paths'] = [str(p.relative_to(folder / 'traces')) for p in paths]
             entry['profile']['operator_summaries'] = []
@@ -160,6 +174,11 @@ A separate authorized task may hold the common lock; your experiment will queue 
             export = OUT / 'research/profile-export-access.json'
             if resume and export.exists():
                 context += '\nNew trusted offline capability (no NPU rerun): master/direction read_profile can read these SHA-pinned CSVs from an already completed dev profile. Review actual exported fields/limitations rather than assuming full dependency or phase coverage.\n' + export.read_text()
+            if resume:
+                from parallel_evidence import shared_updates
+                audit = shared_updates(OUT).get('prefix_reuse_audit')
+                if audit:
+                    context += '\nCompleted requested CPU-only development prefix audit; no measured gain or state-restoration certification:\n' + json.dumps(audit)
             index = len(state['rounds']) + 1
             pending_role = state.get('active_role') if resume and state.get('active_mode') == 'direction' else None
             while True:

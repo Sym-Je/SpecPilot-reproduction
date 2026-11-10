@@ -227,6 +227,9 @@ class Broker:
             result = wait_final(folder / 'state.json', args['seconds'])
             if result['status'] == 'failed': result.update(failure_diagnostics(folder, result))
         elif name == 'read_profile':
+            access=OUT/'research/profile-export-access.json'
+            if access.exists() and not self.allocation.get('analysis_only'):
+                self.allocation['shared_profile_csvs']=json.loads(access.read_text())['shared_profile_csvs']
             shared = self.allocation.get('shared_profile_csvs', {}).get(args['id'], {})
             owned = args['id'] in self.state['experiments']
             if not owned and args['path'] not in shared:

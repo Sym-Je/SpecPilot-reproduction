@@ -34,4 +34,12 @@ def shared_updates(root, *, analysis_only=False):
     bindings = root / 'research/operator-binding-evidence.json'
     if bindings.exists():
         result['operator_binding_evidence'] = json.loads(bindings.read_text())
+    audit = root / 'research/prefix-reuse-audit/summary.json'
+    if audit.is_file() and not audit.is_symlink() and audit.stat().st_size <= 32768:
+        report = json.loads(audit.read_text())
+        if report.get('status') == 'complete':
+            result['prefix_reuse_audit'] = {
+                'origin': 'Trusted supervisor CPU tokenizer audit on frozen development inputs',
+                'source_sha256': sha(audit), 'measured_gain': False, 'report': report,
+                'limitations': 'Reuse ceilings are not runtime cache hits. Resolve state support before an experiment.'}
     return result

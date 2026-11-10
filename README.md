@@ -1,6 +1,6 @@
 # SpecPilot 复现工程
 
-Ascend 进展（2026-11-10）：三组 graph 基线 profile 已完成八卡导出，正在实测共享专家多流重叠。用户新增授权两路 DSH 源码/trace/CPU 分析，与单路 NPU 实验并行；候选仍统一串行实测，累计费用上限和验证集隔离不变，暂无新性能收益。实时阶段以部署目录回执为准，见 [Ascend 接续记录](HANDOFF.md) 与 [执行器快照](harness/ascend_dsh/continuation/README.md)。
+Ascend 进展（2026-11-10）：新增两步 sparse-attention 诊断已完成八卡导出和基线恢复，CPU 工作量与精确 kernel manifest 关联已核对。正在复核前缀缓存状态恢复支持，开发集聚合复用上界审计已完成，尚无新吞吐收益。串行 NPU、累计 200/500 美元预算与新验证集隔离不变；本地监听器记录进度，活动会话汇报变化。见 [接续记录](HANDOFF.md) 与 [执行器快照](harness/ascend_dsh/continuation/README.md)。
 
 复现 *SpecPilot: Autonomous Algorithm Discovery and Systems Optimization for Speculative
 Decoding*（arXiv:2611.02501v1）的**自主优化闭环**，并独立验证性能；架构复现与数字复现分开报告。论文原件见

@@ -124,3 +124,30 @@ explicit supervisor admission envelope is separate from the original Master
 decision; automatic research continuation waits for baseline restoration and
 checks unchanged role/validation scope. Thirty-nine focused tests pass. Device
 coverage, successful flush and performance remain unverified until actual run.
+
+The admitted two-step diagnostic subsequently completed on all eight ranks with
+no export warnings and successful baseline restoration. Each rank emitted four
+CPU metadata records: one active request with 8186 scheduled tokens in each of
+two preparation counters. Offered C32 is not active batch32. Every rank's 92
+SparseAttn calls joined task/stream/exact timestamps and exact kernel names to
+the installed manifest's tilingKey values. Runtime tile dimensions, causal
+dependencies, layer/phase mapping and launch-time device binary identity remain
+unavailable. Offline counter ratios are not FLOPs efficiency or latency savings.
+
+Completed restored development CSVs are published through an explicit safe-name
+allowlist with SHA pins; independent analysis roles keep their frozen access. A
+local persistent listener journals progress and publishes these exports without
+model billing or device control. It cannot push chat notifications after the
+active chat ends.
+
+A CPU tokenizer-only audit covered all 60 unique frozen development payloads and
+nine replay cases, with every input-token count matching the frozen manifest.
+It reports capacity-unconstrained file-order prefix reuse ceilings at alternative
+alignments, separately marking schedule/residency/warmup-assisted reuse unknown.
+The backend-name disable condition does not match Ascend DSA; full state recovery
+and effective candidate enablement remain unproven. No caching experiment or
+performance gain is implied. Aggregate evidence is attributed and withheld from
+independent peer analysts. Forty-nine targeted CPU tests passed in the trusted
+runner Python environment; the isolated DSH-only environment lacks runner
+dependencies and is not the correct test entry point. Native trajectories,
+request content, runtime receipts and billing remain private.

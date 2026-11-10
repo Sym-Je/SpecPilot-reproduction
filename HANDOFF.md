@@ -71,6 +71,10 @@ H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend
 - `cont-d4-sparse-attention-runtime-work-cpu-work-two-step-v1` 已由可信督导按 Master4 请求提交，非模型自主 launch。仅两个 profiler steps、long/offered-C32、原模型/W8A8/K7/stock argv，新增隔离 bootstrap 与 env 开关，不改已安装源码或库。经过全机锁排队，原始回执及 sampler/runtime guard 均 SHA 固定。实际状态见 experiments 对应 state，排队不算正在占卡。
 - 该诊断只提供 target scheduler/metadata-build work 描述；layer/device task/selected tiling/完整依赖仍明确 unresolved，不能写成完整注意力调用或性能证明。独立审查/条件在对应 role 的 diagnostic-admission.json。原 Master4 JSON 不改，`admitted-direction-4.json` 另存督导能力准入封套。`resume_after_diagnostic.py` 仅在该唯一实验收尾、baseline_restored 且研究角色/validation 范围未变后自动续接原 D4；不重复已提交实验。选用源码事实有明确边界，不能强行推导可达提速。
 
+- 监听后续：D4 两步诊断 complete、8/8 rank、零导出警告、baseline_restored；每 rank 四条 CPU metadata，两个 counter 均为单活跃请求/8186 tokens，不能叫 active batch32。92 个 SparseAttn 调用/rank 按 stream/task/精确时间戳匹配，kernelName 精确关联安装 manifest 的 tilingKey；动态 tile、layer/phase、DAG、launch-time device binary 身份仍缺失。离线 counter 不是 FLOPs 效率或可达收益。新安全 CSV 分享器/监听器不开放请求内容或 holdout。
+- Master5 请求前缀缓存支持与复用审计。可信 CPU tokenizer-only 审计完成全部60个唯一 dev payload、9 case，token count 全部匹配冻结 manifest；只导出聚合。32/128/4096 对齐场景是容量无限、文件顺序上界，真实调度/驻留/预热复用未知，完整缓存状态恢复与 candidate 有效开关尚未证明。聚合证据交回 Master，不据此直接部署 APC。49 项定向 CPU 检查通过；可信 runner Python 需同时具备 DSH SDK 与 psutil，恢复时曾选错环境，失败在 API admission 前，随后修正。
+- 本地 progress_listener 每30秒记录状态/终态并发布已恢复的 dev 安全 CSV；没有活动会话外自动聊天推送能力。实际进程/阶段以私有 supervisor、state 和 listener 事件为准；不要因文档称“正在”而假定进程存活。累计预算未重置，验证集未打开，无新性能收益。
+
 ## 以下为H100独立轨道，不混用Ascend资源授权
 
 

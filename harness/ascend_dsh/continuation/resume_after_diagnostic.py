@@ -24,6 +24,8 @@ def main():
         research=json.loads((OUT/'research/state.json').read_text())
         if research.get('validation_opened') or research.get('active_role')!=role:
             write(record,{'status':'not_resumed_research_scope_changed'});return
+        from completed_profile_access import register
+        register(folder)
         with (OUT/'research/resume-after-admitted-diagnostic.log').open('ab') as log:
             process=subprocess.Popen([str(ROOT/'.dsh-venv/bin/python'),str(OUT/'continue_research.py'),'--resume'],
                 cwd=OUT,stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
