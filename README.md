@@ -23,6 +23,12 @@ Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后30
 
 ## H100进度（2026-11-11，UTC+08）
 
+**最新主线：**[Master动态研究决策（CPU）](docs/experiments/master-decisions-20261111.md)已结束：
+Master比较机会→接收历史负反馈→自主派发Direction→依据源码诊断停止；2角色/4回合/18获准动作，0新增GPU。
+Direction写了脚本但运行被动作额度拒绝，实际CPU脚本执行0次；不能声称完整自主实验或优化成功。
+242项指定CPU检查及两次独立审计通过；额度简报/近名反馈绑定已修复，但修复版尚未真实研究复验。
+实际未覆盖revise/continue，旧GPU流水线仍待动态接入；完整RSI与论文sealed数字均未复现。
+
 **最新离线诊断：**[长上下文收益收窄](docs/experiments/prefix-diagnosis-20261111.md)：200份HTTP复核通过，
 final外层周期推进量中位数original→64K为12.95→12.59，未见整体接受量崩塌。
 prefill与decode Attention贡献仍未知；没有新增GPU任务，精确阶段归因待另行批准补采。
@@ -127,9 +133,9 @@ Kernel自主补采/BBuf后因路径证据不足停止，Integration无共享候�
 
 **本轮完成：**[按需stock profile与自主诊断](docs/experiments/stock-profile-autonomy-20261111.md)：6科学角色自主收口、5次BBuf调用；两项源码候选为0.89126×和0.99875×，均无可信收益。250项指定CPU检查、公开源码副本和两次独立审计通过；六任务全终态，含失败2.01833 GPU小时，无晋升或完整RSI。
 
-**正在做：**本轮研究已停止、无活动GPU；等待下一阶段方案审核，不在后台继续搜索。
+**正在做：**CPU动态决策验证已收口，研究进程退出；没有新增GPU任务，不在后台继续搜索。
 
-**接下来：**先补热点kernel与实际调用路径/形状的可靠关联，再由Master自主安排方向、组合与kernel研究；仍须独立dev、正常final T3及多轮RSI。未知项不猜填，旧私有验证不用于调参，新阶段另行确认资源，不结转余额。
+**接下来：**先审核修复后真实廉价实验与GPU动态入口的接续，让Master自主取证、Direction执行迭代；再推进真实组合/kernel、独立dev及正常final T3/多轮RSI。不由维护者代做研究，不结转旧GPU预算。
 
 **已有基础：**三臂真实 server、dev验收、外部数据审计与mock闭环完成；**尚未复现论文原sealed数字或真实RSI方法结论。**
 

@@ -94,7 +94,37 @@ def skill_evidence(root, execution, answer, role):
     return answer['status']
 
 
-def audit_role(root, directory, *, allow_format_retries=False):
+def admitted_calls(calls,requests,messages,thread,turns,limits):
+    require(isinstance(limits,dict) and all(type(key) is int and key>0 and type(value) is int and value>=0
+        for key,value in limits.items()),'trusted per-turn action limits required')
+    expected=[load(path) for path in requests]
+    accepted=[]; counts=Counter(); denied=0; seen=set()
+    for row in calls:
+        message=row['message']; request=message.get('params',{})
+        turn=request.get('turnId')
+        ordinals=[number for number,value in turns.items() if value==turn]
+        require(len(ordinals)==1 and request.get('threadId')==thread and request.get('tool')=='research' and
+            request.get('namespace') is None,'quota denial crossed native role/turn/tool')
+        number=ordinals[0]
+        require(number in limits,'native turn lacks its actual action allocation')
+        call=(turn,request.get('callId'))
+        require(isinstance(call[1],str) and call[1] and call not in seen,'quota call identity repeated or absent')
+        seen.add(call)
+        if len(accepted)<len(expected) and request==expected[len(accepted)]:
+            require(counts[number]<limits[number],'admitted execution exceeded its real action allocation')
+            counts[number]+=1
+            accepted.append(row)
+        else:
+            require(counts[number]==limits[number],'unmirrored tool call occurred before actual action exhaustion')
+            replies=[value.get('result') for value in messages if value.get('id')==message.get('id') and 'result' in value]
+            expected_reply=dict(success=False,contentItems=[dict(type='inputText',text='research action budget exhausted')])
+            require(replies==[expected_reply],'unmirrored tool call lacks the exact native nonexecution rejection')
+            denied+=1
+    require(len(accepted)==len(expected),'private admitted actions have no native tool calls')
+    return accepted,denied
+
+
+def audit_role(root, directory, *, allow_format_retries=False, action_limits=None):
     manifest = load(directory / 'manifest.json')
     kind = manifest['role']
     require(kind in ROLE_SKILLS, 'unknown scientific role')
@@ -164,6 +194,9 @@ def audit_role(root, directory, *, allow_format_retries=False):
     authored, seen_calls = {}, set()
     requests = sorted(directory.glob('tools-*/action-*/request.json'))
     calls = [row for row in wire if row['direction'] == 'server' and row['message'].get('method') == 'item/tool/call']
+    if action_limits is not None:
+        calls,denied=admitted_calls(calls,requests,messages,thread,turns,action_limits)
+        counts['budget_rejections']=denied
     require(len(requests) == len(calls), 'native tool calls and private action records differ')
     require([load(path) for path in requests] == [row['message'].get('params') for row in calls],
             'private tool record order differs from the native stream')

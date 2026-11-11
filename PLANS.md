@@ -57,6 +57,21 @@ H100/Codex与Ascend/DSH是独立轨道。下面先保留Ascend既有计划，H10
 论文 sealed 参照仍为 2.13× [2.07, 2.19]，当前未独立复现该结论。
 DSH 后置，不以更换框架作为当前研究的前提。
 
+## 当前主线：Master动态研究决策（CPU）
+
+用户批准：机会比较→最小取证→Direction自主CPU研究→Master按反馈修订/继续/改派/停止。
+计划见`docs/experiments/master-decisions-20261111.md`，独立目录`logs/master-decisions-20261111-a01/`。
+不新增GPU，不读作者final/sealed，不改controller/规则/账本，不接管其他专项。
+
+- [x] 先写状态机/预算/反馈来源/隔离/回放的验收，冻结既有dirty身份；159项指定CPU回归通过。
+- [x] 接通可复用动态决策状态机与受限CPU角色入口，不替Master预选研究方向；旧GPU流水线未切换。
+- [x] 真实Master比较机会、接收历史负反馈后派发Direction并按其源码反馈stop；脚本额度拒绝，实际CPU脚本执行0次。
+- [x] 242项指定CPU检查、两次一致独立审计；额度提示/近名反馈绑定修复只经工程测试，不冒充原生覆盖。
+- [x] 136文件双次全SHA封存、主页/交接和242项公开副本复验；公开发布准备完成，提交/远端身份另见publication回执。
+
+2角色/4原生回合/18获准动作，0新增GPU；实际没有revise/continue或新方向重派，相关分支仅fixture覆盖。
+下一步先审核修复后真实廉价实验与GPU动态入口的接续，不由维护者代做缩块，不结转旧GPU预算。
+
 ## 已执行主线：Master自主源码提案与先行收益评估
 
 用户批准执行，并新确认8 H100 GPU小时/12小时/并发2卡及既有镜像/WeaverDev/qiji/挂载/priority。

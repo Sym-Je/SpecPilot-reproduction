@@ -111,6 +111,26 @@ stock在0.7/1.0采样正常；固定final完成两次greedy后，首次0.7请求
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
 > 最后更新：2026-11-10 北京时间（真实stock参数探索与两份dev联合验收通过，Master主动停止；完整RSI未完成）。
 
+## H100最新主线：Master动态研究决策（CPU，已收口）
+
+用户批准补自主决策循环，仅CPU/公开stock/历史反馈，无新GPU授权。
+计划与结果`docs/experiments/master-decisions-20261111.md`，目录`logs/master-decisions-20261111-a01/`。
+前台TTY53450已exit0，不重开。2原生角色/4回合/18获准动作/1 CPU额度计费，0新增GPU。
+Master先比较缩块与first-mismatch两机会，收到历史0.995636×负反馈后派发缩块源码/CPU诊断，
+Direction自行读源码/写脚本；12动作耗尽，第13次run_python被拒，实际脚本执行0次。
+Direction与Master均明确未执行，且固定前缀反事实缺乏保证；Master据此stop，不强迫正结果。
+
+242项指定CPU回归、audit05/06一致，原生反馈实际进入Master后续prompt；4进程同父birth/wait/关闭证明。
+初次审计因wire拒绝无私有action记录失败已保留；新增可信逐轮额度拒绝核验，默认旧严格行为不变。
+结束后修复Direction额度简报、续派近名方向反馈误匹配；只经工程测试，不声称旧进程热加载或实跑修复版。
+原三份启动源码先按launch SHA核对后封存runtime-source；inputs/自身scratch/config/canary持久化到role-context，
+不复制auth/整个home。原生绝对路径仍保留，临时路径清理后须按归档显式恢复，不改写原回执。
+实际覆盖compare/dispatch/反馈/stop，未覆盖revise/continue/重派；BBuf/公开检索本轮未调用。
+这不是实际CPU脚本验证、优化收益、GPU动态闭环、lossless或RSI完成；旧exp/skill_rsi.py仍为固定流水线。
+下一步只提案：修复版廉价实验实跑与GPU动态入口接续，Master自主取证、Direction执行，不由维护者代研。
+不读final/sealed、不改controller/规则/账本；不接管旧GPU/Ascend，不结转预算，新增GPU另确认。
+公开同步只含本阶段白名单，其他旧ceiling dirty保留；最终提交/远端身份以publication回执为准。
+
 ## H100已执行：Master四维源码提案与自主反馈
 
 用户已批准并确认新8 H100 GPU小时/12小时/并发2卡、既有镜像和WeaverDev/qiji/挂载/priority沿用。
