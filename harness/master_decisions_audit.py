@@ -97,13 +97,23 @@ def verify_master_feedback(directory,turn,identity,packet):
         'feedback was recorded but never delivered to the real Master: '+identity)
 
 
-def audit(root):
+def audit(root,*,terminal_review=False):
     root=Path(root).resolve()
     manifest=load(root/'manifest.json')
+    review=None
+    if terminal_review:
+        from harness.decision_review import verify as verify_review
+        review=verify_review(root)
     require(manifest['schema']=='cpu-master-decisions-v1' and manifest['gpu_budget']==0 and manifest['limits']==LIMITS,
         'CPU-only authorization/limits changed')
     require(reference(root/'evidence.json')==manifest['evidence'],'frozen public evidence packet changed')
     evidence=verify_evidence(root)
+    recovery=None
+    if manifest.get('recovery') is not None:
+        from harness.decision_recovery import interrupted
+        require(reference(root/'recovery.json')==manifest['recovery'],'logical recovery changed')
+        recovery=load(root/'recovery.json')
+        require(interrupted(recovery['prior_root'])==recovery,'interrupted native charges/context changed')
     from exp.gpu_autonomy import ROOT
     runtime_sources=verify_runtime_sources(root,manifest,ROOT)
     previous=Path(evidence['previous_request']['path'])
@@ -168,6 +178,10 @@ def audit(root):
                 directory=root/('direction-'+action['id'])
                 actual_packet=load(Path(load(directory/'manifest.json')['work'])/'inputs/evidence.json')
                 budgeted_packet=dict(packet,allocation=action['allocation'],remaining=action['allocation'])
+                if recovery is not None:
+                    from harness.decision_recovery import role_context
+                    packet=dict(packet,logical_recovery=role_context(recovery,directory.name))
+                    budgeted_packet=dict(budgeted_packet,logical_recovery=role_context(recovery,directory.name))
                 require(actual_packet in (packet,budgeted_packet),'Direction received unauthorized assignment/evidence/context')
         if record['kind']=='historical_feedback':
             expected_packet=dict(value=evidence['historical_feedback'],source=evidence['feedback_source'],historical_reuse=True)
@@ -175,12 +189,17 @@ def audit(root):
         elif record['kind']=='direction_feedback':
             direction_returns[record['id']]+=1
             identity='direction-'+record['id']+'-'+str(direction_returns[record['id']]).zfill(2)
-            verify_master_feedback(root/'master',previous_master_turn,identity,
-                dict(value=record['value'],historical_reuse=False))
+            if review is None:
+                verify_master_feedback(root/'master',previous_master_turn,identity,
+                    dict(value=record['value'],historical_reuse=False))
+            else:
+                require(index==len(journal)-1,'only final feedback may use an explicit terminal review')
     state=replay_journal(evidence,journal,response)
     require(state.snapshot()==load(root/'state.json'),'decision state differs from independent journal replay')
     require(used_responses==set(responses),'orphan native decision or direction return')
     result=load(root/'result.json'); counts=load(root/'counters.json')
+    if recovery is not None:
+        totals.update(recovery['charged_counters'])
     require(result['counters']==counts and all(counts[key]==totals[key] for key in counts),'actual native counters differ')
     require(all(type(counts[key]) is int and counts[key]<=LIMITS[key] for key in ('actions','cpu_runs','model_turns')) and
         counts['usage_updates']<=512,'stage budget exceeded')
@@ -212,7 +231,10 @@ def audit(root):
         exits.get(item['pid'])==item['exit_code']==0 for item in result['role_processes'].values()),'role exits lack actual wait receipts')
     require(result['gpu_submissions']==0 and result['scientific_optimization_completed'] is False and
         not list(root.glob('*/pending.json')) and not list(root.glob('*/submitted.json')),'CPU rehearsal claims GPU authority or optimization')
-    require(result['status']=='research_stopped' and state.stopped,'CPU decision rehearsal has not stopped normally')
+    if review is None:
+        require(result['status']=='research_stopped' and state.stopped,'CPU decision rehearsal has not stopped normally')
+    else:
+        require(result['status']=='needs_attention' and not state.stopped,'terminal review must preserve the abnormal stop')
     priorities=[]
     for event in state.events:
         if event['kind']=='decision' and event['action']['kind'] in ('compare','revise'):
@@ -226,14 +248,16 @@ def audit(root):
         direction_continuations=sum(event['kind']=='decision' and event['action']['kind']=='continue' for event in state.events),
         verified_processes=len(registry['members']),tool_replays=dict(tool_replays),gpu_submissions=0,
         runtime_sources=runtime_sources,
+        terminal_review=review,
         scientific_optimization_completed=False,scientific_decision_quality_not_automatically_certified=True)
 
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root',type=Path,required=True)
+    parser.add_argument('--terminal-review',action='store_true')
     args=parser.parse_args()
-    print(json.dumps(audit(args.root),sort_keys=True,allow_nan=False))
+    print(json.dumps(audit(args.root,terminal_review=args.terminal_review),sort_keys=True,allow_nan=False))
 
 
 if __name__=='__main__':

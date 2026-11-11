@@ -57,6 +57,20 @@ H100/Codex与Ascend/DSH是独立轨道。下面先保留Ascend既有计划，H10
 论文 sealed 参照仍为 2.13× [2.07, 2.19]，当前未独立复现该结论。
 DSH 后置，不以更换框架作为当前研究的前提。
 
+## 已执行：Direction自主最小选树候选
+
+授权4 GPU小时/4小时/并发2卡，镜像/调度沿用；本轮新增GPU0，未准备待提交任务，不结转余额。
+方案`docs/experiments/direction-candidate-20261111.md`；证据`logs/direction-candidate-20261111-a01/`及`a02/`。
+
+- [x] 保存47份旧dirty，先行判据、受限候选入口和独立预算登记。
+- [x] Master派发tree16-selection，Direction自主读stock/先写自检/实现/执行/修复。
+- [x] 2700项CPU合成检查、6类分叉错误检测与两次独立重放；失败和逻辑续接完整保留。
+- [x] 原生报告实际交付Master后stop，不提交无适配器的GPU性能任务。
+- [x] 243项指定回归及公开副本复验、双次一致异常工程审计、14个子进程退出复核。
+- [ ] 科学上未完成真实stock树适配、controller dev正确性或配对收益，不是完整Phase1/RSI。
+
+工程异常收口独立标注，不冒充正常pipeline；下一阶段先另审真实分支执行与提交/回滚方案，仍由研究角色自主研究。
+
 ## 当前研究：接受量上界与匹配路径证据
 
 用户批准验证，并要求给Master理论最大接受长度，支持自主研究draft tree/verify length。

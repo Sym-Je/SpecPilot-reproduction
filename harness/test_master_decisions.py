@@ -28,6 +28,20 @@ def comparison(kind='compare', based_on=None):
 
 
 class AttributionBriefTests(unittest.TestCase):
+    def test_candidate_exploration_requires_priors_and_delegates_actual_research(self):
+        with self.assertRaises(ValueError):
+            research_brief(True,prioritize_e2e=True,candidate_exploration=True)
+        rules,prompt=research_brief(True,prioritize_e2e=True,acceptance_headroom=True,candidate_exploration=True)
+        self.assertIn('Direction',prompt)
+        self.assertIn('先写自检',prompt)
+        self.assertIn('4 H100 GPU小时',prompt)
+        self.assertIn('CPU角色没有GPU执行权限',rules)
+        self.assertNotIn('本轮只做端到端收益诊断，不实现优化',rules)
+        self.assertNotIn('1H100/1GPU小时',prompt)
+        self.assertNotIn('停止条件，不实现优化',prompt)
+        self.assertIn('不能把线性block16当N16树',prompt)
+        self.assertIn('无可信候选',prompt)
+
     def test_acceptance_headroom_supplies_bounds_without_claiming_measured_tree_speedup(self):
         with self.assertRaises(ValueError):research_brief(True,acceptance_headroom=True)
         rules,prompt=research_brief(True,prioritize_e2e=True,acceptance_headroom=True)

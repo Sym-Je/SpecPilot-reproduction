@@ -76,6 +76,9 @@ def session(directory, role, packet, actions, runs):
 def turn(role, prompt, counters):
     if counters['model_turns'] >= RUN_LIMITS['model_turns']:
         raise ValueError('stage model turn ceiling reached')
+    timeout = role.get('turn_timeout_seconds', 300)
+    if type(timeout) is not int or not 1 <= timeout <= 900:
+        raise ValueError('bounded native role turn timeout required')
     client = role['client']
     client.usage_updates = 0
     client.usage_update_ceiling = min(32, RUN_LIMITS['usage_updates'] - counters['usage_updates'])
@@ -90,16 +93,23 @@ def turn(role, prompt, counters):
     client.broker = role.get('broker_factory', ResearchBroker)(role['manifest']['work'], role['directory'] / f'tools-{number:02d}',
         role['thread']['thread']['id'], result['turn']['id'],
         max_actions=min(role['actions'], ACTION_LIMIT - counters['actions']), max_runs=min(role['runs'], RUN_LIMITS['cpu_runs'] - counters['cpu_runs']))
-    deadline = time.monotonic() + 300
+    deadline = time.monotonic() + timeout
     completion = None
-    while time.monotonic() < deadline:
-        try:
-            message = client.receive(min(30, max(.1, deadline - time.monotonic())))
-        except TimeoutError:
-            continue
-        if message.get('method') == 'turn/completed':
-            completion = message['params']['turn']
-            break
+    try:
+        while time.monotonic() < deadline:
+            try:
+                message = client.receive(min(30, max(.1, deadline - time.monotonic())))
+            except TimeoutError:
+                continue
+            if message.get('method') == 'turn/completed':
+                completion = message['params']['turn']
+                break
+    finally:
+        counters['actions'] += client.broker.actions
+        counters['cpu_runs'] += client.broker.runs
+        counters['usage_updates'] += client.usage_updates
+        role['actions'] -= client.broker.actions
+        role['runs'] -= client.broker.runs
     if not completion or completion['status'] != 'completed':
         raise RuntimeError('role did not complete')
     texts = [row['params']['item']['text'] for row in client.events[start:] if row.get('method') == 'item/completed'
@@ -108,11 +118,6 @@ def turn(role, prompt, counters):
         raise ValueError('no actual model response')
     write(role['directory'] / f'turn-{number:02d}-native.json', dict(turn=completion, texts=texts,
         backend_advertised_model=role['thread']['model'], provider=role['thread']['modelProvider']))
-    counters['actions'] += client.broker.actions
-    counters['cpu_runs'] += client.broker.runs
-    counters['usage_updates'] += client.usage_updates
-    role['actions'] -= client.broker.actions
-    role['runs'] -= client.broker.runs
     value = response_object(texts[-1])
     write(role['directory'] / f'turn-{number:02d}-response.json', value)
     return value

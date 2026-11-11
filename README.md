@@ -23,6 +23,15 @@ Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后30
 
 ## H100进度（2026-11-11，UTC+08）
 
+### 最新：Direction最小选树候选研究
+
+- **已完成**：Master派发tree16-selection；Direction自主实现CPU候选、修复并通过2700项合成契约检查，独立重放两次一致；Master复核后stop。
+- **当前状态**：缺真实stock树适配器，尚无GPU候选/收益或lossless结论；工程异常及续接均保留，不能当正常RSI完成。
+- **接下来**：如获批，由研究角色补真实分支执行与提交路径，先独立dev正确性，再配对测量；不拿线性block16当N16树。
+
+本轮新增GPU为0，未准备待提交任务。见[执行、失败与验收](docs/experiments/direction-candidate-20261111.md)。
+
+
 **最新完成：**[接受量上界与路径证据](docs/experiments/acceptance-headroom-20261111.md)：三份历史stock双次冻结源码复核，
 Master已获得结构上限8、有限格stock4.86/oracle6.87、树预算曲线及匹配的形状/计时，自主将在线选树列为explore。
 321项指定CPU回归、原生审计通过，1次自主CPU分析，0新增GPU；N16的16.46%成本增长门槛是条件模型，不是提速。

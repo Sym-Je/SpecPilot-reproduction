@@ -111,6 +111,18 @@ stock在0.7/1.0采样正常；固定final完成两次greedy后，首次0.7请求
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
 > 最后更新：2026-11-10 北京时间（真实stock参数探索与两份dev联合验收通过，Master主动停止；完整RSI未完成）。
 
+## H100最新研究：Direction最小选树候选（CPU研究停止，无真实树收益）
+
+用户批准本阶段4 H100 GPU小时/4小时/并发2卡及原镜像/WeaverDev/qiji/只读挂载/priority；实际未提交GPU，余额不结转。
+报告`docs/experiments/direction-candidate-20261111.md`；失败目录`logs/direction-candidate-20261111-a01/`，续接`logs/direction-candidate-20261111-a02/`。
+Master自主选择tree16-selection，Direction自己写D7/N16合成候选和自检，修复恢复/导入问题后2700项合成检查及6类分叉错误检测通过，独立隔离重放两次相同。
+这不是stock树适配器：真实token、树mask/位置、attention KV及conv/SSM父状态、接受路径提交/回滚仍未接通或验证。
+Direction不建议GPU，Master在实际收到报告后stop/gpu_request=null。无controller dev gate、sealed、晋升或新收益，不把CPU检查当lossless。
+原生入口曾300秒中断，续接又因固定预留300秒拒绝终审；随后缺上下文和超时的两次审核也保留，第三次直接交付报告才有效。
+累计76工具动作/19CPU额度/11原生请求（9完整、2中断），实际3次Direction脚本/1成功；14个子进程退出回执核对。
+未来入口修复超时和中断计数；启动源码冻结，未假称旧进程热加载。异常工程收口用`--terminal-review`，默认正常pipeline审计仍拒绝。
+保留47份旧dirty；后续阶段需另审，不恢复旧角色或提交准备；由研究角色自主补适配和分支差分，再独立dev正确性/配对性能。
+
 ## H100最新研究：接受量上界与匹配路径证据（已收口）
 
 用户批准验证，并要求给Master理论最大可能接受长度，支持draft tree/verify length研究。

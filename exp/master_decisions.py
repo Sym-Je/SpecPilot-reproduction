@@ -48,7 +48,9 @@ SCHEMAS=dict(compare=dict(kind='compare',opportunities=[dict(CARD,id='opportunit
     stop=dict(kind='stop',reason='evidence and limits',based_on=[]))
 
 
-def research_brief(knowledge_research,*,prioritize_e2e=False,attribute_kernels=False,acceptance_headroom=False):
+def research_brief(knowledge_research,*,prioritize_e2e=False,attribute_kernels=False,acceptance_headroom=False,candidate_exploration=False):
+    if candidate_exploration and not acceptance_headroom:
+        raise ValueError('candidate exploration requires acceptance headroom evidence')
     if acceptance_headroom and not prioritize_e2e:
         raise ValueError('acceptance headroom requires end-to-end context')
     if attribute_kernels and not prioritize_e2e:
@@ -130,11 +132,31 @@ profile/BBuf的stock ID现在绑定同一10题cohort的首份观测profile。已
 如果已有证据充分回答本次诊断，不为用完预算重复采集；若还缺数据，给出最小工作量、所需字段与停止条件，不实现优化。
 最后输出一个原决策schema的JSON对象，不把compare和stop嵌套。evidence和based_on只能用已注册ID，
 tools-NN/action-NNN来源写在文字字段，不把回执路径当注册ID。允许诚实的阴性/未知结论。'''
+    if candidate_exploration:
+        rules=rules.replace('本阶段新增GPU授权为零；','本CPU研究入口没有GPU执行权限；')
+        rules=rules.replace('本轮只做端到端收益诊断，不实现优化；','本轮由Direction自主做最小候选研究；')
+        rules+='''本阶段资源另有4 H100 GPU小时授权，但CPU角色没有GPU执行权限；资源请求由可信执行器另行检查。
+Direction可在自身scratch实现最小候选与自检，不得修改stock原件、裁判、账本或访问其他角色上下文。
+GPU请求只是建议，不代表已提交、已测性能或已通过正确性；不要把工具限制当成科学反证。
+'''
+        prompt=prompt[:prompt.index('你可派Direction自主读源码/')]+'''本阶段不是再做一轮Master接受量算术；目标是由Direction自主推进最小可执行候选。
+Master比较后按证据选一个树/送验路径/验证长度或其他合理方向，分配足够读写、CPU运行与修复额度。
+Direction先核对实际stock的D/N/分支与状态语义，自主决定最便宜实验，先写自检，再实现候选并实际运行。
+若已有路径不能执行合理候选，应通过源码证据和自身CPU检查明确指出具体缺口、最小补充与停止条件；
+无可信候选可以停止，不强求正收益，也不为完成指标重复无解释力的数学穷举。
+不能把线性block16当N16树，不用离线target/oracle标签构造线上策略，不读作者final。
+Direction自己的return.summary中说明实际脚本/输出/来源、可证伪假设与结论；recommended_next可写具体GPU资源请求，
+包含自身scratch实现/自检相对路径、D/N/分支语义、所需工作量、正确性检查、路径命中证据和停止条件。
+CPU自检不等于lossless；拟保留候选必须经独立controller dev正确性和配对性能验收，不延后到sealed。
+阶段新上限4 H100 GPU小时/4小时/并发2卡；CPU角色只能请求，禁止直接提交GPU、执行run_source或run_engine。
+CPU入口停止后，可信执行器才评估请求；不因未花预算而重复实验。维护者不代写研究脚本。
+收到Direction反馈后Master自主决定继续/修订/停止；若继续应引用本方向反馈、补足额度，不重置旧使用。
+最后仍用原决策schema。evidence/based_on只用已注册ID；工具回执写文字字段，允许阴性/未知结论。'''
     return rules,prompt
 
 
 class Campaign:
-    def __init__(self,root,evidence):
+    def __init__(self,root,evidence,*,recovery=None):
         self.root=Path(root).resolve()
         self.evidence=evidence
         self.state=DecisionState(evidence['initial'])
@@ -142,6 +164,10 @@ class Campaign:
         self.journal=[]
         self.counters=dict(actions=0,cpu_runs=0,model_turns=0,usage_updates=0)
         self.started=time.time()
+        self.recovery=recovery
+        if recovery is not None:
+            self.counters.update(recovery['charged_counters'])
+            self.started=recovery['started']
 
     def persist(self):
         save(self.root/'state.json',self.state.snapshot())
@@ -149,7 +175,14 @@ class Campaign:
         save(self.root/'counters.json',self.counters)
 
     def open_role(self,label,kind,packet,allocation):
+        if self.recovery is not None:
+            from harness.decision_recovery import role_context
+            packet=dict(packet,logical_recovery=role_context(self.recovery,label))
+            if label=='master':
+                prior=self.recovery['roles']['master']['counters']
+                allocation={key:max(0,value-prior[key]) for key,value in allocation.items()}
         role=roles.session(self.root/label,kind,packet,allocation['actions'],allocation['cpu_runs'])
+        role['turn_timeout_seconds']=min(900,max(1,int(self.started+LIMITS['wall_seconds']-time.time()-30)))
         self.roles[label]=role
         role['counters']=dict(actions=0,cpu_runs=0,model_turns=0,usage_updates=0)
         access=MasterAccess(kind,{'stock':self.root/'inputs/stock-profile.json'},self.root/'inputs/tools.json',
@@ -158,8 +191,10 @@ class Campaign:
         return role
 
     def ask_once(self,role,prompt):
-        if self.counters['model_turns']>=LIMITS['model_turns'] or time.time()+300>self.started+LIMITS['wall_seconds']:
+        remaining=self.started+LIMITS['wall_seconds']-time.time()
+        if self.counters['model_turns']>=LIMITS['model_turns'] or remaining<30:
             raise ValueError('CPU stage model/wall allocation exhausted; no GPU or implicit budget extension')
+        role['turn_timeout_seconds']=min(900,int(remaining-10))
         before=dict(role['counters'])
         role['actions']=min(role['actions'],LIMITS['actions']-self.counters['actions'])
         role['runs']=min(role['runs'],LIMITS['cpu_runs']-self.counters['cpu_runs'])
@@ -211,9 +246,9 @@ class Campaign:
         self.journal.append(dict(kind='direction_feedback',id=action['id'],value=result,used=used,
             response=reference(role['directory']/f'turn-{role["number"]:02d}-response.json')))
 
-    def run(self,*,knowledge_research=False,prioritize_e2e=False,attribute_kernels=False,acceptance_headroom=False):
+    def run(self,*,knowledge_research=False,prioritize_e2e=False,attribute_kernels=False,acceptance_headroom=False,candidate_exploration=False):
         rules,prompt=research_brief(knowledge_research,prioritize_e2e=prioritize_e2e,attribute_kernels=attribute_kernels,
-            acceptance_headroom=acceptance_headroom)
+            acceptance_headroom=acceptance_headroom,candidate_exploration=candidate_exploration)
         roles.COMMON=rules
         roles.ACTION_LIMIT=LIMITS['actions']
         roles.RUN_LIMITS=dict(model_turns=LIMITS['model_turns'],cpu_runs=LIMITS['cpu_runs'],gpu_attempts=0,usage_updates=512)
@@ -269,11 +304,21 @@ def main():
     parser.add_argument('--prioritize-e2e',action='store_true')
     parser.add_argument('--attribute-kernels',action='store_true')
     parser.add_argument('--acceptance-headroom',action='store_true')
+    parser.add_argument('--candidate-exploration',action='store_true')
+    parser.add_argument('--recover-from',type=Path)
     args=parser.parse_args()
     root=args.stage.resolve()
     if (root/'result.json').exists() or (root/'master').exists():
         raise ValueError('CPU decision stage already started; never silently reset or rerun')
     root.mkdir(parents=True,exist_ok=True)
+    recovery=None
+    if args.recover_from:
+        if not args.candidate_exploration:
+            raise ValueError('interruption recovery is limited to candidate exploration')
+        from harness.decision_recovery import interrupted
+        recovery=interrupted(args.recover_from)
+        save(root/'recovery.json',recovery)
+    args.acceptance_headroom=args.acceptance_headroom or args.candidate_exploration
     args.prioritize_e2e=args.prioritize_e2e or args.attribute_kernels or args.acceptance_headroom
     args.knowledge_research=args.knowledge_research or args.prioritize_e2e
     evidence=prepare_evidence(root,ROOT,prioritize_e2e=args.prioritize_e2e,acceptance_headroom=args.acceptance_headroom)
@@ -287,6 +332,9 @@ def main():
     if args.acceptance_headroom:
         sources+=('harness/acceptance_headroom.py','harness/diagnostic_archive.py','harness/graph_context.py',
             'harness/headroom_evidence.py','harness/research_protocol.py','harness/skill_diagnostics.py')
+    sources+=('exp/gpu_autonomy.py',)
+    if recovery is not None:
+        sources+=('harness/decision_recovery.py',)
     for name in sources:
         target=root/'runtime-source'/name
         target.parent.mkdir(parents=True,exist_ok=True)
@@ -296,16 +344,19 @@ def main():
         prioritize_e2e=args.prioritize_e2e,
         attribute_kernels=args.attribute_kernels,
         acceptance_headroom=args.acceptance_headroom,
+        candidate_exploration=args.candidate_exploration,
+        recovery=reference(root/'recovery.json') if recovery is not None else None,
         source_pin=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         source_sha256={name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in sources},
         evidence=reference(root/'evidence.json')))
     verify_evidence(root)
     closure={}
-    campaign=Campaign(root,evidence)
+    campaign=Campaign(root,evidence,recovery=recovery)
     try:
         with recorded_processes(root/'processes',closure):
             campaign.run(knowledge_research=args.knowledge_research,prioritize_e2e=args.prioritize_e2e,
-                attribute_kernels=args.attribute_kernels,acceptance_headroom=args.acceptance_headroom)
+                attribute_kernels=args.attribute_kernels,acceptance_headroom=args.acceptance_headroom,
+                candidate_exploration=args.candidate_exploration)
     finally:
         save(root/'process-closure.json',closure)
 
