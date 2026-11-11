@@ -111,6 +111,27 @@ stock在0.7/1.0采样正常；固定final完成两次greedy后，首次0.7请求
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
 > 最后更新：2026-11-10 北京时间（真实stock参数探索与两份dev联合验收通过，Master主动停止；完整RSI未完成）。
 
+## H100最新研究：知识增强Master自主CPU实验（已收口）
+
+用户批准实际调研→比较→Direction实验→Master决策，仅CPU，无新增GPU授权。
+报告`docs/experiments/master-knowledge-20261111.md`，目录`logs/master-knowledge-20261111-a01/`。
+新增--knowledge-research只复用已有Campaign任务模式，默认历史验证模式保留；先行及最终244项回归通过。
+Master实际2次搜索/4次阅读（3成功/1域名拒绝），读DFlash项目、arXiv摘要和Triton融合教程，未调用BBuf。
+三机会：greedy logits物化、块宽权衡、selector概率输出；选择第一项，不恢复旧accept归约候选。
+Direction首次24动作/4CPU因搜索耗尽CPU而未执行脚本；Master自主continue追加8动作/3CPU。
+同一Direction线程随后自写/运行两项标准库模型，均exit0：16395有限标量检查及468布局/27rank/7行分块检查。
+6个错误输出/简化变体反例含直接构造结果，不能称部署kernel/controller故障注入；没有直接执行stock/torch/GPU。
+Master收到实际结果后stop，只保留普通dense/TP1/无added vocab/非selector和Domino的draft greedy head待核对。
+当前部署是否符合仍未知；没有GPU实现、引擎option、lossless、收益、晋升或可信memory。
+
+2角色/7原生回合/40动作/18CPU额度/约600秒，0GPU。audit01/02一致，9处资料/源码引用核对；
+3次CPU额度拒绝单列，不与原生审计的未落盘动作拒绝混算。首次schema引用错误由模型自行修复，原答复不改。
+4个角色/初始化进程有同父birth/wait/退出证明，12份角色自身inputs/scratch/config/canary持久化，未复制auth。
+六份启动源码SHA封存，当前未改；TTY40175 exit0，不重启旧角色。原临时路径清理后需按归档显式恢复。
+下一步只审核具体GPU配置/路径认证与微基准资源请求，先由研究角色明确需求；不由维护者代做科学实验。
+GPU新预算/镜像/统一入口另确认，不读final/sealed，不改裁判/规则/账本，不接管旧GPU/Ascend。
+保留旧ceiling/其他dirty，公开仅本阶段白名单摘要/代码；最终同步身份以publication回执为准。
+
 ## H100最新修复：Master公开知识访问（已收口）
 
 用户批准排查公开检索/读取失败，阶段`logs/public-knowledge-access-20261111-a01/`，

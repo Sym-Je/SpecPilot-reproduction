@@ -23,6 +23,11 @@ Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后30
 
 ## H100进度（2026-11-11，UTC+08）
 
+**最新研究：**[知识增强Master自主CPU研究](docs/experiments/master-knowledge-20261111.md)：Master读3份公开资料，
+比较3机会并选择draft greedy的LM-head→argmax物化诊断；Direction额度耗尽后，Master自主续派，
+2次自写CPU检查exit0，核对有限标量归约/padding/并列等语义，最终有依据stop。244项指定回归、双次原生审计通过。
+2角色/7回合/0GPU；当前仅有条件候选，尚无GPU实现、运行配置认证、lossless或提速结论。本轮未调用BBuf。
+
 **最新修复：**[Master外部知识访问](docs/experiments/public-knowledge-access-20261111.md)：旧network_unavailable
 实际源于正文EOF后操作关闭socket，一行修复且不放宽网络边界。新受限Master亲自完成搜索及两次读取：
 2条结果、Triton文档1923字节/GitHub源码21812字节，原生回执双次审计通过；243项指定CPU回归通过。
@@ -138,9 +143,9 @@ Kernel自主补采/BBuf后因路径证据不足停止，Integration无共享候�
 
 **本轮完成：**[按需stock profile与自主诊断](docs/experiments/stock-profile-autonomy-20261111.md)：6科学角色自主收口、5次BBuf调用；两项源码候选为0.89126×和0.99875×，均无可信收益。250项指定CPU检查、公开源码副本和两次独立审计通过；六任务全终态，含失败2.01833 GPU小时，无晋升或完整RSI。
 
-**正在做：**Master公开知识通路修复已收口，连通性探针进程退出；没有新增GPU或重启自主搜索。
+**正在做：**知识增强CPU研究已收口，Master/Direction退出；没有活动研究或新增GPU任务。
 
-**接下来：**审核知识增强的一轮真实研究：Master自主调研/比较收益，Direction自主执行廉价实验并迭代；不由维护者喂答案，不把外部参考冒充可信记忆。GPU动态入口/真实组合/kernel及多轮RSI仍待完成，旧GPU预算不结转。
+**接下来：**审核候选的最小GPU配置/路径认证与全流程微基准请求，确认真实head/形状和数值边界后再谈收益；GPU另批，不结转旧预算。真实组合/kernel、独立dev/正常final T3及多轮RSI仍未完成，外部参考不冒充可信记忆。
 
 **已有基础：**三臂真实 server、dev验收、外部数据审计与mock闭环完成；**尚未复现论文原sealed数字或真实RSI方法结论。**
 

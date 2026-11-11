@@ -57,6 +57,17 @@ H100/Codex与Ascend/DSH是独立轨道。下面先保留Ascend既有计划，H10
 论文 sealed 参照仍为 2.13× [2.07, 2.19]，当前未独立复现该结论。
 DSH 后置，不以更换框架作为当前研究的前提。
 
+## 当前研究：知识增强的Master自主CPU实验
+
+用户批准实际调研/机会比较/Direction自主实验/反馈决策，不再只验收联网或堆编排。
+计划`docs/experiments/master-knowledge-20261111.md`，目录`logs/master-knowledge-20261111-a01/`。
+复用已有受限入口和动态Campaign；不新增GPU，不读final/sealed，不改裁判/规则/账本。
+
+- [x] 244项先行回归通过，冻结六份运行源码和30分钟/16回合/240动作/32CPU/2方向上限；前台TTY40175运行。
+- [x] Master实际读3份公开资料并比较3机会；Direction自写两项CPU检查，额度拒绝后由Master自主continue追加，2次exit0。
+- [x] Master按结果stop，2次独立原生审计一致，244项指定CPU回归通过；2角色/7回合/40动作/18CPU额度/0GPU。
+- [x] 244项公开副本复验、187文件双次全SHA封存、主页/交接及发布准备完成；同步身份见publication回执，GPU收益仍未知。
+
 ## 当前排查：Master外部知识访问
 
 用户批准排查现有公开检索/阅读的network_unavailable，先定位再最小修复；不新增GPU或代做研究。

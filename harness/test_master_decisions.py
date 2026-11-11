@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from exp.master_decisions import Campaign
+from exp.master_decisions import Campaign, research_brief
 from harness.master_decisions import DecisionState, validate_decision
 from harness.master_decisions_audit import replay_journal, verify_master_feedback, verify_runtime_sources
 from harness import skill_rsi_audit as native_audit
@@ -186,6 +186,16 @@ class BudgetDenialAuditTests(unittest.TestCase):
 
 
 class RuntimeBudgetTests(unittest.TestCase):
+    def test_knowledge_mode_uses_actual_research_without_lifting_cpu_boundaries(self):
+        rules,prompt=research_brief(True)
+        self.assertIn('自主检索',prompt)
+        self.assertIn('实际执行',prompt)
+        self.assertIn('GPU',rules)
+        self.assertNotIn('这是明确标注的历史失败反馈回顾性验证',rules)
+        old_rules,old_prompt=research_brief(False)
+        self.assertIn('这是明确标注的历史失败反馈回顾性验证',old_rules)
+        self.assertNotEqual(prompt,old_prompt)
+
     def test_direction_feedback_must_be_in_actual_next_master_prompt(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory=Path(temporary)
