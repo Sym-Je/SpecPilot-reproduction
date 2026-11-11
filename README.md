@@ -23,6 +23,11 @@ Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后30
 
 ## H100进度（2026-11-11，UTC+08）
 
+**最新完成：**[接受量上界与路径证据](docs/experiments/acceptance-headroom-20261111.md)：三份历史stock双次冻结源码复核，
+Master已获得结构上限8、有限格stock4.86/oracle6.87、树预算曲线及匹配的形状/计时，自主将在线选树列为explore。
+321项指定CPU回归、原生审计通过，1次自主CPU分析，0新增GPU；N16的16.46%成本增长门槛是条件模型，不是提速。
+**接下来：**Direction核对最小可运行D/N/树分支语义和完整成本，再评估实现；尚无真实树收益或最优预算。
+
 **最新完成：**[已有stock热点调用归因](docs/experiments/kernel-attribution-20261111.md)：新受限Master自主调用BBuf、
 核对三类GEMM，取得两条单次BF16矩阵形状线索；多数所读调用只能关联graph launch，不能认证节点模块或收益。
 1角色/4回合/20动作/0GPU，304项指定CPU回归与双次独立审计通过；尚无可信优化赢家。

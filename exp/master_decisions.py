@@ -48,7 +48,9 @@ SCHEMAS=dict(compare=dict(kind='compare',opportunities=[dict(CARD,id='opportunit
     stop=dict(kind='stop',reason='evidence and limits',based_on=[]))
 
 
-def research_brief(knowledge_research,*,prioritize_e2e=False,attribute_kernels=False):
+def research_brief(knowledge_research,*,prioritize_e2e=False,attribute_kernels=False,acceptance_headroom=False):
+    if acceptance_headroom and not prioritize_e2e:
+        raise ValueError('acceptance headroom requires end-to-end context')
     if attribute_kernels and not prioritize_e2e:
         raise ValueError('kernel attribution requires end-to-end context')
     if prioritize_e2e and not knowledge_research:
@@ -103,6 +105,31 @@ Master可自主派Direction做只读路径/成本诊断；维护者不指定模�
 若无法认证，给最小补采方案（普通计时和profile同工作量，所需标记/形状/运行路径，停止条件），
 不提交GPU；不要把需要进一步取证说成找到了优化赢家。历史profile与普通请求不能混用分母。
 所有研究判断由你自主完成；有依据stop是有效结果，但必须说明现有取证实际推进了什么。'''
+    if acceptance_headroom:
+        rules=rules.replace('已分享的stock-runtime在自己的inputs/evidence.json中，配置不等于运行路径认证。',
+            '本阶段的接受量/路径/计时在自己的inputs/evidence.json中，都是有来源的历史复用，非新GPU测量。')
+        prompt='''本阶段用户要求你依据理论接受长度上限和真实stock证据，评估draft tree/verify length，并与kernel/端到端方向公平比较。
+先读自己的inputs/evidence.json，按next_offset分页读完；三个新注册证据为acceptance-headroom、stock-graph-paths、matched-stock-costs。
+这是从以前未分享的历史stock测量中核对后提供的信息，不是维护者替你提出优化，不能算你的独立发现。
+重要：baseline/get_baseline_stats来自另一单请求；旧cap256计时不是本次10题2048cap cohort，禁止混用分母。
+profile/BBuf的stock ID现在绑定同一10题cohort的首份观测profile。已有节点关联摘要，按需调用BBuf，不机械重读所有shape页。
+先区分三层：结构极限（深D、含anchor的N节点，draft≤min(D,N-1)，含bonus进度≤min(D+1,N)）；
+当前block8/top16有限格oracle（事后知道target路径）；真实可实现接受量/端到端吞吐。
+增大树宽不自动增加深度；16/32深度的结构上限不是当前格的实测oracle，也不能外推收益。
+接受量可写E[progress]=1+sum_d P(accepted>=d)，其中是前缀存活概率，不是各位置独立准确率。
+先比较至少3个机会，覆盖verify长度、送验/树选择、kernel、端到端四维，自主查stock源码/公开资料。
+用相同cohort的tau曲线计算不同N允许的完整step成本增长门槛；只有tau(N)/T_step(N)改善才可能提升decode，
+完整请求还要纳入prefill、提交、KV/SSM维护、EOS和选树新增成本。不要按最大tau选N，不用线性成本替代真实树成本。
+历史格只按stock生成的续写评估，不是lossless证明；FP32近并列分叉和新的路径状态可能改变结果，维持这些限制。
+节点摘要是记录的operation/module type与shape/dtype，不是完整module实例或消费者依赖；95%左右覆盖也不等于关键路径覆盖。
+既有同负载普通计时/clock/profile能回答什么、不能回答什么，请逐项判定；累计work不能除以另一请求墙钟。
+对每方向给出条件上限、可实现收益未知项、新增成本、最廉价验证及优先级。不要仅因成本未知就忽略有合理空间的树/长度方向，
+也不要为了满足用户偏好断言树必然更好。研究决策由你负责，维护者不提供赢家。
+你可派Direction自主读源码/设计并执行CPU分析，自己决定继续、修订或停止；禁止直接提交GPU。
+本阶段已有1H100/1GPU小时资源上限，但CPU角色只能提出具体补采请求，可信broker另行处理，不是你获得提交权限。
+如果已有证据充分回答本次诊断，不为用完预算重复采集；若还缺数据，给出最小工作量、所需字段与停止条件，不实现优化。
+最后输出一个原决策schema的JSON对象，不把compare和stop嵌套。evidence和based_on只能用已注册ID，
+tools-NN/action-NNN来源写在文字字段，不把回执路径当注册ID。允许诚实的阴性/未知结论。'''
     return rules,prompt
 
 
@@ -184,8 +211,9 @@ class Campaign:
         self.journal.append(dict(kind='direction_feedback',id=action['id'],value=result,used=used,
             response=reference(role['directory']/f'turn-{role["number"]:02d}-response.json')))
 
-    def run(self,*,knowledge_research=False,prioritize_e2e=False,attribute_kernels=False):
-        rules,prompt=research_brief(knowledge_research,prioritize_e2e=prioritize_e2e,attribute_kernels=attribute_kernels)
+    def run(self,*,knowledge_research=False,prioritize_e2e=False,attribute_kernels=False,acceptance_headroom=False):
+        rules,prompt=research_brief(knowledge_research,prioritize_e2e=prioritize_e2e,attribute_kernels=attribute_kernels,
+            acceptance_headroom=acceptance_headroom)
         roles.COMMON=rules
         roles.ACTION_LIMIT=LIMITS['actions']
         roles.RUN_LIMITS=dict(model_turns=LIMITS['model_turns'],cpu_runs=LIMITS['cpu_runs'],gpu_attempts=0,usage_updates=512)
@@ -240,14 +268,15 @@ def main():
     parser.add_argument('--knowledge-research',action='store_true')
     parser.add_argument('--prioritize-e2e',action='store_true')
     parser.add_argument('--attribute-kernels',action='store_true')
+    parser.add_argument('--acceptance-headroom',action='store_true')
     args=parser.parse_args()
     root=args.stage.resolve()
     if (root/'result.json').exists() or (root/'master').exists():
         raise ValueError('CPU decision stage already started; never silently reset or rerun')
     root.mkdir(parents=True,exist_ok=True)
-    args.prioritize_e2e=args.prioritize_e2e or args.attribute_kernels
+    args.prioritize_e2e=args.prioritize_e2e or args.attribute_kernels or args.acceptance_headroom
     args.knowledge_research=args.knowledge_research or args.prioritize_e2e
-    evidence=prepare_evidence(root,ROOT,prioritize_e2e=args.prioritize_e2e)
+    evidence=prepare_evidence(root,ROOT,prioritize_e2e=args.prioritize_e2e,acceptance_headroom=args.acceptance_headroom)
     sources=('harness/master_decisions.py','harness/decision_evidence.py','exp/master_decisions.py')
     if args.knowledge_research:
         sources+=('harness/research_knowledge.py','harness/master_research.py','harness/skill_broker.py')
@@ -255,6 +284,9 @@ def main():
         sources+=('harness/e2e_context.py',)
     if args.attribute_kernels:
         sources+=('harness/profile_links.py','harness/research_protocol.py','harness/skill_diagnostics.py')
+    if args.acceptance_headroom:
+        sources+=('harness/acceptance_headroom.py','harness/diagnostic_archive.py','harness/graph_context.py',
+            'harness/headroom_evidence.py','harness/research_protocol.py','harness/skill_diagnostics.py')
     for name in sources:
         target=root/'runtime-source'/name
         target.parent.mkdir(parents=True,exist_ok=True)
@@ -263,6 +295,7 @@ def main():
         knowledge_research=args.knowledge_research,
         prioritize_e2e=args.prioritize_e2e,
         attribute_kernels=args.attribute_kernels,
+        acceptance_headroom=args.acceptance_headroom,
         source_pin=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         source_sha256={name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in sources},
         evidence=reference(root/'evidence.json')))
@@ -272,7 +305,7 @@ def main():
     try:
         with recorded_processes(root/'processes',closure):
             campaign.run(knowledge_research=args.knowledge_research,prioritize_e2e=args.prioritize_e2e,
-                attribute_kernels=args.attribute_kernels)
+                attribute_kernels=args.attribute_kernels,acceptance_headroom=args.acceptance_headroom)
     finally:
         save(root/'process-closure.json',closure)
 

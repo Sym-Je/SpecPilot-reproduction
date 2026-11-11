@@ -28,6 +28,16 @@ def comparison(kind='compare', based_on=None):
 
 
 class AttributionBriefTests(unittest.TestCase):
+    def test_acceptance_headroom_supplies_bounds_without_claiming_measured_tree_speedup(self):
+        with self.assertRaises(ValueError):research_brief(True,acceptance_headroom=True)
+        rules,prompt=research_brief(True,prioritize_e2e=True,acceptance_headroom=True)
+        self.assertIn('acceptance-headroom',prompt)
+        self.assertIn('含bonus进度≤min(D+1,N)',prompt)
+        self.assertIn('tau(N)/T_step(N)',prompt)
+        self.assertIn('不能外推收益',prompt)
+        self.assertIn('禁止直接提交GPU',prompt)
+        self.assertNotIn('stock-runtime在自己的',rules)
+
     def test_attribution_requires_context_and_declares_graph_and_no_gpu_limits(self):
         with self.assertRaises(ValueError): research_brief(True,attribute_kernels=True)
         rules,prompt=research_brief(True,prioritize_e2e=True,attribute_kernels=True)

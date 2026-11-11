@@ -13,7 +13,7 @@ def load(path):
     return json.loads(Path(path).read_text())
 
 
-def prepare(root, repository, *, prioritize_e2e=False):
+def prepare(root, repository, *, prioritize_e2e=False,acceptance_headroom=False):
     root,repository=Path(root).resolve(),Path(repository).resolve()
     previous=repository/'logs/master-proposal-20261111-a01'
     readiness=previous/'sp-masterprop-20261111-a01-preflight01'
@@ -47,7 +47,7 @@ def prepare(root, repository, *, prioritize_e2e=False):
     evidence=dict(initial=public,historical_feedback=feedback,feedback_source=reference(diagnostic/'feedback.json'),
         previous_request=reference(diagnostic/'request.json'),previous_audit=reference(previous/'closeout-audit-03.json'),
         baseline=reference(inputs/'baseline.json'),profile=reference(inputs/'stock-profile.json'),tools=reference(inputs/'tools.json'))
-    if prioritize_e2e:
+    if prioritize_e2e and not acceptance_headroom:
         from exp.source_resource import feedback as replay_feedback
         from harness.e2e_context import export_context
         replay_feedback(diagnostic/'remote',load(diagnostic/'request.json'))
@@ -58,6 +58,9 @@ def prepare(root, repository, *, prioritize_e2e=False):
         evidence['runtime']=dict(source=reference(inputs/'runtime-metadata.json'),profile_root=str(readiness/'remote'),
             timing_root=str(diagnostic/'remote'))
         evidence['initial']['stock-runtime']=dict(value=context,source=evidence['runtime']['source'],historical_reuse=True)
+    if acceptance_headroom:
+        from harness.headroom_evidence import attach
+        attach(root,repository,evidence)
     save(root/'evidence.json',evidence)
     return evidence
 
@@ -90,4 +93,7 @@ def verify(root):
             canonical_tree=load(evidence['baseline']['path'])['canonical_stock']['tree_sha'])
         if load(source['path'])!=expected or evidence['initial']['stock-runtime']!=dict(value=expected,source=source,historical_reuse=True):
             raise ValueError('stock runtime export differs from its raw sources')
+    if 'headroom' in evidence:
+        from harness.headroom_evidence import verify_attachment
+        verify_attachment(root,evidence)
     return evidence

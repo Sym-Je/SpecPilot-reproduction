@@ -111,6 +111,30 @@ stock在0.7/1.0采样正常；固定final完成两次greedy后，首次0.7请求
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
 > 最后更新：2026-11-10 北京时间（真实stock参数探索与两份dev联合验收通过，Master主动停止；完整RSI未完成）。
 
+## H100最新研究：接受量上界与匹配路径证据（已收口）
+
+用户批准验证，并要求给Master理论最大可能接受长度，支持draft tree/verify length研究。
+方案`docs/experiments/acceptance-headroom-20261111.md`，目录`logs/acceptance-headroom-20261111-a01/`。
+新1H100/1GPU小时/2小时及既有镜像/WeaverDev/qiji/只读挂载/priority重新确认；尚未新增GPU提交。
+三份旧stock证据已用各自冻结源码CPU audit通过（a02 lattice、b07 mapping、b06 timing），没有改旧报告或重启任务。
+结构极限：D草稿深度/含anchor的N节点，每步含bonus进度≤min(D+1,N)；当前block8至多8。
+同10题/两轮旧格stock4.860407、格内oracle6.873736，best-first N8/16/32/64/128分别
+5.050984/5.660493/5.987720/6.224789/6.426686；不是全局极限、线上可用oracle或实测加速。
+旧b07摘要核对8capture/4123节点；10份运行trace中2725272/2865081 kernel有记录ID关联。
+原始完整摘要保留；只向角色提供静态模块类型/张量shape与dtype白名单，不提供token/完整轨迹。
+匹配b06两轮与b07同题/输出，2048cap；CPU clock decode均值24.027741ms、含prefill摊销24.421937ms。
+没有完整消费者/模块实例FQN、critical path或真实树全step成本，不能把这些数直接写成提速。
+Master自主完成四维比较、公开检索/stock阅读/自写CPU成本分析，将在线选树列为explore。
+1角色/3原生回合/19动作/9CPU额度/1脚本，约349.1秒；没有Direction、BBuf新调用、GPU或优化实现。
+N16条件进度比1.164613，只给完整step成本增长<16.46%的情景门槛，不是block16或真实树收益。
+收到旧负反馈后stop，原TTY44921已exit0，不重启；三份producer复算及graph摘要双次一致。
+321项指定及公开副本回归、双次原生审计通过，2实际进程exit0；停止后补强clock逐请求/轮次对应，原13启动源码保留，不热加载。
+下一步仅审核Direction的最小D/N/分支语义和完整成本验证；没有现成树路径就先报告，不把线性链当树。
+本阶段0新增GPU/0待提交任务，避免重复初始化；已确认但未用的额度不自动结转。
+自身inputs/脚本/config/canary归档，不复制auth；原始绝对路径不改写，临时目录清理后须按来源显式恢复。
+公开只本阶段白名单源码/测试/摘要，47份旧dirty保留；SHA清单与发布身份见独立publication回执。
+不改controller/规则/账本，不读final/sealed，不接管Ascend；47份旧dirty保持，本阶段仅新增通用证据出口。
+
 ## H100最新研究：已有stock热点调用归因（已收口，尚无赢家）
 
 用户批准仅CPU接续：先自主关联既有trace与stock调用路径，再评估缺失证据，不自动提交GPU。
