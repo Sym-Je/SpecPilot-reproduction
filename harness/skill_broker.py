@@ -42,6 +42,14 @@ class SkillAccess:
     def dispatch(self, work, action, record):
         if not isinstance(action, dict):
             raise ValueError('structured action required')
+        if action.get('kind') == 'help':
+            answer=dispatch(work,action,record)
+            catalog=self.dispatch(work,dict(kind='list_skills'),record)
+            answer.update({key:value for key,value in catalog.items() if key!='actions'})
+            answer['actions'].update(list_skills=dict(kind='list_skills'),
+                run_skill=dict(kind='run_skill',skill='profiler',evidence='<authorized evidence ID>'),
+                read_profile_shapes=catalog['actions']['read_profile_shapes']['schema'])
+            return answer
         if action.get('kind') == 'list_skills':
             if set(action) != {'kind'}:
                 raise ValueError('list_skills accepts no paths or options')

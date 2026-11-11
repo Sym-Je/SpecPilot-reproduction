@@ -13,7 +13,7 @@ def load(path):
     return json.loads(Path(path).read_text())
 
 
-def prepare(root, repository):
+def prepare(root, repository, *, prioritize_e2e=False):
     root,repository=Path(root).resolve(),Path(repository).resolve()
     previous=repository/'logs/master-proposal-20261111-a01'
     readiness=previous/'sp-masterprop-20261111-a01-preflight01'
@@ -30,6 +30,7 @@ def prepare(root, repository):
     save(inputs/'baseline.json',baseline)
     save(inputs/'stock-profile.json',load(previous/'initial-profile-input.json'))
     save(inputs/'tools.json',load(previous/'tools.json'))
+    save(root/'tools.json',load(inputs/'tools.json'))
     candidate=dict(option_id=patch['option_id'],paths=[edit['path'] for edit in patch['edits']],
         mechanism='Historical stock accept/bonus scalar-prefix loop replaced with vector first-mismatch reduction',
         source=reference(diagnostic/'patch.json'),
@@ -46,6 +47,17 @@ def prepare(root, repository):
     evidence=dict(initial=public,historical_feedback=feedback,feedback_source=reference(diagnostic/'feedback.json'),
         previous_request=reference(diagnostic/'request.json'),previous_audit=reference(previous/'closeout-audit-03.json'),
         baseline=reference(inputs/'baseline.json'),profile=reference(inputs/'stock-profile.json'),tools=reference(inputs/'tools.json'))
+    if prioritize_e2e:
+        from exp.source_resource import feedback as replay_feedback
+        from harness.e2e_context import export_context
+        replay_feedback(diagnostic/'remote',load(diagnostic/'request.json'))
+        context=export_context(readiness/'remote',diagnostic/'remote',canonical_tree=baseline['canonical_stock']['tree_sha'])
+        if len(context['normal_requests'])!=10:
+            raise ValueError('the authorized two-round stock timing set is incomplete')
+        save(inputs/'runtime-metadata.json',context)
+        evidence['runtime']=dict(source=reference(inputs/'runtime-metadata.json'),profile_root=str(readiness/'remote'),
+            timing_root=str(diagnostic/'remote'))
+        evidence['initial']['stock-runtime']=dict(value=context,source=evidence['runtime']['source'],historical_reuse=True)
     save(root/'evidence.json',evidence)
     return evidence
 
@@ -53,6 +65,8 @@ def prepare(root, repository):
 def verify(root):
     root=Path(root).resolve()
     evidence=load(root/'evidence.json')
+    if (root/'tools.json').exists() and load(root/'tools.json')!=load(root/'inputs/tools.json'):
+        raise ValueError('canonical audit tool lock differs from the authorized inputs')
     for key in ('feedback_source','previous_request','previous_audit','baseline','profile','tools'):
         expected=evidence[key]
         path=Path(expected['path'])
@@ -67,4 +81,13 @@ def verify(root):
         raise ValueError('historical public patch identity changed')
     if load(evidence['baseline']['path'])['aggregate']!=evidence['initial']['baseline']['aggregate']:
         raise ValueError('baseline opportunity map was altered')
+    if 'runtime' in evidence:
+        from harness.e2e_context import export_context
+        context=evidence['runtime'];source=context['source']
+        if reference(source['path'])!=source:
+            raise ValueError('exported stock runtime metadata changed')
+        expected=export_context(context['profile_root'],context['timing_root'],
+            canonical_tree=load(evidence['baseline']['path'])['canonical_stock']['tree_sha'])
+        if load(source['path'])!=expected or evidence['initial']['stock-runtime']!=dict(value=expected,source=source,historical_reuse=True):
+            raise ValueError('stock runtime export differs from its raw sources')
     return evidence

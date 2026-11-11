@@ -23,6 +23,11 @@ Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后30
 
 ## H100进度（2026-11-11，UTC+08）
 
+**最新收益诊断：**[Master端到端优先级评估](docs/experiments/master-e2e-priority-20261111.md)：核对4机会，
+草稿上限7→6的条件完整step节省门槛7.2941%；选择改善的1.524706仅为单请求/固定成本的理想解码比值。
+LM-head省logits不等于省权重或投影FLOP。修复help遗漏后，原Master有来源接续并自主调用BBuf，未扩额。
+265项指定回归、双次联合审计通过，0GPU；**尚未排出可信端到端优化赢家**，下一步先取证高耗时GEMM路径与暴露时间。
+
 **最新研究：**[知识增强Master自主CPU研究](docs/experiments/master-knowledge-20261111.md)：Master读3份公开资料，
 比较3机会并选择draft greedy的LM-head→argmax物化诊断；Direction额度耗尽后，Master自主续派，
 2次自写CPU检查exit0，核对有限标量归约/padding/并列等语义，最终有依据stop。244项指定回归、双次原生审计通过。
@@ -143,9 +148,9 @@ Kernel自主补采/BBuf后因路径证据不足停止，Integration无共享候�
 
 **本轮完成：**[按需stock profile与自主诊断](docs/experiments/stock-profile-autonomy-20261111.md)：6科学角色自主收口、5次BBuf调用；两项源码候选为0.89126×和0.99875×，均无可信收益。250项指定CPU检查、公开源码副本和两次独立审计通过；六任务全终态，含失败2.01833 GPU小时，无晋升或完整RSI。
 
-**正在做：**知识增强CPU研究已收口，Master/Direction退出；没有活动研究或新增GPU任务。
+**正在做：**端到端收益诊断及接口澄清复核已停止，进程退出；没有后台研究或新增GPU。
 
-**接下来：**审核候选的最小GPU配置/路径认证与全流程微基准请求，确认真实head/形状和数值边界后再谈收益；GPU另批，不结转旧预算。真实组合/kernel、独立dev/正常final T3及多轮RSI仍未完成，外部参考不冒充可信记忆。
+**接下来：**先关联同工作量的高耗时GEMM模块/路径、完整step与暴露时间，再按端到端净收益选方向；不直接实现logits融合，不把信息优先级当优化赢家。确需GPU补采另批，真实组合/kernel、独立dev/正常final T3及多轮RSI仍未完成。
 
 **已有基础：**三臂真实 server、dev验收、外部数据审计与mock闭环完成；**尚未复现论文原sealed数字或真实RSI方法结论。**
 

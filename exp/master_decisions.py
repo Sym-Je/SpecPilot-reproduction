@@ -48,7 +48,9 @@ SCHEMAS=dict(compare=dict(kind='compare',opportunities=[dict(CARD,id='opportunit
     stop=dict(kind='stop',reason='evidence and limits',based_on=[]))
 
 
-def research_brief(knowledge_research):
+def research_brief(knowledge_research,*,prioritize_e2e=False):
+    if prioritize_e2e and not knowledge_research:
+        raise ValueError('end-to-end priority requires knowledge research mode')
     if not knowledge_research:
         return RULES,'比较至少两个具体研究机会，并评估四个维度；未知收益可保留未知。首次比较后可信层会给历史失败反馈。'
     rules=RULES.replace('这是明确标注的历史失败反馈回顾性验证，不是新GPU测量或独立发现，也不代表量化预测能力已证明。\n',
@@ -69,6 +71,22 @@ Master自己的上限为96动作/16CPU；派发前为Direction实际运行及可
 不要为满足执行指标做无解释力的算术；若关键问题只能GPU检验，返回具体资源需求和原因，禁止提交。
 实验后自主决定修改、继续、换方向或停止，允许阴性结论；不能把工具限制或CPU代理指标当真实收益。
 维护者不提供优化答案，不替角色调研、设计科学实验或编写实验脚本。'''
+    if prioritize_e2e:
+        rules+='本轮只做端到端收益诊断，不实现优化；已分享的stock-runtime在自己的inputs/evidence.json中，配置不等于运行路径认证。\n'
+        prompt='''本轮先评估潜在端到端净收益，再选择最值得研究的方向，不以容易CPU验证作为优化优先级。
+自主阅读stock-runtime中的原始配置/普通计时、基线计数和profile，按需调用BBuf、read_profile_shapes、源码及公开知识。
+先比较至少3个机会并覆盖验证长度、送验token、kernel、端到端四维。每项在potential_gain/added_cost/cheapest_check中
+写明数据来源、能减少的工作、整请求收益理想上限、现实条件范围、新增开销、置信程度与最小取证成本。
+不能把累计kernel work或不同请求的profile/普通计时相除当关键路径占比；normal_requests与profile不是同工作量。
+静态模型配置可用于字节/FLOP算术，但实际路径、dtype、复用、overlap和暴露时间未经认证，不能冒充实测f。
+对可计算部分给可复现数值/条件区间或盈亏阈值，未知部分明确unknown，不用虚构区间掩盖缺证据。
+固定工作量的局部优化可用S=1/((1-f)+f/r+h)，f是暴露时间份额，r为局部加速，h为相对总时新增开销。
+改变接受量则同时建模每步进度与完整step成本，并纳入prefill/请求长度，不能把省字节、局部加速和接受量重复计算。
+Master可自己编写/运行隔离CPU收益模型，或派Direction做成本/暴露路径诊断，不重复穷举归约语义凑结果。
+历史负反馈在首次比较后提供，仅用于相关旧机制。上轮logits融合并非已证明有收益，本轮不默认继续它。
+优化优先级按可信可实现净收益排序；若无法排出可靠赢家，明确区分信息获取优先级与优化优先级，提出最小补采。
+只有证据支持足够端到端空间才建议后续实现；关键计时/形状只能GPU获取时列具体请求，不提交任务。
+最后对比哪些机会值得继续、哪些应降级，以及哪些结论仍无法成立；不要求完整ceiling，不编造性能数字。'''
     return rules,prompt
 
 
@@ -150,8 +168,8 @@ class Campaign:
         self.journal.append(dict(kind='direction_feedback',id=action['id'],value=result,used=used,
             response=reference(role['directory']/f'turn-{role["number"]:02d}-response.json')))
 
-    def run(self,*,knowledge_research=False):
-        rules,prompt=research_brief(knowledge_research)
+    def run(self,*,knowledge_research=False,prioritize_e2e=False):
+        rules,prompt=research_brief(knowledge_research,prioritize_e2e=prioritize_e2e)
         roles.COMMON=rules
         roles.ACTION_LIMIT=LIMITS['actions']
         roles.RUN_LIMITS=dict(model_turns=LIMITS['model_turns'],cpu_runs=LIMITS['cpu_runs'],gpu_attempts=0,usage_updates=512)
@@ -204,21 +222,26 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--stage',type=Path,required=True)
     parser.add_argument('--knowledge-research',action='store_true')
+    parser.add_argument('--prioritize-e2e',action='store_true')
     args=parser.parse_args()
     root=args.stage.resolve()
     if (root/'result.json').exists() or (root/'master').exists():
         raise ValueError('CPU decision stage already started; never silently reset or rerun')
     root.mkdir(parents=True,exist_ok=True)
-    evidence=prepare_evidence(root,ROOT)
+    args.knowledge_research=args.knowledge_research or args.prioritize_e2e
+    evidence=prepare_evidence(root,ROOT,prioritize_e2e=args.prioritize_e2e)
     sources=('harness/master_decisions.py','harness/decision_evidence.py','exp/master_decisions.py')
     if args.knowledge_research:
         sources+=('harness/research_knowledge.py','harness/master_research.py','harness/skill_broker.py')
+    if args.prioritize_e2e:
+        sources+=('harness/e2e_context.py',)
     for name in sources:
         target=root/'runtime-source'/name
         target.parent.mkdir(parents=True,exist_ok=True)
         target.write_bytes((ROOT/name).read_bytes())
     save(root/'manifest.json',dict(schema='cpu-master-decisions-v1',gpu_budget=0,limits=LIMITS,
         knowledge_research=args.knowledge_research,
+        prioritize_e2e=args.prioritize_e2e,
         source_pin=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         source_sha256={name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in sources},
         evidence=reference(root/'evidence.json')))
@@ -227,7 +250,7 @@ def main():
     campaign=Campaign(root,evidence)
     try:
         with recorded_processes(root/'processes',closure):
-            campaign.run(knowledge_research=args.knowledge_research)
+            campaign.run(knowledge_research=args.knowledge_research,prioritize_e2e=args.prioritize_e2e)
     finally:
         save(root/'process-closure.json',closure)
 

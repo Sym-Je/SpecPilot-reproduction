@@ -186,6 +186,15 @@ class BudgetDenialAuditTests(unittest.TestCase):
 
 
 class RuntimeBudgetTests(unittest.TestCase):
+    def test_e2e_mode_prioritizes_net_benefit_not_an_easy_experiment(self):
+        rules,prompt=research_brief(True,prioritize_e2e=True)
+        self.assertIn('端到端',prompt)
+        self.assertIn('上限',prompt)
+        self.assertIn('不能把累计kernel',prompt)
+        self.assertIn('先评估',prompt)
+        self.assertIn('GPU',rules)
+        self.assertNotIn('可读inputs/runtime-metadata.json',rules)
+
     def test_knowledge_mode_uses_actual_research_without_lifting_cpu_boundaries(self):
         rules,prompt=research_brief(True)
         self.assertIn('自主检索',prompt)

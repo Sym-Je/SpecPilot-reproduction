@@ -55,6 +55,17 @@ class SkillRsiTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             SkillAccess('controller', {}, self.tools, self.root / 'cache')
 
+    def test_help_exposes_exact_skill_and_shape_actions_without_running_them(self):
+        with patch('harness.skill_broker.analyze') as analyze:
+            result=self.access.dispatch(self.work,{'kind':'help'},self.root/'help')
+        self.assertEqual(result['evidence'],['stock'])
+        self.assertIn('profiler',result['skills'])
+        self.assertEqual(result['actions']['run_skill'],dict(kind='run_skill',skill='profiler',evidence='<authorized evidence ID>'))
+        self.assertEqual(result['actions']['read_profile_shapes'],dict(kind='read_profile_shapes',evidence='<authorized evidence ID>',offset=0))
+        self.assertIn('read_file',result['actions'])
+        self.assertFalse(result['arbitrary_shell'])
+        analyze.assert_not_called()
+
     def test_unknown_evidence_or_shell_parameters_rejected_before_execution(self):
         for action in ({'kind': 'run_skill', 'skill': 'compute', 'evidence': 'other-direction'},
                        {'kind': 'run_skill', 'skill': 'shell', 'evidence': 'stock'},

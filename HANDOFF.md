@@ -111,6 +111,29 @@ stock在0.7/1.0采样正常；固定final完成两次greedy后，首次0.7请求
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
 > 最后更新：2026-11-10 北京时间（真实stock参数探索与两份dev联合验收通过，Master主动停止；完整RSI未完成）。
 
+## H100最新诊断：Master端到端收益优先级（已停止，尚无可信赢家）
+
+用户批准先评估端到端净收益再选方向，GPU0。报告`docs/experiments/master-e2e-priority-20261111.md`，
+目录`logs/master-e2e-priority-20261111-a01/`。已有stock两模型配置/完整启动参数校验后的白名单和10条普通
+stock计时已提供，与另一profile工作量分开；没有暴露prompt/输出IDs/其他方向私有推理或作者final。
+原Master计算4机会并stop：草稿7→6条件完整step节省门槛7.2941%；固定成本理想解码进度比1.524706；
+head logits省几MB不代表省GB级权重读取；旧accept归约维持defer。现实整请求收益与f仍unknown。
+
+发现help遗漏准确BBuf/shape API，维护者修复说明及不存在的独立runtime文件提示；不扩权限。
+原stop不改，安排一次明确标注的原Master逻辑接续，新原生会话只复用自身上下文，剩余64动作/2CPU不重置。
+复核自主调用BBuf一次，90047 kernel/累计work2.324s，最大GEMM约0.700s；不当作请求墙钟或暴露份额。
+维持stop：信息优先级收敛为高累计work GEMM的模块/dtype/消费者/graph路径和同负载阶段分时，
+**未排出可信优化赢家**，不直接推进logits融合。没有Direction/引擎option/GPU/lossless/晋升或可信memory。
+
+合计2原生Master会话（1逻辑Master，有维护者接口澄清来源）、4回合/37动作/15CPU/1脚本/1BBuf；
+从研究起点至复核结束约1189.6秒，未超原96动作/16CPU和30分钟上限。4个初始化/角色进程分父registry、均exit0。
+265项指定CPU回归，combined-audit04/05一致；原始7源码快照及复核7源码版本分别保存，停止后修复不假称热加载。
+审计工具锁/缓存作字节一致副本供旧独立审计器使用，原缓存/原生回执保留。11份自身context持久化，不复制auth。
+TTY6160、94541均已退出，不能重启旧脚本；临时路径清理后按归档显式恢复。
+下一步只审核最小同工作量路径归因/暴露时间诊断，优先复用可关联的已有trace，确需GPU再确认预算/镜像。
+不重提旧任务，不结转预算，不读final/sealed，不改裁判/规则/账本，不接管Ascend；旧ceiling等dirty保留。
+公开只本阶段白名单源码/摘要，最后提交/远端身份以publication回执为准；不能把工程收口写成找到好优化。
+
 ## H100最新研究：知识增强Master自主CPU实验（已收口）
 
 用户批准实际调研→比较→Direction实验→Master决策，仅CPU，无新增GPU授权。
