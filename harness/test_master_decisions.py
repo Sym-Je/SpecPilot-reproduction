@@ -27,6 +27,20 @@ def comparison(kind='compare', based_on=None):
         reason='Compare the least expensive evidence before implementation', based_on=based_on or [])
 
 
+class AttributionBriefTests(unittest.TestCase):
+    def test_attribution_requires_context_and_declares_graph_and_no_gpu_limits(self):
+        with self.assertRaises(ValueError): research_brief(True,attribute_kernels=True)
+        rules,prompt=research_brief(True,prioritize_e2e=True,attribute_kernels=True)
+        self.assertIn('GPU授权为零',rules)
+        self.assertIn('read_kernel_links',prompt)
+        self.assertIn('graph launch的CPU形状不能转给graph node',prompt)
+        self.assertIn('不提交GPU',prompt)
+
+    def test_default_mode_does_not_silently_enable_attribution(self):
+        rules,prompt=research_brief(True,prioritize_e2e=True)
+        self.assertNotIn('read_kernel_links',prompt)
+
+
 class MasterDecisionTests(unittest.TestCase):
     def setUp(self):
         self.state=DecisionState({'baseline':dict(scope='synthetic fixture')})

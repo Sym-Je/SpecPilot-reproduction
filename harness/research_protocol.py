@@ -5,7 +5,7 @@ from pathlib import Path
 
 from harness.research_tools import dispatch
 
-CPU_ACTIONS = frozenset(('run_python', 'run_skill', 'read_profile_shapes', 'search_stock',
+CPU_ACTIONS = frozenset(('run_python', 'run_skill', 'read_profile_shapes', 'read_kernel_links', 'search_stock',
                          'search_public', 'read_public', 'get_baseline_stats', 'estimate_scenario'))
 
 class ResearchBroker:

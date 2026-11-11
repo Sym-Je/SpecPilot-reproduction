@@ -23,6 +23,11 @@ Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后30
 
 ## H100进度（2026-11-11，UTC+08）
 
+**最新完成：**[已有stock热点调用归因](docs/experiments/kernel-attribution-20261111.md)：新受限Master自主调用BBuf、
+核对三类GEMM，取得两条单次BF16矩阵形状线索；多数所读调用只能关联graph launch，不能认证节点模块或收益。
+1角色/4回合/20动作/0GPU，304项指定CPU回归与双次独立审计通过；尚无可信优化赢家。
+**接下来：**审核同工作量计时/阶段边界与capture→replay节点映射的最小补采；预算另批，不先实现优化。
+
 **最新收益诊断：**[Master端到端优先级评估](docs/experiments/master-e2e-priority-20261111.md)：核对4机会，
 草稿上限7→6的条件完整step节省门槛7.2941%；选择改善的1.524706仅为单请求/固定成本的理想解码比值。
 LM-head省logits不等于省权重或投影FLOP。修复help遗漏后，原Master有来源接续并自主调用BBuf，未扩额。

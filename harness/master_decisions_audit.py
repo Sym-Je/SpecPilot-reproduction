@@ -5,6 +5,7 @@ from collections import Counter
 import json
 from pathlib import Path
 import time
+import tempfile
 
 from controller.phase4_final import trusted_metadata, validate_shutdown
 from exp import autonomy
@@ -126,13 +127,20 @@ def audit(root):
         for ordinal,value in values.items():
             path=directory/f'turn-{ordinal[1]:02d}-response.json'
             responses[str(path)]=value
-        access=MasterAccess(role['kind'],{},root/'inputs/tools.json',root/'skill-cache',
+        access=MasterAccess(role['kind'],{'stock':root/'inputs/stock-profile.json'},root/'inputs/tools.json',root/'skill-cache',
             baseline_loader=lambda:load(root/'inputs/baseline.json'),stock=autonomy.STOCK)
         for path in sorted(directory.glob('tools-*/action-*/request.json')):
             action=load(path)['arguments']['action']; returned=load(path.parent/'response.json')
             if action.get('kind') in KINDS and returned['success']:
                 answer=json.loads(returned['contentItems'][0]['text'])
                 replay_tool(action,answer,path.parent/'execution',access)
+                tool_replays[action['kind']]+=1
+            if action.get('kind') in ('read_kernel_links','read_profile_shapes') and returned['success']:
+                answer=json.loads(returned['contentItems'][0]['text'])
+                require(load(path.parent/'execution/result.json')==answer,'recorded profile observation differs')
+                with tempfile.TemporaryDirectory(prefix='stock-observation-audit-') as temporary:
+                    expected=access.dispatch(Path(temporary),action,Path(temporary)/'execution')
+                require(answer==expected,'profile observation differs from authorized trace replay')
                 tool_replays[action['kind']]+=1
     require(len({role['thread'] for role in roles})==len(roles),'native thread crossed research roles')
     used_responses=set()

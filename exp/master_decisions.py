@@ -48,7 +48,9 @@ SCHEMAS=dict(compare=dict(kind='compare',opportunities=[dict(CARD,id='opportunit
     stop=dict(kind='stop',reason='evidence and limits',based_on=[]))
 
 
-def research_brief(knowledge_research,*,prioritize_e2e=False):
+def research_brief(knowledge_research,*,prioritize_e2e=False,attribute_kernels=False):
+    if attribute_kernels and not prioritize_e2e:
+        raise ValueError('kernel attribution requires end-to-end context')
     if prioritize_e2e and not knowledge_research:
         raise ValueError('end-to-end priority requires knowledge research mode')
     if not knowledge_research:
@@ -87,6 +89,20 @@ Master可自己编写/运行隔离CPU收益模型，或派Direction做成本/暴
 优化优先级按可信可实现净收益排序；若无法排出可靠赢家，明确区分信息获取优先级与优化优先级，提出最小补采。
 只有证据支持足够端到端空间才建议后续实现；关键计时/形状只能GPU获取时列具体请求，不提交任务。
 最后对比哪些机会值得继续、哪些应降级，以及哪些结论仍无法成立；不要求完整ceiling，不编造性能数字。'''
+    if attribute_kernels:
+        prompt+='''
+本阶段重点是补齐上一轮缺失的热点调用证据，不重复上一轮条件算术或语义穷举，不实现任何优化。
+先用已有stock profile/BBuf自主确定高累计work GEMM，再用read_kernel_links检查真实记录的correlation、
+External id、graph replay与CPU算子关联；用read_profile_shapes和stock源码逐项核对模块/形状/dtype/次数。
+read_kernel_links精确schema见help，kernel须为trace原名；offset是匹配kernel调用的偏移，每页8条。
+调用记录的ID匹配不是完整路径认证；graph launch的CPU形状不能转给graph node，静态源码不能证明实际分支。
+已有trace可能记录不足，允许先确定能证明什么、不能证明什么；不要求翻完所有调用页，不反复扫相同资料耗尽预算。
+Master可自主派Direction做只读路径/成本诊断；维护者不指定模块归属，不提供研究答案。
+在compare/revise/stop或Direction报告中明确给出：kernel原名、数量/累计work、证据回执、
+模块/形状/dtype/消费者各自的置信边界、暴露时间是否可得、现实端到端收益能否排序。
+若无法认证，给最小补采方案（普通计时和profile同工作量，所需标记/形状/运行路径，停止条件），
+不提交GPU；不要把需要进一步取证说成找到了优化赢家。历史profile与普通请求不能混用分母。
+所有研究判断由你自主完成；有依据stop是有效结果，但必须说明现有取证实际推进了什么。'''
     return rules,prompt
 
 
@@ -168,8 +184,8 @@ class Campaign:
         self.journal.append(dict(kind='direction_feedback',id=action['id'],value=result,used=used,
             response=reference(role['directory']/f'turn-{role["number"]:02d}-response.json')))
 
-    def run(self,*,knowledge_research=False,prioritize_e2e=False):
-        rules,prompt=research_brief(knowledge_research,prioritize_e2e=prioritize_e2e)
+    def run(self,*,knowledge_research=False,prioritize_e2e=False,attribute_kernels=False):
+        rules,prompt=research_brief(knowledge_research,prioritize_e2e=prioritize_e2e,attribute_kernels=attribute_kernels)
         roles.COMMON=rules
         roles.ACTION_LIMIT=LIMITS['actions']
         roles.RUN_LIMITS=dict(model_turns=LIMITS['model_turns'],cpu_runs=LIMITS['cpu_runs'],gpu_attempts=0,usage_updates=512)
@@ -223,11 +239,13 @@ def main():
     parser.add_argument('--stage',type=Path,required=True)
     parser.add_argument('--knowledge-research',action='store_true')
     parser.add_argument('--prioritize-e2e',action='store_true')
+    parser.add_argument('--attribute-kernels',action='store_true')
     args=parser.parse_args()
     root=args.stage.resolve()
     if (root/'result.json').exists() or (root/'master').exists():
         raise ValueError('CPU decision stage already started; never silently reset or rerun')
     root.mkdir(parents=True,exist_ok=True)
+    args.prioritize_e2e=args.prioritize_e2e or args.attribute_kernels
     args.knowledge_research=args.knowledge_research or args.prioritize_e2e
     evidence=prepare_evidence(root,ROOT,prioritize_e2e=args.prioritize_e2e)
     sources=('harness/master_decisions.py','harness/decision_evidence.py','exp/master_decisions.py')
@@ -235,6 +253,8 @@ def main():
         sources+=('harness/research_knowledge.py','harness/master_research.py','harness/skill_broker.py')
     if args.prioritize_e2e:
         sources+=('harness/e2e_context.py',)
+    if args.attribute_kernels:
+        sources+=('harness/profile_links.py','harness/research_protocol.py','harness/skill_diagnostics.py')
     for name in sources:
         target=root/'runtime-source'/name
         target.parent.mkdir(parents=True,exist_ok=True)
@@ -242,6 +262,7 @@ def main():
     save(root/'manifest.json',dict(schema='cpu-master-decisions-v1',gpu_budget=0,limits=LIMITS,
         knowledge_research=args.knowledge_research,
         prioritize_e2e=args.prioritize_e2e,
+        attribute_kernels=args.attribute_kernels,
         source_pin=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         source_sha256={name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in sources},
         evidence=reference(root/'evidence.json')))
@@ -250,7 +271,8 @@ def main():
     campaign=Campaign(root,evidence)
     try:
         with recorded_processes(root/'processes',closure):
-            campaign.run(knowledge_research=args.knowledge_research,prioritize_e2e=args.prioritize_e2e)
+            campaign.run(knowledge_research=args.knowledge_research,prioritize_e2e=args.prioritize_e2e,
+                attribute_kernels=args.attribute_kernels)
     finally:
         save(root/'process-closure.json',closure)
 

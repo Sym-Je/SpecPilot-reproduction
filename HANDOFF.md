@@ -111,6 +111,23 @@ stock在0.7/1.0采样正常；固定final完成两次greedy后，首次0.7请求
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
 > 最后更新：2026-11-10 北京时间（真实stock参数探索与两份dev联合验收通过，Master主动停止；完整RSI未完成）。
 
+## H100最新研究：已有stock热点调用归因（已收口，尚无赢家）
+
+用户批准仅CPU接续：先自主关联既有trace与stock调用路径，再评估缺失证据，不自动提交GPU。
+方案`docs/experiments/kernel-attribution-20261111.md`，目录`logs/kernel-attribution-20261111-a01/`。
+新增只读`read_kernel_links`，只输出授权trace的有界ID/CPU形状类型观察，不导出原始栈或Concrete Inputs，
+graph replay禁止将launch CPU形状当节点形状。最终304项指定回归与两次独立审计通过；TTY22957已exit0，不重启。
+Master自主完成1次BBuf、4次kernel关联/4次shape读取、stock源码核对，1角色/4回合/20动作/13CPU额度。
+前两次schema/来源引用拒绝后自行重交；比较四维、收到历史负反馈后stop，没有Direction或自写CPU脚本。
+三类GEMM为5658/5740/165次、累计700161.864/363979.396/139303.399us；多数已读样本只有graph launch。
+两条非graph单次ID关联记录BF16[8,25600]×[25600,5120]及[1,5120]×[5120,248320]，
+只支持project_target_hidden/词表投影线索，不认证其他同名调用、模块、设备dtype、消费者或关键路径。
+仍无可信优化赢家；取证优先级为节点映射/词表消费者，非收益排序。没有引擎option、lossless或晋升。
+2个初始化/角色进程exit0，0新增GPU；十份启动源码保留，停止后补强非aten重复ID歧义处理，未热加载。
+原始研究版/收尾版分开归档并重放，304项公开副本复验通过；旧47份dirty有身份记录，保持44份非文档SHA。
+下一步只审核同工作量普通计时/profile、阶段/进度边界与capture→replay映射的最小补采；预算另批。
+不读final/sealed，不改裁判/规则/账本，不接管Ascend；归档/发布身份以本阶段独立publication回执为准。
+
 ## H100最新诊断：Master端到端收益优先级（已停止，尚无可信赢家）
 
 用户批准先评估端到端净收益再选方向，GPU0。报告`docs/experiments/master-e2e-priority-20261111.md`，

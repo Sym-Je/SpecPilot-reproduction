@@ -48,19 +48,44 @@ class SkillAccess:
             answer.update({key:value for key,value in catalog.items() if key!='actions'})
             answer['actions'].update(list_skills=dict(kind='list_skills'),
                 run_skill=dict(kind='run_skill',skill='profiler',evidence='<authorized evidence ID>'),
-                read_profile_shapes=catalog['actions']['read_profile_shapes']['schema'])
+                read_profile_shapes=catalog['actions']['read_profile_shapes']['schema'],
+                read_kernel_links=dict(kind='read_kernel_links',evidence='<authorized evidence ID>',kernel='<exact kernel name>',offset=0))
             return answer
         if action.get('kind') == 'list_skills':
             if set(action) != {'kind'}:
                 raise ValueError('list_skills accepts no paths or options')
             return dict(status='completed', role=self.role, skills=CATALOG,
                 evidence=list(self.evidence), arbitrary_shell=False, gpu_submission_allowed=False,
-                actions=dict(read_profile_shapes=dict(
+                actions=dict(read_kernel_links=dict(schema=dict(kind='read_kernel_links',
+                    evidence='<authorized evidence ID>',kernel='<exact kernel name>',offset=0),
+                    page_size=8,cpu_runs_per_call=1,scope='Recorded IDs only, no graph-node attribution.'),
+                    read_profile_shapes=dict(
                     schema=dict(kind='read_profile_shapes', evidence='<authorized evidence ID>', offset=0),
                     page_size=16, cpu_runs_per_call=1, additional_fields_allowed=False,
                     offset_rule='Nonnegative integer, not bool; follow next_offset until null. '
                                 'Offset equal to total_signatures returns an empty page; larger offsets reject.',
                     scope='Authorized profile-only CPU event observations; never certified cost-model inputs.')))
+        if action.get('kind') == 'read_kernel_links':
+            from harness.profile_links import observed_kernel_links
+            if set(action) != {'kind','evidence','kernel','offset'}:
+                raise ValueError('read_kernel_links accepts only evidence, exact kernel and offset')
+            identity=action['evidence']
+            if not isinstance(identity,str) or identity not in self.evidence:
+                raise ValueError('profile evidence is not authorized for this role')
+            manifest_path=Path(self.evidence[identity])
+            manifest=json.loads(manifest_path.read_text())
+            trace,config,shape=checked_manifest(manifest)
+            if manifest['protocol'] != PROFILE_ONLY_PROTOCOL:
+                raise ValueError('read_kernel_links requires explicit profile-only evidence')
+            facts=observed_kernel_links(read_trace(trace),manifest['trace']['sha256'],action['kernel'],action['offset'])
+            checked_manifest(manifest)
+            answer=dict(status='completed',kind='read_kernel_links',role=self.role,evidence=identity,
+                manifest_sha256=sha256(manifest_path),observations=facts,gpu_submissions=0,
+                scope='Read-only recorded IDs, not source ownership or controller acceptance.')
+            target=Path(record)
+            target.mkdir(parents=True,exist_ok=False)
+            write_json(target/'result.json',answer)
+            return answer
         if action.get('kind') == 'read_profile_shapes':
             if set(action) != {'kind', 'evidence', 'offset'}:
                 raise ValueError('read_profile_shapes accepts only an authorized evidence ID and offset')

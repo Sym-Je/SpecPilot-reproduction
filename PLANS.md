@@ -57,6 +57,20 @@ H100/Codex与Ascend/DSH是独立轨道。下面先保留Ascend既有计划，H10
 论文 sealed 参照仍为 2.13× [2.07, 2.19]，当前未独立复现该结论。
 DSH 后置，不以更换框架作为当前研究的前提。
 
+## 当前研究：已有stock热点调用归因
+
+用户批准按已有trace/stock源码自主核对热点GEMM路径、形状、dtype与暴露时间，GPU新授权0。
+方案`docs/experiments/kernel-attribution-20261111.md`，目录`logs/kernel-attribution-20261111-a01/`。
+
+- [x] 保存47份既有dirty身份；先行红测与只读ID关联、graph误归因/隐私/分页/权限/额度检查通过。
+- [x] 接通`--attribute-kernels`与独立trace观察重放；研究版303项，最终版304项指定CPU联合回归通过。
+- [x] 新受限Master自主BBuf/形状/源码/ID取证后stop；1角色/4回合/20动作/13CPU额度，无Direction或自写脚本。
+- [x] 两次独立审计一致，2进程exit0、0新增GPU；三类GEMM与两条单次形状线索核对，不冒充完整模块归因。
+- [x] 最终304项公开副本复验与双次独立重放通过；上下文/源码归档、主页/交接和公开审查完成，发布身份见publication回执。
+- [ ] 科学目标仍缺graph节点映射与暴露时间，不能排序真实收益；不得将本阶段工程收口当优化完成。
+
+下一步仅提案同工作量普通计时/profile与capture→replay映射，GPU预算另批，不自动补采或实现logits融合。
+
 ## 当前研究：Master端到端收益优先级
 
 用户批准先评估可实现的端到端净收益再选方向，不直接实现上轮logits融合。
