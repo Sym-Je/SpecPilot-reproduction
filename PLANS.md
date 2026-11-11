@@ -57,7 +57,21 @@ H100/Codex与Ascend/DSH是独立轨道。下面先保留Ascend既有计划，H10
 论文 sealed 参照仍为 2.13× [2.07, 2.19]，当前未独立复现该结论。
 DSH 后置，不以更换框架作为当前研究的前提。
 
-## 当前阶段：按需stock profile与自主诊断（已收口）
+## 最新专项：冻结作者final的长上下文检查（已收口）
+
+- [x] 用户批准新预算8 H100 GPU小时／12小时／2卡，已确认镜像和调度参数全部沿用。
+- [x] 先行协议、32项指定CPU验收、3篇公开小说/15条精确长度输入及源码冻结。
+- [x] 唯一任务code200/UUID与Running分别核对，Job优先级higher-priority-job；不重复提交。
+- [x] 两轮fresh stock/final与换卡：2K/8K/32K/64K依次2.147×/1.818×/1.534×/1.319×；128K stock输入上限拒绝，不给加速比。
+- [x] 48输出/94092 token forcing、4档×2轮正确性检查通过；两次audit及两次独立工程复核一致。
+- [x] 唯一任务Completed/exit0，3708 GPU秒、0活动GPU；32项指定CPU回归复跑通过。
+- [x] 原始证据305文件双次SHA归档，公开发布准备；提交/推送的最终身份以独立publication回执确认。
+
+阶段目录`logs/long-context-20261111-a01/`，前台TTY94560已退出；
+方案见[长上下文专项](docs/experiments/long-context-20261111.md)。
+不扫N、不拆机制、不profile、不读旧私有题或sealed，不将本次诊断算作RSI或晋升。
+
+## 已收口：按需stock profile与自主诊断
 
 新授权8 H100 GPU小时／12小时／并发2卡；已确认镜像、WeaverDev/qiji、挂载、toleration
 全部沿用，priority3。阶段目录`logs/stock-profile-autonomy-20261111-a01/`；不结转旧余额。

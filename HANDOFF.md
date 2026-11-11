@@ -111,7 +111,27 @@ stock在0.7/1.0采样正常；固定final完成两次greedy后，首次0.7请求
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
 > 最后更新：2026-11-10 北京时间（真实stock参数探索与两份dev联合验收通过，Master主动停止；完整RSI未完成）。
 
-## H100当前接续点：按需stock profile与自主诊断已收口
+## H100最新专项：冻结作者final的长上下文检查（已收口）
+
+用户批准简化对比与新预算8 H100 GPU小时／12小时／最多2卡；已确认镜像/WeaverDev/qiji/挂载沿用。
+仅stock/final，输入2K/8K/32K/64K/128K各3篇真实公开小说前缀，输出cap2048、greedy；
+不扫描节点/不profile/不启动研究agent，不读sealed或旧私有题，不写晋升账本。
+先行32项CPU检查通过，任务`sp-longctx-20261111-a01`提交一次code200，
+UUID`job-2c7803a11bbb-20261111122955`，Completed/exit0；Job实际priorityClassName=higher-priority-job，
+Pod自身该字段为空。独立预算`logs/long-context-20261111-a01/resource-state.json`；
+前台监督TTY94560已正常退出，完整命令/冻结数据/源码在该阶段目录。不要重复create。
+计时复用controller的完整请求输出TPS（含prefill，不是纯decode）；两轮fresh/换卡后做forcing。
+容量不支持/正确性证据不足分别报告，不改作者实现、不截短后冒充长档。
+两轮共24pair/48输出，94092 token forcing，4档×2轮现行rate/event检查全部通过。
+final/stock：2K 2.147×[1.953,2.336]；8K 1.818×[1.731,1.957]；
+32K 1.534×[1.423,1.677]；64K 1.319×[1.280,1.343]，均为含prefill的完整请求TPS比。
+128K stock两轮均HTTP400（输入上限113767），final仅32-token预检成功，无128K正式配对或正确性结论。
+三篇公开英文小说的小样本结果，不代表全域泛化、纯decode、sealed、晋升或自主发现。
+两次audit与两次独立工程复核一致，32项指定CPU检查复跑通过；3708 GPU秒=1.03小时，0活动GPU。
+报告见`docs/experiments/long-context-20261111.md`；原始证据留logs，公开同步身份另存publication回执。
+下一主线仍须用户选择/批准，不自动扩样、调N、改作者final或结转本阶段预算。
+
+## H100已收口：按需stock profile与自主诊断
 
 用户批准新阶段，8 H100 GPU小时／12小时／并发2卡，镜像/WeaverDev/qiji等全部沿用，
 显式higher-priority-job。独立目录`logs/stock-profile-autonomy-20261111-a01/`，

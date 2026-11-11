@@ -23,6 +23,11 @@ Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后30
 
 ## H100进度（2026-11-11，UTC+08）
 
+**最新完成：**[冻结作者final长上下文检查](docs/experiments/long-context-20261111.md)：3篇公开英文小说、两轮换卡、输出cap2048。
+2K/8K/32K/64K的final/stock分别**2.147×/1.818×/1.534×/1.319×**，48输出的94092 token forcing检查通过。
+128K stock因输入上限113767拒绝，final仅32-token预检通过，无该档正式加速比或正确性结论。
+收益随长度增加收窄；仅限本次小样本，TPS含prefill、不代表全域泛化或纯decode。1.03 H100 GPU小时、0活动GPU。
+
 **最新专项结论：**[作者final正温度验证](docs/experiments/final-sampling-20261110.md)已收口。stock在temperature=0.7/1.0正常采样；固定final的`ddtree`路径首次0.7请求即明确报仅支持greedy并退出，不能给出该模式的加速比或CI。1.0未在存活final上独立执行；未提交正式测速，不改变其他研究阶段状态。
 
 图例：✅ 已完成 · 🟡 初步完成 · 🔵 正在推进 · ⬜ 待完成。只有完成该阶段验收才标 ✅。
