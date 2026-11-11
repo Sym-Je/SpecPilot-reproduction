@@ -111,6 +111,26 @@ stock在0.7/1.0采样正常；固定final完成两次greedy后，首次0.7请求
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
 > 最后更新：2026-11-10 北京时间（真实stock参数探索与两份dev联合验收通过，Master主动停止；完整RSI未完成）。
 
+## H100已执行：Master四维源码提案与自主反馈
+
+用户已批准并确认新8 H100 GPU小时/12小时/并发2卡、既有镜像和WeaverDev/qiji/挂载/priority沿用。
+独立阶段`logs/master-proposal-20261111-a01/`；计划`docs/experiments/master-proposal-20261111.md`。
+目标不是继续只列研究方向：Master必须自主读源码/调研/取证，提出具体修改、先行净收益估计，
+再由Direction独立实现/实验、Master复核。必查验证长度、送验token选择、kernel、端到端四项。
+四维Master自主选择accept/bonus首次不匹配位置向量min归约诊断；收益unquantified，
+Direction自主源码option/5924例CPU模型自检，两轮fresh换卡、5请求/10pair/256cap完成。
+candidate/stock=0.995636× [0.993251,0.998027]，不支持提速；10对诊断输出相同不是lossless验收。
+Direction自主stop，Integration无共享候选，Kernel自主补采stock/BBuf后因路径和形状不足stop，
+Master最终stop并复核原估计。不打开sealed、不改controller、无dev gate/晋升/正常final T3或RSI。
+原Master来源字段失败及一次维护者协议澄清接续均保留；新会话不冒充原线程恢复，预算/计数不重置。
+5原生科学会话（含逻辑Master接续）、15回合、7次BBuf；三GPU任务均Completed/exit0，
+UUID分别job-8cc12cccfd1f-20261111130505、job-71d432512769-20261111134004、
+job-25d13ec7a676-20261111140142；3445 GPU秒，峰值2卡、0活动GPU。
+科学pipeline完成但main在跨父进程registry合并时报exit1；原失败保留，未来registry按父进程分开，
+本次10个原始birth/exit已事后复核，不能作为Phase4打开前的controller可信关闭许可。
+两次独立audit/最终CPU回归/SHA封存和公开同步状态见本阶段记录及publication回执。
+本阶段源码提案—自主实验—反馈链路已验证；高效方案和数字复现未达成，不复活旧角色或结转预算。
+
 ## H100最新专项：冻结作者final的长上下文检查（已收口）
 
 用户批准简化对比与新预算8 H100 GPU小时／12小时／最多2卡；已确认镜像/WeaverDev/qiji/挂载沿用。

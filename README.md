@@ -23,6 +23,15 @@ Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后30
 
 ## H100进度（2026-11-11，UTC+08）
 
+**Master主线已执行：**[四维源码提案与自主反馈](docs/experiments/master-proposal-20261111.md)：
+Master评估“验多少/验哪些/kernel/端到端”，Direction自主实现向量归约诊断，CPU模型5924例通过；
+双卡两轮换卡测得 **0.9956× [0.9933,0.9980]**，不支持收益，Master最终stop。
+Kernel自主补采/BBuf后因路径证据不足停止，Integration无共享候选；三任务3445 GPU秒、0活动GPU。
+已验证提案—实验—反馈链路，不是高效方案、lossless、真实整合/kernel优化或完整RSI通过；
+收尾registry错误保留并做事后退出复核，不冒充Phase4预打开许可。
+371项指定CPU回归通过；不代表仓库全量或GPU正确性验收通过。
+接下来待审核：补足真实调用路径/形状及无profiler成本证据，再由Master自主选择下一方向；不自动续交GPU。
+
 **最新完成：**[冻结作者final长上下文检查](docs/experiments/long-context-20261111.md)：3篇公开英文小说、两轮换卡、输出cap2048。
 2K/8K/32K/64K的final/stock分别**2.147×/1.818×/1.534×/1.319×**，48输出的94092 token forcing检查通过。
 128K stock因输入上限113767拒绝，final仅32-token预检通过，无该档正式加速比或正确性结论。

@@ -57,7 +57,7 @@ def validate_decision(value, candidates):
 
 
 @contextmanager
-def recorded_processes(directory, result):
+def recorded_processes(directory, result, *, prior_members=()):
     directory.mkdir(mode=0o700)
     processes = []
     originals = [(module, module.subprocess) for module in (codex_boundary, research_boundary)]
@@ -104,7 +104,7 @@ def recorded_processes(directory, result):
                 members.append(dict(birth=birth, exit=ended))
             except Exception as error:
                 errors.append(type(error).__name__ + ': ' + str(error))
-        result['process_members'] = members
+        result['process_members'] = list(prior_members) + members
         result['role_processes_closed'] = bool(processes) and len(members) == len(processes)
         if members and not errors:
             result['shutdown_registry'] = close_registry(directory, members)

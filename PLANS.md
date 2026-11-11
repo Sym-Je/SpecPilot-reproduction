@@ -57,6 +57,28 @@ H100/Codex与Ascend/DSH是独立轨道。下面先保留Ascend既有计划，H10
 论文 sealed 参照仍为 2.13× [2.07, 2.19]，当前未独立复现该结论。
 DSH 后置，不以更换框架作为当前研究的前提。
 
+## 已执行主线：Master自主源码提案与先行收益评估
+
+用户批准执行，并新确认8 H100 GPU小时/12小时/并发2卡及既有镜像/WeaverDev/qiji/挂载/priority。
+方案：[Master源码提案阶段](docs/experiments/master-proposal-20261111.md)，独立目录
+`logs/master-proposal-20261111-a01/`；旧余额不结转，不接管并行长上下文或Ascend。
+
+- [x] 冻结52个既有dirty文件身份，登记新预算与先行验收。
+- [x] 明确四项必查：验证长度、送验token选择、kernel、端到端；每个源码提案须先评估净收益和新增成本。
+- [x] 受控公开知识、接受量/成本证据、源码引用与提案来源验收；91项先行及371项最终指定联合回归通过。
+- [x] 新Master自主获取证据、四维评估、源码级诊断提案；Direction自主实现/5924例CPU自检/真实双卡反馈，Master复盘并stop。
+- [x] 独立重算与三任务终态核对，3445 GPU秒、峰值2卡、0活动GPU；10个进程退出事后复核，不提供Phase4打开许可。
+- [x] 3555个证据文件双次SHA封存、371项最终及公开副本回归、公开审查完成；提交/推送身份另记publication回执。
+
+接续Master自主重读源码，提出accept/bonus首次不匹配位置向量归约诊断，净收益保持unknown；
+Direction自行实现/检查，两轮fresh及换卡、5请求/10pair/256cap测得0.995636×
+[0.993251,0.998027]，不支持收益，自主停止。Integration无共享候选而停止；Kernel自主补采
+stock profile并调用BBuf后因真实路径/形状仍未知停止；Master最终stop，不做独立dev gate或sealed。
+首Master因来源字段错误停止后的逻辑接续明确归因维护者协议澄清，保留旧计数与原生回执。
+收尾因跨父进程registry拼接导致main exit1，原失败保留；修复未来分父registry，
+本次逐项事后核对原始birth/exit和实际进程消失，不冒充controller Phase4预打开许可。
+目前证明源码提案/自主实验/反馈链路，不证明高效方案、真实组合/kernel优化、lossless或RSI完成。
+
 ## 最新专项：冻结作者final的长上下文检查（已收口）
 
 - [x] 用户批准新预算8 H100 GPU小时／12小时／2卡，已确认镜像和调度参数全部沿用。

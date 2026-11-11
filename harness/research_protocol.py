@@ -5,9 +5,11 @@ from pathlib import Path
 
 from harness.research_tools import dispatch
 
+CPU_ACTIONS = frozenset(('run_python', 'run_skill', 'read_profile_shapes', 'search_stock',
+                         'search_public', 'read_public', 'get_baseline_stats', 'estimate_scenario'))
 
 class ResearchBroker:
-    def __init__(self,work,records,thread,turn,max_actions=24,max_runs=4,dispatcher=None):
+    def __init__(self,work,records,thread,turn,max_actions=24,max_runs=4,dispatcher=None,receipt_labels=False):
         self.work=Path(work)
         self.records=Path(records)
         self.records.mkdir(parents=True,exist_ok=False)
@@ -18,6 +20,7 @@ class ResearchBroker:
         self.actions=0
         self.runs=0
         self.calls=set()
+        self.receipt_labels=receipt_labels
         self.dispatcher=dispatch if dispatcher is None else dispatcher
 
     def handle(self,request):
@@ -37,12 +40,14 @@ class ResearchBroker:
             arguments=request['arguments']
             if not isinstance(arguments,dict) or set(arguments)!={'action'}:raise ValueError('only an action is accepted')
             action=arguments['action']
-            if isinstance(action,dict) and action.get('kind') in ('run_python','run_skill','read_profile_shapes'):
+            if isinstance(action,dict) and action.get('kind') in CPU_ACTIONS:
                 if self.runs>=self.max_runs:raise ValueError('CPU run budget exhausted')
                 self.runs+=1
             result=self.dispatcher(self.work,action,record/'execution')
             response=dict(success=True,contentItems=[dict(type='inputText',text=json.dumps(result))])
         except (ValueError,OSError,TypeError,KeyError) as error:
             response=dict(success=False,contentItems=[dict(type='inputText',text=json.dumps(dict(status='rejected',reason=str(error))))])
+        if self.receipt_labels:
+            response['contentItems'].append(dict(type='inputText',text='Tool receipt: '+self.records.name+'/'+record.name))
         (record/'response.json').write_text(json.dumps(response,indent=2)+'\n')
         return response

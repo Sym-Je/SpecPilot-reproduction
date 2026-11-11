@@ -196,15 +196,27 @@ def process_closure(root, result, roles, preflight_finished):
     closure = load(root / 'process-closure.json')
     require(result.get('role_processes_closed') is True and closure.get('role_processes_closed') is True,
             'native processes are not closed')
-    registry_ref = closure['shutdown_registry']
-    public_path(registry_ref['path'], root / 'processes')
     owner = public_path(root / 'process-closure.json').stat().st_uid
-    registry = trusted_metadata(registry_ref, owner)
+    if closure.get('posthoc_observation'):
+        require((root / 'proposal-recovery.json').exists() and result.get('sealed_completed') is False,
+                'post-hoc observation is only supported for a nonsealed proposal recovery')
+        from harness.research_shutdown import verify_observation
+        observed = verify_observation(root, closure)
+        registry = dict(members=closure['process_members'], closed_unix=observed['observed_unix'])
+    else:
+        registries = []
+        for registry_ref in closure.get('shutdown_registries', [closure.get('shutdown_registry')]):
+            require(isinstance(registry_ref, dict), 'actual parent-owned shutdown registry missing')
+            public_path(registry_ref['path'], root / 'processes')
+            value = trusted_metadata(registry_ref, owner)
+            validate_shutdown(value, broker_uid=owner, opened_unix=time.time())
+            registries.append(value)
+        registry = dict(members=[member for value in registries for member in value['members']],
+            closed_unix=max(value['closed_unix'] for value in registries))
     require(closure['process_members'] == registry['members'], 'process closure inventory differs')
     for member in registry['members']:
         for item in ('birth', 'exit'):
             public_path(member[item]['path'], root / 'processes')
-    validate_shutdown(registry, broker_uid=owner, opened_unix=time.time())
     receipts = {}
     for member in registry['members']:
         birth, ended = trusted_metadata(member['birth'], owner), trusted_metadata(member['exit'], owner)
@@ -222,7 +234,7 @@ def process_closure(root, result, roles, preflight_finished):
         birth, ended = receipts[process['pid']]
         require(ended['returncode'] == process['exit_code'] == 0 and birth['observed_unix'] >= preflight_finished,
                 'native role exit or current-stage readiness chronology differs')
-    require({public_path(path) for pattern in ('birth-*.json', 'exit-*.json') for path in (root / 'processes').glob(pattern)} ==
+    require({public_path(path) for pattern in ('birth-*.json', 'exit-*.json') for path in (root / 'processes').rglob(pattern)} ==
             {public_path(member[item]['path']) for member in registry['members'] for item in ('birth', 'exit')},
             'orphan process birth/exit receipt')
     return len(receipts)
@@ -347,7 +359,20 @@ def skill_registrations(root, roles, registered, initial, initial_path):
                 require(answer['status'] == 'unavailable' and 'estimate' not in answer, 'unavailable profile skill claims an estimate')
 
 
-def _audit(root):
+def master_directories(root):
+    marker = root / 'proposal-recovery.json'
+    if not marker.exists():
+        require(not list(root.glob('master-recovery-*')), 'unregistered Master continuation')
+        return [root / 'master']
+    from harness.master_recovery import verify_recovery
+    recovery = verify_recovery(root)
+    expected = root / recovery['master_label']
+    require(list(root.glob('master-recovery-*')) == [expected], 'proposal continuation role inventory differs')
+    return [root / 'master', expected]
+
+
+def _audit(root, *, minimum_directions=2):
+    require(type(minimum_directions) is int and minimum_directions in (1, 2), 'invalid trusted direction coverage')
     root = public_path(root)
     result_path = root / 'profile-campaign-result.json'
     result, pipeline, state = load(result_path), load(root / 'pipeline-result.json'), load(root / 'resource-state.json')
@@ -365,7 +390,9 @@ def _audit(root):
     require(all(public_path(path.parent).name in {row['name'] for row in reservations}
                 for path in root.glob('*/pending.json')), 'orphan uncertain submission outside the stage budget')
     roles, responses, origins, totals = [], {}, {}, Counter()
-    directories = [path for path in (root / 'master', *sorted(root.glob('direction-*')), root / 'integration', root / 'kernel')
+    masters = master_directories(root)
+    master_names = {path.name for path in masters}
+    directories = [path for path in (*masters, *sorted(root.glob('direction-*')), root / 'integration', root / 'kernel')
                    if path.is_dir()]
     if (root / 'tools.json').exists():
         public_path(load(root / 'tools.json')['root'])
@@ -426,7 +453,7 @@ def _audit(root):
                     all(request[key] == original[key] for key in ('role_thread', 'role_turn', 'role_response_sha256',
                         'patch_sha256', 'self_check_sha256', 'cpu_receipt_sha256')) and
                     all(sha(root / name / item) == sha(parent / item) for item in ('patch.json', 'self-check.py', 'cpu-receipt.json')) and
-                    any(native['role'] == 'master' and str(parent) in native['value'].get('review', []) for native in responses.values()),
+                    any(native['role'] in master_names and str(parent) in native['value'].get('review', []) for native in responses.values()),
                     'dev gate changed native scientific authorship or lacks Master review')
         if request.get('comparison_source'):
             comparison = public_path(request['comparison_source'], root)
@@ -479,10 +506,10 @@ def _audit(root):
     kinds = Counter(role['kind'] for role in roles)
     final = result.get('master_final', {})
     if complete:
-        require(kinds['Master'] == 1 and kinds['direction'] >= 2 and kinds['integration'] == kinds['kernel'] == 1 and
+        require(kinds['Master'] == len(masters) and kinds['direction'] >= minimum_directions and kinds['integration'] == kinds['kernel'] == 1 and
                 all(role['counts']['model_turns'] > 0 for role in roles), 'scientific role coverage is incomplete')
         require(final.get('decision') in ('stop', 'final') and
-                any(native['role'] == 'master' and native['value'] == final for native in responses.values()),
+                any(native['role'] in master_names and native['value'] == final for native in responses.values()),
                 'final Master decision lacks native provenance')
     controller_accepted = final.get('decision') == 'final' and accepted.get(final.get('request_directory')) is True
     require(result.get('controller_accepted', False) == controller_accepted, 'pipeline claims unsupported controller acceptance')

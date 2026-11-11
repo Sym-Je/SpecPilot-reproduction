@@ -45,8 +45,9 @@ def profile_action(action):
 
 
 class ProfileCampaign(Campaign):
-    def __init__(self, root, inputs, tools, capture_template, preflight, *, executor=execute):
-        super().__init__(root, inputs, tools, limits=LIMITS, job_prefix='sp-stockprof-20261111-a01', max_workers=1)
+    def __init__(self, root, inputs, tools, capture_template, preflight, *, executor=execute,
+                 job_prefix='sp-stockprof-20261111-a01'):
+        super().__init__(root, inputs, tools, limits=LIMITS, job_prefix=job_prefix, max_workers=1)
         self.capture_template, self.preflight = capture_template, Path(preflight).absolute()
         self.profile_executor = executor
         self.profile_requests = []

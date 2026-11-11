@@ -16,6 +16,7 @@ from exp.phase4_resource import feedback as replay_phase4_feedback
 from exp.source_resource import feedback as replay_feedback
 from harness.engine_research import json_record
 from harness.gpu_autonomy import job_rows, response_object
+from harness.research_protocol import CPU_ACTIONS
 from harness.skill_broker import CATALOG, ROLE_SKILLS
 from harness.skill_diagnostics import checked_tools
 from harness.source_audit import load as source_load
@@ -185,7 +186,7 @@ def audit_role(root, directory, *, allow_format_retries=False):
         action = request['arguments']['action']
         execution = path.parent / 'execution'
         counts['actions'] += 1
-        if action['kind'] in ('run_python', 'run_skill', 'read_profile_shapes') and answer.get('reason') != 'CPU run budget exhausted':
+        if action['kind'] in CPU_ACTIONS and answer.get('reason') != 'CPU run budget exhausted':
             counts['cpu_runs'] += 1
         if action['kind'] == 'write_file' and returned['success']:
             authored[action['path']] = hashlib.sha256(action['content'].encode()).hexdigest()

@@ -302,9 +302,27 @@ class Campaign:
                 or json.loads(proof.read_text()).get('preflight') is not True):
             raise ValueError('actual source boundary/engine preflight must pass before research')
 
+    def plan_directions(self, master, packet):
+        prompt = '先读自身证据并查看工具能力，按需用BBuf工具。自主分配2至3个互补源码方向，不代做实现。'
+        prompt += '只输出{"directions":[{"id":"d1","brief":"假设/证据/范围/停止条件","allocation":{"actions":120,"cpu_runs":24,"gpu_attempts":2}},...]}。'
+        for attempt in range(3):
+            plan = self.model_response(master, prompt)
+            try:
+                directions = validate_plan(plan)
+                break
+            except ValueError as error:
+                if attempt == 2:
+                    raise
+                prompt = '你的计划未通过结构化协议：' + str(error) + '。保留自己的科学判断，自己修复输出格式后重交完整directions对象。'
+        save(self.root / 'master-plan.json', plan)
+        return directions
+
+    def authorize_restart(self):
+        raise ValueError('campaign already started; explicit checkpoint recovery required')
+
     def run(self):
         if (self.root / 'pipeline-result.json').exists():
-            raise ValueError('campaign already started; explicit checkpoint recovery required')
+            self.authorize_restart()
         self.validate_preflight()
         roles.COMMON = COMMON
         roles.ACTION_LIMIT = 900
@@ -315,18 +333,7 @@ class Campaign:
         try:
             packet = self.packet()
             master = self.open_role('master', 'Master', packet, 120, 20)
-            prompt = '先读自身证据并查看工具能力，按需用BBuf工具。自主分配2至3个互补源码方向，不代做实现。'
-            prompt += '只输出{"directions":[{"id":"d1","brief":"假设/证据/范围/停止条件","allocation":{"actions":120,"cpu_runs":24,"gpu_attempts":2}},...]}。'
-            for attempt in range(3):
-                plan = self.model_response(master, prompt)
-                try:
-                    directions = validate_plan(plan)
-                    break
-                except ValueError as error:
-                    if attempt == 2:
-                        raise
-                    prompt = '你的计划未通过结构化协议：' + str(error) + '。保留自己的科学判断，自己修复输出格式后重交完整directions对象。'
-            save(self.root / 'master-plan.json', plan)
+            directions = self.plan_directions(master, packet)
             with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
                 pending = {}
                 for item in directions:
