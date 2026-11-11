@@ -57,6 +57,16 @@ H100/Codex与Ascend/DSH是独立轨道。下面先保留Ascend既有计划，H10
 论文 sealed 参照仍为 2.13× [2.07, 2.19]，当前未独立复现该结论。
 DSH 后置，不以更换框架作为当前研究的前提。
 
+## 当前排查：Master外部知识访问
+
+用户批准排查现有公开检索/阅读的network_unavailable，先定位再最小修复；不新增GPU或代做研究。
+计划`docs/experiments/public-knowledge-access-20261111.md`，目录`logs/public-knowledge-access-20261111-a01/`。
+
+- [x] 分层确认DNS/代理收到200；根因是正文EOF后对关闭socket设置timeout，errno9被包装成网络不可用。
+- [x] 先红后绿回归和一行EOF修复，不放宽公网/TLS/域名/路径限制；243项指定CPU回归通过。
+- [x] 真实MasterAccess和新受限Master探针均完成搜索/两次读取；2条结果/1923与21812字节正文，原生审计两次一致。
+- [x] 243项公开副本复验、61文件双次SHA封存、主页/交接和发布准备完成；提交/远端身份见publication回执，不冒充自主研究。
+
 ## 当前主线：Master动态研究决策（CPU）
 
 用户批准：机会比较→最小取证→Direction自主CPU研究→Master按反馈修订/继续/改派/停止。

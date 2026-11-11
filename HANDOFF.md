@@ -111,6 +111,21 @@ stock在0.7/1.0采样正常；固定final完成两次greedy后，首次0.7请求
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
 > 最后更新：2026-11-10 北京时间（真实stock参数探索与两份dev联合验收通过，Master主动停止；完整RSI未完成）。
 
+## H100最新修复：Master公开知识访问（已收口）
+
+用户批准排查公开检索/读取失败，阶段`logs/public-knowledge-access-20261111-a01/`，
+报告`docs/experiments/public-knowledge-access-20261111.md`。无GPU/旧研究恢复授权。
+DNS/代理实际能返回HTTP 200；根因是正文Content-Length读完自动关闭响应后，循环再设置socket超时，
+触发errno9并被泛化为network_unavailable。一行修复只增加响应EOF检查，不放宽网络/证书/路径规则。
+先行红测复现；243项指定CPU回归通过。真实MasterAccess三请求均成功，另一个新受限Master完成
+维护者指定连通性探针：1回合/5动作/3CPU额度/0脚本/0GPU，搜索2条，文档/源码1923/21812字节。
+两次独立原生工具/回包/内容SHA/预算审计一致；2进程同父birth/wait证明且exit0，前台TTY67548已退出。
+不重启native_probe.py；仅离线probe_audit.py可复核。inputs/config/canary持久化，不复制auth。
+这是工具连通性，不是Master自主调研、优化发现、lossless或RSI完成；不因网络修复升级其他阶段。
+下一步仅提案：Master自主使用现有检索/BBuf和stock证据比较机会，Direction设计并执行廉价实验。
+不替研究角色查资料喂答案，不恢复旧缩块，不读final/sealed，不改controller/规则/账本；GPU另批。
+旧ceiling/其他dirty保留，公开只同步本阶段摘要/两份网络源码与测试；发布身份以publication回执为准。
+
 ## H100最新主线：Master动态研究决策（CPU，已收口）
 
 用户批准补自主决策循环，仅CPU/公开stock/历史反馈，无新GPU授权。

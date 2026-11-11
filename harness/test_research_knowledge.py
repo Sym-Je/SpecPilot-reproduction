@@ -346,6 +346,24 @@ class PublicKnowledgeTests(unittest.TestCase):
         self.assertLessEqual(stream.tell(), 1024)
         self.assertTrue(response.body)
 
+    def test_content_length_eof_never_sets_timeout_on_closed_response_socket(self):
+        for body in (b'', b'public documentation', b'x' * 20000):
+            with self.subTest(body_bytes=len(body)):
+                stream=io.BytesIO(b'HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: '
+                    + str(len(body)).encode()+b'\r\nConnection: close\r\n\r\n'+body)
+                with patch.object(knowledge.socket,'socket'), \
+                        patch.object(knowledge.ssl,'create_default_context') as factory:
+                    tls=factory.return_value.wrap_socket.return_value
+                    tls.makefile.return_value=stream
+                    def timeout_on_live_socket(seconds):
+                        if stream.closed:
+                            raise OSError(9,'closed response descriptor must not be reused')
+                    tls.settimeout.side_effect=timeout_on_live_socket
+                    response=knowledge.https_get('https://arxiv.org/',('93.184.216.34',),1,32768)
+                self.assertEqual(response.status,200)
+                self.assertEqual(response.body,body)
+                self.assertFalse(response.truncated)
+
     def test_github_root_is_public(self):
         self.answers.append(self.response())
         self.assertEqual(self.client.read_public("https://github.com")["status"], "ok")
@@ -448,6 +466,7 @@ class PublicKnowledgeTests(unittest.TestCase):
             context_factory.return_value.wrap_socket.return_value = FakeSocket()
             response = getresponse.return_value
             response.status = 200
+            response.isclosed.return_value = False
             response.getheaders.return_value = [("Content-Type", "text/plain")]
             response.read1.side_effect = [b"ok", b""]
             result = knowledge.https_get("https://arxiv.org/abs/1234.5678", ("93.184.216.34",), 1, 100)

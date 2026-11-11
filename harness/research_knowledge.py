@@ -436,7 +436,7 @@ def https_get(url, addresses, timeout, max_bytes, *, _proxy=None):
         header_bytes = (response.header_bytes if isinstance(response.header_bytes, int) else 0) + connection.connect_bytes
         remaining = max_bytes - header_bytes
         wire_limited = False
-        while remaining:
+        while remaining and not response.isclosed():
             available_time = deadline - time.monotonic()
             if available_time <= 0:
                 raise _Unavailable("network_timeout")
