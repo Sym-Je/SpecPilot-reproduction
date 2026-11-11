@@ -57,7 +57,25 @@ H100/Codex与Ascend/DSH是独立轨道。下面先保留Ascend既有计划，H10
 论文 sealed 参照仍为 2.13× [2.07, 2.19]，当前未独立复现该结论。
 DSH 后置，不以更换框架作为当前研究的前提。
 
-## 当前阶段：BBuf角色接入、controller复核与真实全流程
+## 当前阶段：按需stock profile与自主诊断（已收口）
+
+新授权8 H100 GPU小时／12小时／并发2卡；已确认镜像、WeaverDev/qiji、挂载、toleration
+全部沿用，priority3。阶段目录`logs/stock-profile-autonomy-20261111-a01/`；不结转旧余额。
+方案与先行验收见[本阶段](docs/experiments/stock-profile-autonomy-20261111.md)。
+
+- [x] 固定公开workload/preset、collector、profile-only BBuf与研究请求反馈入口；147项指定CPU回归通过。
+- [x] 单卡真实工程预检：首次失败33秒后修复；第二次Completed/exit0，613秒，真实trace/host独立CPU重算与BBuf通过，不改科学阈值。
+- [x] Master自主分3方向；d1和Kernel分别自主申请profile并调用BBuf；d2/d3自写源码、自检及双卡诊断，均无可信收益。
+- [x] Integration无共享候选而停止；Kernel观测后不猜测实现；Master最终stop，6科学角色/15原生回合/5次BBuf调用。
+- [x] 五项工程缺口与格式重试谱系补验；250项指定CPU联合回归和排除旧dirty的公开源码副本通过，两次独立审计一致。
+- [x] 六任务全部终态，7266 GPU秒/2.01833小时、峰值2卡；12个角色/辅助进程退出，无活动GPU，旧私有验证未读。
+- [x] 6714个host可见产物两次全SHA复核；公开源码按白名单提交，GitHub同步身份以本阶段独立publication回执为准。
+- [ ] 科学目标仍缺：合格候选独立dev、真实组合/kernel优化、正常final T3和多轮RSI。本轮工具链通过不改变这些未完成项。
+
+下一步仅提案：补足热点kernel与真实调用路径/形状的可靠关联，再交Master自主选择研究。
+不预设VERIFY优化，不补猜测ceiling，不复活旧角色，也不自动结转本轮余额。
+
+## 已收口：BBuf角色接入、controller复核与真实全流程
 
 用户已批准三个部分整体执行，并新确认32 H100 GPU小时／24小时／最多并发4卡，
 镜像/WeaverDev/qiji/挂载沿用，priority=`higher-priority-job`。另授权必要controller/eval

@@ -111,7 +111,29 @@ stock在0.7/1.0采样正常；固定final完成两次greedy后，首次0.7请求
 > 本文件是**唯一的入口**。新 session 读这里，不要试图读旧对话。
 > 最后更新：2026-11-10 北京时间（真实stock参数探索与两份dev联合验收通过，Master主动停止；完整RSI未完成）。
 
-## H100当前接续点：BBuf角色接入与裁判负对照收口
+## H100当前接续点：按需stock profile与自主诊断已收口
+
+用户批准新阶段，8 H100 GPU小时／12小时／并发2卡，镜像/WeaverDev/qiji等全部沿用，
+显式higher-priority-job。独立目录`logs/stock-profile-autonomy-20261111-a01/`，
+计划`docs/experiments/stock-profile-autonomy-20261111.md`；旧余额不结转，旧私有验证不读。
+collector、profile-only BBuf与分页shape事实已接通；实际shape只来自trace，workload未认证时
+compute/pipeline明确不可用。preflight02失败、preflight03成功均保留；布局检查和失败输出已修复。
+新Master自主分3方向，d1和Kernel各自主申请一次真实stock profile，同角色拿到evidence ID并调用BBuf。
+d1因无可靠调用栈/源码关联停止；d2自主BV64源码候选为0.89126× [0.88896,0.89373]，
+d3自主CPU上界复用候选为0.99875× [0.99722,1.00014]，各10题/两轮换卡，均无可信收益。
+两项均为公开dev诊断，不是作者final、GPU正确性或lossless验收；Master未选入独立dev gate。
+Integration无共享候选而停止；Kernel自主补采/分析后也因真实路径证据不足停止，未运行优化候选。
+Master最终stop，6科学角色/15原生回合/80工具动作/5次BBuf调用；一次格式错误由角色自行重交。
+六GPU任务全部终态，含失败共7266 GPU秒（2.01833小时），峰值2卡；新查询再次确认，无活动任务。
+实际12个受信角色/辅助进程退出已审计；不要重启旧角色或重复create。250项指定CPU联合回归与
+排除旧dirty的公开源码副本均通过；`closeout-audit-03.json`与`04.json`独立重算字节一致。
+独立工程复核补齐缓存统计重算、完整argv、初始证据绑定、失败计数和只读审计；磁盘修复不冒充
+原campaign热加载，`host-loaded-identity.json`及`post-launch-engineering-identity.json`分别记录身份。
+原始证据只留logs，公开同步身份单列publication回执。44个旧ceiling dirty文件不混入本次提交。
+本阶段工程与自主反馈目标通过，但无合格优化、独立dev gate、sealed、晋升或完整RSI。
+下一步先审核最小真实运行时归因能力与新研究方案；不自动补完整ceiling，不结转旧预算或提交GPU。
+
+## H100已收口：BBuf角色接入与裁判负对照
 
 - 用户批准整体完成角色工具接入、controller验证、真实全流程；新上限32 GPU小时／24小时／4卡，
   全部沿用已确认镜像/WeaverDev/qiji，显式priority3。另授权必要controller/eval维护者实现，

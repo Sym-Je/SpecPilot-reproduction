@@ -37,7 +37,7 @@ class ResearchBroker:
             arguments=request['arguments']
             if not isinstance(arguments,dict) or set(arguments)!={'action'}:raise ValueError('only an action is accepted')
             action=arguments['action']
-            if isinstance(action,dict) and action.get('kind') in ('run_python','run_skill'):
+            if isinstance(action,dict) and action.get('kind') in ('run_python','run_skill','read_profile_shapes'):
                 if self.runs>=self.max_runs:raise ValueError('CPU run budget exhausted')
                 self.runs+=1
             result=self.dispatcher(self.work,action,record/'execution')

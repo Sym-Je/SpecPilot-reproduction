@@ -21,7 +21,7 @@ Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后30
 
 以下为H100独立轨道：既有321项回归与10项新增Phase 0检查通过，不代表Ascend环境全量通过；两者指标、预算和待办不混算。
 
-## H100进度（2026-11-10，UTC+08）
+## H100进度（2026-11-11，UTC+08）
 
 **最新专项结论：**[作者final正温度验证](docs/experiments/final-sampling-20261110.md)已收口。stock在temperature=0.7/1.0正常采样；固定final的`ddtree`路径首次0.7请求即明确报仅支持greedy并退出，不能给出该模式的加速比或CI。1.0未在存活final上独立执行；未提交正式测速，不改变其他研究阶段状态。
 
@@ -35,8 +35,8 @@ Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后30
 | 4 | 验证作者 final 的收益 | ✅ 产物测量完成 | final/AR=8.7347× [8.0235,9.5599]；直接 final/stock=2.2219× [2.1381,2.2988]，见[验收记录](docs/experiments/p3-final-2048-20261107.md) |
 | 5 | 真实正确性、噪声与晋升判据 | ✅ dev联合验收完成 | [验收记录](docs/experiments/dev-joint-20261108.md)：30请求、当前前后null、两轮换卡与实际测速输出forcing均通过；作者产物不写晋升账本 |
 | 6 | 建立独立 sealed 验证 | ⬜ 未开始 | 前置验收通过后由 controller 管理，agent 不接触内容 |
-| 7 | 真实 profiling 与成本模型 | 🟡 最小Skills离线验证通过 | [诊断与工具接入](docs/experiments/skills-diagnostics-20261110.md)：真实stock trace/计算估算通过，层归因未适配；完整ceiling未知，不再阻塞自主研究 |
-| 8 | agent 自主提案与实现 | 🟡 真GPU参数研究/dev验收通过 | [本阶段](docs/experiments/engine-autonomy-20261109.md)：6次自主诊断、2次独立dev gate；12为1.0853×、10为1.0638×。不是源码/算法发现、晋升或完整Phase 1 |
+| 7 | 真实 profiling 与成本模型 | 🟡 按需采样与BBuf已验证 | [按需stock profile](docs/experiments/stock-profile-autonomy-20261111.md)：direction/Kernel自主采集并分析；真实路径/层归因仍缺，完整ceiling未知 |
+| 8 | agent 自主提案与实现 | 🟡 真实源码自主实验已验证 | [本轮](docs/experiments/stock-profile-autonomy-20261111.md)：两项自写候选各完成10题/两轮换卡诊断，均无可信收益；未交独立dev或晋升，不是完整Phase 1 |
 | 9 | 多轮真实优化闭环与记忆 | ⬜ 待真实验证 | [mock 闭环](docs/06-gates.md)已跑通，不代表真实引擎闭环完成 |
 | 10 | 对照实验与最终报告 | ⬜ 未开始 | 分析各组件贡献，分别报告架构与数字复现证据 |
 
@@ -100,11 +100,13 @@ Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后30
 
 **当前状态：**完整ceiling仍未知，不再作为自主探索硬前置；停止继续补采。旧17任务均终态，b16/b17被抢占，保守6.9283 GPU小时；树分支argmax分歧未解决，不称lossless或完整ceiling完成。
 
-**最新完成：**[BBuf角色接入与裁判负对照](docs/experiments/skills-rsi-20261110.md)：三方向自主源码研究无合格收益，Master停止。真实裁判健康/故障回归及私有2048/4096上限forcing通过，故障尾部8272 token；stock/stock性能按预期拒绝。公开副本316项指定测试通过；11任务全终态，共9.8911 H100 GPU小时。
+**此前完成：**[BBuf角色接入与裁判负对照](docs/experiments/skills-rsi-20261110.md)：三方向自主源码研究无合格收益，Master停止。真实裁判健康/故障回归及私有2048/4096上限forcing通过，故障尾部8272 token；stock/stock性能按预期拒绝。公开副本316项指定测试通过；11任务全终态，共9.8911 H100 GPU小时。
 
-**正在做：**本轮已收口，无活动GPU任务，等待下一阶段提案；pipeline真实层归因、科学整合/kernel优化、正常候选T3与多轮RSI均未完成，不宣称论文数字已复现。
+**本轮完成：**[按需stock profile与自主诊断](docs/experiments/stock-profile-autonomy-20261111.md)：6科学角色自主收口、5次BBuf调用；两项源码候选为0.89126×和0.99875×，均无可信收益。250项指定CPU检查、公开源码副本和两次独立审计通过；六任务全终态，含失败2.01833 GPU小时，无晋升或完整RSI。
 
-**接下来：**先提案按需stock profile/实际形状能力，再由Master自主决定新研究方向；不把已打开的本轮私有验证反馈给研究角色，不强造正结果。新阶段资源另行确认，后续仍显式使用`higher-priority-job`（不保证免抢占）。
+**正在做：**本轮研究已停止、无活动GPU；等待下一阶段方案审核，不在后台继续搜索。
+
+**接下来：**先补热点kernel与实际调用路径/形状的可靠关联，再由Master自主安排方向、组合与kernel研究；仍须独立dev、正常final T3及多轮RSI。未知项不猜填，旧私有验证不用于调参，新阶段另行确认资源，不结转余额。
 
 **已有基础：**三臂真实 server、dev验收、外部数据审计与mock闭环完成；**尚未复现论文原sealed数字或真实RSI方法结论。**
 

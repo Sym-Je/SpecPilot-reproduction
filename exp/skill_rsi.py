@@ -4,6 +4,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tarfile
@@ -82,10 +83,15 @@ def validate_plan(value):
 
 
 class Campaign:
-    def __init__(self, root, inputs, tools):
+    def __init__(self, root, inputs, tools, *, limits=None, job_prefix='sp-skillrsi-20261110-b01', max_workers=2):
+        if (not isinstance(job_prefix, str) or not re.fullmatch(r'[a-z][a-z0-9-]{0,39}', job_prefix) or
+                type(max_workers) is not int or max_workers not in (1, 2)):
+            raise ValueError('bounded broker job prefix and one or two scheduling workers required')
         self.root = Path(root).resolve()
         self.inputs, self.tools = Path(inputs).resolve(), Path(tools).resolve()
-        self.budget = Budget(self.root / 'resource-state.json', limits=LIMITS)
+        self.limits = dict(LIMITS if limits is None else limits)
+        self.job_prefix, self.max_workers = job_prefix, max_workers
+        self.budget = Budget(self.root / 'resource-state.json', limits=self.limits)
         self.pin = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
         self.counters = dict(actions=0, cpu_runs=0, gpu_attempts=0, controller_jobs=0, model_turns=0, usage_updates=0)
         self.opened = []
@@ -106,7 +112,7 @@ class Campaign:
             skills=dict(evidence_ids=['stock'], action='list_skills then run_skill as needed'),
             fixed_runtime=dict(numa_bind_v2=False, trusted_atomic_triton_cache=True,
                 scope='common deployment preparation, not an agent optimization'),
-            resource_limits=LIMITS, source_pin=self.pin)
+            resource_limits=self.limits, source_pin=self.pin)
 
     def open_role(self, label, kind, packet, actions=120, runs=24):
         role = roles.session(self.root / label, kind, packet, actions, runs)
@@ -161,6 +167,9 @@ class Campaign:
                 selected.append(reservation['name'])
         return selected
 
+    def freeze_sources(self, directory):
+        return freeze(directory)
+
     def experiment(self, role, action, stage):
         validate_action(action)
         work = Path(role['manifest']['work'])
@@ -172,7 +181,7 @@ class Campaign:
             self.counters['gpu_attempts'] += 1
             self.counters['actions'] += 1
             role['actions'] -= 1
-            directory = self.root / f'sp-skillrsi-20261110-b01-{stage}-{self.counters["gpu_attempts"]:02d}'
+            directory = self.root / f'{self.job_prefix}-{stage}-{self.counters["gpu_attempts"]:02d}'
             directory.mkdir(mode=0o700)
         shutil.copyfile(work / action['patch'], directory / 'patch.json')
         shutil.copyfile(work / action['self_check'], directory / 'self-check.py')
@@ -191,7 +200,7 @@ class Campaign:
             request.update(comparison_base_sha256=file_sha(directory / 'comparison-base.json'),
                 comparison_source=str(comparison))
         save(directory / 'request.json', request)
-        value = execute(directory, freeze(directory), self.budget)
+        value = execute(directory, self.freeze_sources(directory), self.budget)
         value.update(request_directory=str(directory), scientific_stage=stage, role_label=stage,
             owner=role['manifest']['role'])
         with self.lock:
@@ -210,7 +219,7 @@ class Campaign:
             if action.get('kind') in ('finish', 'request_budget'):
                 save(role['directory'] / 'research-result.json', response)
                 return dict(label=label, role=kind, response=response,
-                    measurements=[value for value in self.feedback if value.get('request_directory', '').split('/')[-1].startswith('sp-skillrsi')
+                    measurements=[value for value in self.feedback if Path(value.get('request_directory', '')).parent == self.root
                         and value.get('owner') == kind and value.get('role_label') == label])
             try:
                 if len(self.reserved_jobs('source-research', role)) >= allocation['gpu_attempts']:
@@ -241,7 +250,7 @@ class Campaign:
             action=dict(request['action'], per_suite=6, max_new_tokens=2048))
         save(gate / 'request.json', request)
         try:
-            result = execute(gate, freeze(gate), self.budget)
+            result = execute(gate, self.freeze_sources(gate), self.budget)
         finally:
             with self.lock:
                 self.counters['controller_jobs'] = len(self.reserved_jobs('source-controller'))
@@ -287,13 +296,16 @@ class Campaign:
         save(self.root / (stage + '-baseline.json'), response)
         return selected
 
-    def run(self):
-        if (self.root / 'pipeline-result.json').exists():
-            raise ValueError('campaign already started; explicit checkpoint recovery required')
+    def validate_preflight(self):
         proof = self.root / 'preflight-result.json'
         if (not proof.is_file() or json.loads(proof.read_text()).get('status') != 'completed'
                 or json.loads(proof.read_text()).get('preflight') is not True):
             raise ValueError('actual source boundary/engine preflight must pass before research')
+
+    def run(self):
+        if (self.root / 'pipeline-result.json').exists():
+            raise ValueError('campaign already started; explicit checkpoint recovery required')
+        self.validate_preflight()
         roles.COMMON = COMMON
         roles.ACTION_LIMIT = 900
         roles.RUN_LIMITS = dict(model_turns=96, cpu_runs=192, gpu_attempts=16, usage_updates=3072)
@@ -315,7 +327,7 @@ class Campaign:
                         raise
                     prompt = '你的计划未通过结构化协议：' + str(error) + '。保留自己的科学判断，自己修复输出格式后重交完整directions对象。'
             save(self.root / 'master-plan.json', plan)
-            with ThreadPoolExecutor(max_workers=2) as executor:
+            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
                 pending = {}
                 for item in directions:
                     label = 'direction-' + item['id']

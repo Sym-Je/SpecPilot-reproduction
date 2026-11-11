@@ -43,7 +43,10 @@ def command(request, source, output, name, deadline):
         '--k8s-ttl', '86400', '--k8s-priority', '3', '--k8s-images', IMAGE, user_command]
 
 
-def execute(directory, source, budget, *, resume_only=False, command_factory=None, feedback_loader=None, deadline=None):
+def execute(directory, source, budget, *, resume_only=False, command_factory=None, feedback_loader=None, deadline=None,
+            gpus=2):
+    if type(gpus) is not int or gpus not in (1, 2):
+        raise ValueError('this execution unit supports one or two GPUs only')
     from kubernetes import client, config
     request = directory / 'request.json'
     record = json.loads(request.read_text())
@@ -59,14 +62,17 @@ def execute(directory, source, budget, *, resume_only=False, command_factory=Non
         reservation = next(row for row in budget.read()['jobs'] if row['name'] == name)
         matches = query(directory, name, 'resume-query.txt')
         if (reservation.get('terminated') or reservation.get('uuid') != uuid or
+                reservation['gpus'] != gpus or pending.get('total_gpus') != gpus or
                 len(matches) != 1 or matches[0].get('name') != uuid or
                 pending['request_sha256'] != digest(request) or pending['source_sha256'] != digest(source)):
             raise RuntimeError('resume identity/source differs; never recreate an existing task')
         return monitor(directory, budget, record, pending, uuid, feedback_loader=feedback_loader)
     if query(directory, name, 'pre-submit-query.txt'):
         raise RuntimeError('exact task name already exists; no new submission')
-    budget.reserve(name, 2, deadline + 1200)
-    pending = dict(name=name, total_gpus=2, nodes=1, gpu_per_node=2, gpu_type='H100',
+    if cli[cli.index('--nnodes') + 1] != '1' or cli[cli.index('--gpu-per-node') + 1] != str(gpus):
+        raise ValueError('CLI resources differ from the broker reservation')
+    budget.reserve(name, gpus, deadline + 1200)
+    pending = dict(name=name, total_gpus=gpus, nodes=1, gpu_per_node=gpus, gpu_type='H100',
         mode='bash', memory_gib=256, image=IMAGE, workspace=str(ROOT), deadline_seconds=deadline,
         priority_class='higher-priority-job',
         command=cli, shell_command=shlex.join(cli), request_sha256=digest(request), source_sha256=digest(source))
@@ -97,6 +103,9 @@ def execute(directory, source, budget, *, resume_only=False, command_factory=Non
 def monitor(directory, budget, record, pending, uuid, *, feedback_loader=None):
     from kubernetes import client, config
     name = pending['name']
+    gpus = pending.get('total_gpus')
+    if type(gpus) is not int or gpus not in (1, 2) or pending.get('nodes') != 1 or pending.get('gpu_per_node') != gpus:
+        raise ValueError('monitor resource identity differs from the bounded execution unit')
     deadline = pending['deadline_seconds']
     output = directory / 'remote'
     config.load_kube_config()
@@ -117,7 +126,7 @@ def monitor(directory, budget, record, pending, uuid, *, feedback_loader=None):
         podspec = job['spec']['tasks'][0]['template']['spec']
         container = podspec['containers'][0]
         if (podspec['activeDeadlineSeconds'] != deadline or
-                str(container['resources']['limits']['nvidia.com/gpu']) != '2' or container['image'] != IMAGE or
+                str(container['resources']['limits']['nvidia.com/gpu']) != str(gpus) or container['image'] != IMAGE or
                 not any(row.get('mountPath') == '/gpfs/models' and row.get('readOnly') for row in container['volumeMounts'])):
             raise RuntimeError('server resource/image/mount contract differs; reservation held')
         pods = pods_api.list_namespaced_pod('qiji', label_selector='volcano.sh/job-name=' + uuid).items
@@ -165,14 +174,14 @@ def monitor(directory, budget, record, pending, uuid, *, feedback_loader=None):
                 all('finished_at' in row for row in observed.values())):
             created = datetime.fromisoformat(job['metadata']['creationTimestamp'].replace('Z', '+00:00'))
             finished = max(datetime.fromisoformat(row['finished_at']) for row in observed.values())
-            charged = math.ceil(max(0, (finished - created).total_seconds()) * 2)
+            charged = math.ceil(max(0, (finished - created).total_seconds()) * gpus)
             save(directory / 'lifecycle-final.json', dict(uuid=uuid, phase=phase, pods=observed,
                 conservative_gpu_seconds=charged, configured_max_retry=job['spec'].get('maxRetry'),
                 retry_count=job.get('status', {}).get('retryCount'), queue=job['spec'].get('queue')))
             for pod in pods:
                 (directory / f'{pod.metadata.name}.log').write_text(pods_api.read_namespaced_pod_log(pod.metadata.name, 'qiji', tail_lines=120))
             budget.update(name, terminal=phase, terminated=True, charged_gpu_seconds=charged)
-            if (output / 'result.json').exists() and all(row['exit_code'] == 0 for row in observed.values()):
+            if all(row['exit_code'] == 0 for row in observed.values()) and (output / 'result.json').exists():
                 if feedback_loader is not None:
                     feedback = feedback_loader(output, record)
                 elif record.get('mode') == 'controller-dev':

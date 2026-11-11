@@ -556,6 +556,49 @@ class SkillRsiAuditTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'skill output SHA'):
             self.check_skill()
 
+    def test_shape_page_native_call_consumes_cpu_without_counting_as_upstream_skill(self):
+        self.role('direction-d2', 'direction', {'action': {'kind': 'finish'}},
+            skill=dict(skill='profiler', status='completed', role='direction', evidence='stock'))
+        directory = self.root / 'direction-d2'
+        path = directory / 'tools-01/action-001/request.json'
+        request = audit.load(path)
+        request['arguments']['action'] = dict(kind='read_profile_shapes', evidence='stock', offset=0)
+        self.write(path, request)
+        wire = [json.loads(line) for line in (directory / 'wire.jsonl').read_text().splitlines()]
+        for row in wire:
+            if row['message'].get('method') == 'item/tool/call':
+                row['message']['params'] = request
+        (directory / 'wire.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in wire))
+        role, responses, origins = audit.audit_role(self.root, directory)
+        self.assertEqual(role['counts']['actions'], 1)
+        self.assertEqual(role['counts']['cpu_runs'], 1)
+        self.assertEqual(role['counts']['skill_calls'], 0)
+
+    def test_cpu_exhausted_shape_page_is_not_charged_as_executed_cpu(self):
+        self.role('direction-d2', 'direction', {'action': {'kind': 'finish'}},
+            skill=dict(skill='profiler', status='rejected', reason='CPU run budget exhausted'))
+        directory = self.root / 'direction-d2'
+        path = directory / 'tools-01/action-001/request.json'
+        request = audit.load(path)
+        request['arguments']['action'] = dict(kind='read_profile_shapes', evidence='stock', offset=0)
+        self.write(path, request)
+        returned = audit.load(path.parent / 'response.json')
+        returned['success'] = False
+        self.write(path.parent / 'response.json', returned)
+        wire = [json.loads(line) for line in (directory / 'wire.jsonl').read_text().splitlines()]
+        call_id = None
+        for row in wire:
+            if row['message'].get('method') == 'item/tool/call':
+                row['message']['params'] = request
+                call_id = row['message']['id']
+        for row in wire:
+            if row['direction'] == 'client' and row['message'].get('id') == call_id:
+                row['message']['result'] = returned
+        (directory / 'wire.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in wire))
+        role, responses, origins = audit.audit_role(self.root, directory)
+        self.assertEqual(role['counts']['actions'], 1)
+        self.assertEqual(role['counts']['cpu_runs'], 0)
+
 
 if __name__ == '__main__':
     unittest.main()

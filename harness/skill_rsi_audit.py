@@ -93,7 +93,7 @@ def skill_evidence(root, execution, answer, role):
     return answer['status']
 
 
-def audit_role(root, directory):
+def audit_role(root, directory, *, allow_format_retries=False):
     manifest = load(directory / 'manifest.json')
     kind = manifest['role']
     require(kind in ROLE_SKILLS, 'unknown scientific role')
@@ -120,7 +120,9 @@ def audit_role(root, directory):
     require(len(threads) == 1, 'scientific role needs one native thread')
     thread = threads[0][1]['thread']['id']
     turns, responses, cpu_origins = {}, {}, {}
-    for number, (request, reply) in enumerate(rpc('turn/start'), 1):
+    native_turns = list(rpc('turn/start'))
+    format_rejections, consecutive_rejections = 0, 0
+    for number, (request, reply) in enumerate(native_turns, 1):
         require(request['params']['threadId'] == thread, 'native turn crossed role thread')
         turn = reply['turn']['id']
         require(turn not in turns.values(), 'native turn ID reused')
@@ -138,10 +140,25 @@ def audit_role(root, directory):
                 native['turn']['status'] == 'completed' and native['texts'] == texts and texts,
                 'native response/completion differs or is incomplete')
         path = stem.with_name(stem.name + '-response.json')
-        require(load(path) == response_object(texts[-1]), 'structured response differs from native text')
+        try:
+            value = response_object(texts[-1])
+        except ValueError as error:
+            require(allow_format_retries and not path.exists() and number < len(native_turns) and
+                    consecutive_rejections < 2, 'native format retry is missing, fabricated or exceeds its bound')
+            expected_prompt = '模型JSON/协议格式未通过：' + str(error) + '。仅修复格式，保留自己的科学判断，重交完整JSON对象。'
+            next_request = native_turns[number][0]
+            require(next_request['params']['threadId'] == thread and
+                    next_request['params']['input'] == [dict(type='text', text=expected_prompt)],
+                    'native format retry does not preserve the actual parser failure')
+            format_rejections += 1
+            consecutive_rejections += 1
+            continue
+        require(load(path) == value, 'structured response differs from native text')
+        consecutive_rejections = 0
         responses[(thread, number)] = dict(value=load(path), sha256=sha(path), role=directory.name)
     require(len(list(directory.glob('turn-*-native.json'))) == len(turns), 'orphan native turn record')
-    counts = Counter(model_turns=len(turns), usage_updates=sum(message.get('method') == 'thread/tokenUsage/updated'
+    counts = Counter(model_turns=len(turns), format_rejections=format_rejections,
+                     usage_updates=sum(message.get('method') == 'thread/tokenUsage/updated'
                                                             for message in messages))
     authored, seen_calls = {}, set()
     requests = sorted(directory.glob('tools-*/action-*/request.json'))
@@ -168,7 +185,7 @@ def audit_role(root, directory):
         action = request['arguments']['action']
         execution = path.parent / 'execution'
         counts['actions'] += 1
-        if action['kind'] in ('run_python', 'run_skill') and answer.get('reason') != 'CPU run budget exhausted':
+        if action['kind'] in ('run_python', 'run_skill', 'read_profile_shapes') and answer.get('reason') != 'CPU run budget exhausted':
             counts['cpu_runs'] += 1
         if action['kind'] == 'write_file' and returned['success']:
             authored[action['path']] = hashlib.sha256(action['content'].encode()).hexdigest()
