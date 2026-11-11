@@ -23,6 +23,10 @@ Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后30
 
 ## H100进度（2026-11-11，UTC+08）
 
+**最新离线诊断：**[长上下文收益收窄](docs/experiments/prefix-diagnosis-20261111.md)：200份HTTP复核通过，
+final外层周期推进量中位数original→64K为12.95→12.59，未见整体接受量崩塌。
+prefill与decode Attention贡献仍未知；没有新增GPU任务，精确阶段归因待另行批准补采。
+
 **最新完成控制实验：**[公开原题加干扰前缀](docs/experiments/prefix-context-20261111.md)：同10题，original/2K/8K/32K/64K，
 final/stock为**2.179/2.028/1.945/1.462/1.164×**，100pair、200输出的forcing检查通过；64K仍有单题吞吐回退。
 TPS含prefill，不代表纯decode或每题都提速；质量代理发现数学格式盲点，不能宣称语义质量完全不变。

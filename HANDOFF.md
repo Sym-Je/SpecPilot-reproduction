@@ -131,6 +131,16 @@ job-25d13ec7a676-20261111140142；3445 GPU秒，峰值2卡、0活动GPU。
 两次独立audit/最终CPU回归/SHA封存和公开同步状态见本阶段记录及publication回执。
 本阶段源码提案—自主实验—反馈链路已验证；高效方案和数字复现未达成，不复活旧角色或结转预算。
 
+## H100最小离线诊断：长上下文收益收窄
+
+用户要求最小诊断；只复用已收口前缀实验，无新GPU授权、无提交。
+100pair/200份HTTP及server身份SHA、计数直方图和两臂整树冻结身份检查通过；两次复算一致，
+篡改反例被拒。final外层提交周期推进量中位数original/2K/8K/32K/64K为
+12.950/12.511/12.695/13.003/12.588；TLV内部Q-step不单独计入spec_verify_ct，不能称每target forward接受量。
+未见整体接受推进量崩塌，但现有日志无请求级prefill/decode分时和Attention trace，精确归因仍unknown。
+报告`docs/experiments/prefix-diagnosis-20261111.md`，私有复算`logs/prefix-diagnosis-20261111-a01/`。
+若补采仅原始/64K少量固定题，另确认预算和镜像；不改final、不扫N、不将诊断交给独立研究角色。
+
 ## H100最新独立专项：公开原题加干扰前缀（已收口）
 
 用户批准新8 H100 GPU小时／12小时／最多2卡，已确认镜像、WeaverDev/qiji/挂载与priority3沿用。
