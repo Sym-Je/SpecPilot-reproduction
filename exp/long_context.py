@@ -30,6 +30,14 @@ CAP = 2048
 PROTOCOL = 'frozen-author-long-context-v1'
 
 
+def condition_key(item):
+    return str(item.get('condition', item['context_tokens']))
+
+
+def condition_keys(requests):
+    return list(dict.fromkeys(condition_key(item) for item in requests))
+
+
 def validate_requests(requests):
     if len(requests) != 15 or len({item['id'] for item in requests}) != 15:
         raise ValueError('exactly fifteen unique frozen requests required')
@@ -45,9 +53,13 @@ def validate_requests(requests):
 
 def check_request(path, runtime=False):
     record = json.loads(Path(path).read_text())
-    if record['protocol'] != PROTOCOL:
+    if record['protocol'] == 'author-dev-prefix-context-v1':
+        from harness.prefix_context import validate
+        validate(record)
+    elif record['protocol'] == PROTOCOL:
+        validate_requests(record['requests'])
+    else:
         raise ValueError('unexpected long-context protocol')
-    validate_requests(record['requests'])
     source = record['source_archive']
     if digest(source['path']) != source['sha256']:
         raise ValueError('source archive changed')
@@ -102,14 +114,14 @@ def measure(record, directory, gpus):
                 clients.append(client)
             bench = HttpPairBench(*clients, synchronized_start=True, reverse_submission=bool(number))
             with (root / 'pairs.jsonl').open('x') as destination:
-                for length in LENGTHS:
-                    requests = [item for item in record['requests'] if item['context_tokens'] == length]
-                    status = dict(context_tokens=length, pairs=0, preflight=[])
+                for condition in condition_keys(record['requests']):
+                    requests = [item for item in record['requests'] if condition_key(item) == condition]
+                    status = dict(condition=condition, context_tokens=requests[0]['context_tokens'], pairs=0, preflight=[])
                     for native in probes:
                         try:
                             response = native.post('/generate', dict(input_ids=requests[0]['input_ids'],
                                 sampling_params=dict(temperature=0., top_k=1, max_new_tokens=32)))
-                            if response['meta_info']['prompt_tokens'] != length:
+                            if response['meta_info']['prompt_tokens'] != requests[0]['context_tokens']:
                                 raise ValueError('server truncated the requested context')
                             status['preflight'].append(dict(ok=True, evidence=native.last_evidence))
                         except Exception as error:
@@ -119,9 +131,11 @@ def measure(record, directory, gpus):
                             try:
                                 result = bench.run_pair(item['input_ids'], CAP, warmup=0, swap=False,
                                     rid=f'round-{number + 1}|{item["id"]}')['rounds'][0]
-                                pair = dict(id=item['id'], round=number + 1, context_tokens=length,
+                                pair = dict(id=item['id'], round=number + 1, context_tokens=item['context_tokens'],
                                     **{key: result_row(result[key], item, arm, gpu, number, CAP)
                                        for key, arm, gpu in zip(('a', 'b'), record['arms'], assigned)})
+                                if 'condition' in item:
+                                    pair['condition'] = item['condition']
                                 destination.write(json.dumps(pair, allow_nan=False) + '\n')
                                 destination.flush()
                                 status['pairs'] += 1
@@ -162,15 +176,16 @@ def correctness(record, directory, gpus):
         scorer.scorer_identity(arm['tree_sha'])
         generator = NativeClient('http://127.0.0.1:30120', root / 'ar-raw')
         ar_identity = generator.server_identity(arm['tree_sha'])
-        for length in LENGTHS:
-            selected = [pair for pair in pairs if pair['context_tokens'] == length]
-            if len(selected) != 6:
-                reports[str(length)] = dict(status='incomplete-performance')
+        for condition in condition_keys(record['requests']):
+            selected = [pair for pair in pairs if condition_key(pair) == condition]
+            requests = [item for item in record['requests'] if condition_key(item) == condition]
+            if len(selected) != 2 * len(requests):
+                reports[condition] = dict(status='incomplete-performance')
+                save(root / 'summary.json', reports)
                 continue
-            location = root / f'ctx-{length}'
+            location = root / f'ctx-{condition}'
             location.mkdir()
             bench = Campaign(location, scorer, evidence_root=directory)
-            requests = [item for item in record['requests'] if item['context_tokens'] == length]
             try:
                 ar_paths, _, _ = bench.generate('ar', requests, generator, ar_identity, CAP)
                 rounds = []
@@ -189,11 +204,11 @@ def correctness(record, directory, gpus):
                     save(location / f'round-{number}-calibration.json', dict(delta=delta, baseline=baseline))
                     save(location / f'round-{number}-verdict.json', verdict)
                     rounds.append(verdict)
-                reports[str(length)] = dict(status='checked', correctness_passed=all(row['correctness_passed'] for row in rounds))
+                reports[condition] = dict(status='checked', correctness_passed=all(row['correctness_passed'] for row in rounds))
             except Exception as error:
-                reports[str(length)] = dict(status='unavailable', error=str(error))
+                reports[condition] = dict(status='unavailable', error=str(error))
             save(root / 'summary.json', reports)
-            print(json.dumps(dict(event='correctness', context_tokens=length, **reports[str(length)])), flush=True)
+            print(json.dumps(dict(event='correctness', condition=condition, **reports[condition])), flush=True)
             if any(server.process.poll() is not None for server in servers):
                 break
     save(root / 'cleanup.json', wait_for_idle([0, 1]))
@@ -205,7 +220,8 @@ def summarize(pairs, requests, gpus, evidence_root=None):
     for pair in pairs:
         item = indexed[pair['id']]
         key = pair['round'], pair['id']
-        if key in seen or pair['round'] not in (1, 2) or pair['context_tokens'] != item['context_tokens']:
+        if (key in seen or pair['round'] not in (1, 2) or pair['context_tokens'] != item['context_tokens'] or
+                condition_key(pair) != condition_key(item)):
             raise ValueError('duplicate, invalid round or context drift')
         seen.add(key)
         assigned = gpus if pair['round'] == 1 else list(reversed(gpus))
@@ -229,32 +245,35 @@ def summarize(pairs, requests, gpus, evidence_root=None):
                         row['tokens_per_s'], row['tokens'] / (row['latency_ms'] / 1000), rel_tol=1e-9):
                     raise ValueError('throughput does not match recorded timing')
     conditions = {}
-    for length in LENGTHS:
-        selected = [pair for pair in pairs if pair['context_tokens'] == length]
-        expected = {(number, item['id']) for number in (1, 2) for item in requests if item['context_tokens'] == length}
+    for condition in condition_keys(requests):
+        selected = [pair for pair in pairs if condition_key(pair) == condition]
+        cohort = [item for item in requests if condition_key(item) == condition]
+        expected = {(number, item['id']) for number in (1, 2) for item in cohort}
         complete = {(pair['round'], pair['id']) for pair in selected} == expected
-        result = dict(complete=complete, pairs=len(selected), requests=3)
+        result = dict(complete=complete, pairs=len(selected), requests=len(cohort))
         if complete:
             groups = defaultdict(list)
             for item in requests:
-                if item['context_tokens'] == length:
+                if condition_key(item) == condition:
                     cluster = [pair for pair in selected if pair['id'] == item['id']]
-                    groups['novel-summary'].append(sum(math.log(pair['b']['tokens_per_s'] / pair['a']['tokens_per_s'])
+                    groups[item['suite']].append(sum(math.log(pair['b']['tokens_per_s'] / pair['a']['tokens_per_s'])
                         for pair in cluster) / 2)
             result['speedup'] = stratified_geomean_ci(dict(groups))
             result['identical_output_pairs'] = sum(pair['a']['output_ids'] == pair['b']['output_ids'] for pair in selected)
             for key, role in (('a', 'stock'), ('b', 'final')):
                 rows = [pair[key] for pair in selected]
-                result[role] = dict(mean_tokens=sum(row['tokens'] for row in rows) / 6,
-                    mean_latency_s=sum(row['latency_ms'] / 1000 for row in rows) / 6,
-                    geomean_tps=math.exp(sum(math.log(row['tokens_per_s']) for row in rows) / 6),
+                result[role] = dict(mean_tokens=sum(row['tokens'] for row in rows) / len(rows),
+                    mean_latency_s=sum(row['latency_ms'] / 1000 for row in rows) / len(rows),
+                    geomean_tps=math.exp(sum(math.log(row['tokens_per_s']) for row in rows) / len(rows)),
                     cap_count=sum(row['finish_reason'] == 'length' for row in rows))
             result['round_speedups'] = {str(number): math.exp(sum(math.log(pair['b']['tokens_per_s'] / pair['a']['tokens_per_s'])
-                for pair in selected if pair['round'] == number) / 3) for number in (1, 2)}
-        conditions[str(length)] = result
-    return dict(protocol=PROTOCOL, conditions=conditions, ledger_eligible=False,
+                for pair in selected if pair['round'] == number) / len(cohort)) for number in (1, 2)}
+        conditions[condition] = result
+    prefixed = any('condition' in item for item in requests)
+    return dict(protocol='author-dev-prefix-context-v1' if prefixed else PROTOCOL, conditions=conditions, ledger_eligible=False,
         metric='final/stock output tokens per complete request wall second; includes prefill and HTTP, not decode-only',
-        scope='exploratory three-public-novel sample; not all long-context tasks, sealed, RSI or losslessness proof')
+        scope=('exploratory ten-public-task irrelevant-prefix control; not sealed, RSI or losslessness proof' if prefixed else
+            'exploratory three-public-novel sample; not all long-context tasks, sealed, RSI or losslessness proof'))
 
 
 def audit(directory):
@@ -314,7 +333,8 @@ def run(request, directory):
         except Exception as error:
             root = directory / 'correctness'
             root.mkdir(exist_ok=True)
-            save(root / 'summary.json', {str(length): dict(status='unavailable', error=str(error)) for length in LENGTHS})
+            save(root / 'summary.json', {condition: dict(status='unavailable', error=str(error))
+                for condition in condition_keys(record['requests'])})
         save(directory / 'cleanup.json', wait_for_idle([0, 1]))
     result = audit(directory)
     save(directory / 'result.json', result)

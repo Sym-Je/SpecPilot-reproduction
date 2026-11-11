@@ -23,6 +23,11 @@ Ascend容器缺少旧H100工作路径且不支持Landlock，该环境合并后30
 
 ## H100进度（2026-11-11，UTC+08）
 
+**最新完成控制实验：**[公开原题加干扰前缀](docs/experiments/prefix-context-20261111.md)：同10题，original/2K/8K/32K/64K，
+final/stock为**2.179/2.028/1.945/1.462/1.164×**，100pair、200输出的forcing检查通过；64K仍有单题吞吐回退。
+TPS含prefill，不代表纯decode或每题都提速；质量代理发现数学格式盲点，不能宣称语义质量完全不变。
+39项CPU检查及公开副本通过，1.96778 H100 GPU小时，本阶段GPU已释放。
+
 **Master主线已执行：**[四维源码提案与自主反馈](docs/experiments/master-proposal-20261111.md)：
 Master评估“验多少/验哪些/kernel/端到端”，Direction自主实现向量归约诊断，CPU模型5924例通过；
 双卡两轮换卡测得 **0.9956× [0.9933,0.9980]**，不支持收益，Master最终stop。
