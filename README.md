@@ -1,5 +1,13 @@
 # SpecPilot 复现工程
 
+## H100最新进度：真实树适配（2026-11-12）
+
+- **已完成**：Direction自主实现真实双叶树、修复dtype，并完成真实激活差分；4个GPU任务共2.25 GPU小时，现无活动任务。
+- **当前状态**：已执行版本10/10配对输出不一致；发现conv快照重叠线索，独立窗口修复仅CPU检查通过、未提交GPU。原进程中断，Master管理评议defer，阶段目标未完成。
+- **接下来**：另批资源后先验证该修复与完整输出，再考虑独立controller；不直接进入RSI，无lossless、sealed、晋升或论文数字结论。
+
+证据、任务UUID和验收入口见[本阶段记录](docs/experiments/tree-adapter-20261112.md)；历史阶段的“下一步”不覆盖此接续点。
+
 Ascend 进展（2026-11-10）：新增两步 sparse-attention 诊断已完成八卡导出和基线恢复，CPU 工作量与精确 kernel manifest 关联已核对。开发集聚合前缀复用上界审计已完成，状态恢复复核尚未完成；原500美元保守预占保护触发后，用户已将GPT累计上限提高到1000美元。初始化元数据已取得8/8 rank、每卡6组，缓存OFF、零生成；首次基线恢复在图捕获时内存申请失败；按用户选择等待共享锁后，第一次同配置重试已恢复，图捕获32/32、8 worker、health200、无插桩。Master已接续partial OFF事实，尚无新吞吐收益。串行 NPU、Claude累计200美元预算与新验证集隔离保持；本地监听器记录进度，活动会话汇报变化。见 [接续记录](HANDOFF.md) 与 [执行器快照](harness/ascend_dsh/continuation/README.md)。
 
 复现 *SpecPilot: Autonomous Algorithm Discovery and Systems Optimization for Speculative

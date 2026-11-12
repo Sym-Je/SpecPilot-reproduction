@@ -1,5 +1,16 @@
 # HANDOFF — 交接给新 session
 
+## H100最新接续：真实树正确性尚未通过（2026-11-12）
+
+本阶段见`docs/experiments/tree-adapter-20261112.md`，证据`logs/tree-adapter-20261112-a01/`至`a03/`。
+唯一预算在a01/resource-state.json：8GPU小时/8小时/2卡；实际4任务8100GPU秒，0活动GPU。
+Direction自主完成双叶真实执行、dtype修复与conv/SSM差分；已执行版10/10输出不一致。
+独立conv窗口修复`sp-treeadapter-20261112-a03-04`已自检/冻结但未准入、未提交，不得直接续交旧预算。
+原研究进程接续时已消失，a03/result.json原样仍running；原始birth可核对消失，退出码未知。
+最后零工具Master管理评议defer，不冒充正常pipeline；需新阶段授权后复核同一修复再做最小GPU诊断。
+不改controller/规则/账本，不读final/sealed，不接管Ascend；尚无lossless、晋升或完整RSI。
+旧47份dirty保留，三共享文档只增本阶段块；代码/测试/审计/归档/发布身份以本阶段publication回执为准。
+
 本文件是唯一入口。仓库并行记录H100/Codex与Ascend/DSH；先按本次用户授权选择轨道，权限、预算、数据和待办不互通。
 H100任务直接看下文“H100接续点”，不要接管Ascend进程；Ascend部分保留远端会话既有记录，本次H100会话未重跑或复核其科学实验。
 

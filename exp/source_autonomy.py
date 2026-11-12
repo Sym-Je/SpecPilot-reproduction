@@ -89,45 +89,88 @@ def preflight(root, *, resume=False):
 
 def ask(role, prompt, counters, root):
     try:
-        return roles.turn(role, prompt, counters)
+        for attempt in range(3):
+            try:
+                return roles.turn(role, prompt, counters)
+            except ValueError as error:
+                stem=role['directory']/f'turn-{role["number"]:02d}'
+                if (attempt==2 or not stem.with_name(stem.name+'-native.json').exists() or
+                        stem.with_name(stem.name+'-response.json').exists()):
+                    raise
+                prompt='模型JSON/协议格式未通过：'+str(error)+'。仅修复格式，保留自己的科学判断，重交完整JSON对象。'
     finally:
         save(root / 'counters.json', counters)
 
 
-def run(root):
-    proof = json.loads((root / 'preflight-result.json').read_text())
-    if proof.get('status') != 'completed' or proof.get('preflight') is not True:
-        raise ValueError('source research requires successful actual engine boundary preflight')
+def choose(master,prompt,counters,root):
+    for attempt in range(3):
+        value=ask(master,prompt,counters,root)
+        if value.get('decision')=='explore':
+            allocation=value.get('allocation')
+            remaining=dict(actions=512-counters['actions'],cpu_runs=64-counters['cpu_runs'],gpu_attempts=16-counters['gpu_attempts'])
+            valid=isinstance(allocation,dict) and set(allocation)==set(remaining)
+            valid=valid and all(type(amount) is int and 0<=amount<=remaining[key] for key,amount in allocation.items())
+            valid=valid and allocation['actions']>0
+            if valid:return value
+            prompt='追加分配超出本阶段实际剩余：'+json.dumps(remaining)+'。只修复allocation，或有依据stop，不增加预算。'
+            continue
+        if value.get('decision') in ('controller','stop'):return value
+        if value.get('action')=={'kind':'finish'} and isinstance(value.get('conclusion'),str):
+            normalized=dict(decision='stop',reason=value['conclusion'])
+            save(master['directory']/f'turn-{master["number"]:02d}-decision-alias.json',
+                dict(original=value,normalized=normalized,science_conclusion_unchanged=True))
+            return normalized
+        prompt='Master协议需要decision=explore/controller/stop；仅修复结构，保留你的科学判断，不增加实验。'
+    raise ValueError('Master decision schema remained invalid after bounded repair')
+
+
+def run(root, *, context=None):
+    if context is None:
+        proof = json.loads((root / 'preflight-result.json').read_text())
+        if proof.get('status') != 'completed' or proof.get('preflight') is not True:
+            raise ValueError('source research requires successful actual engine boundary preflight')
     if (root / 'result.json').exists():
         raise ValueError('research already started; do not overwrite or silently rerun')
-    budget = stage_budget(root / 'resource-state.json')
+    budget = stage_budget(root / 'resource-state.json') if context is None else context.budget
+    executor = execute if context is None else context.execute
+    freezer = freeze if context is None else context.freeze
+    session = roles.session if context is None else context.session
+    job_prefix = 'sp-source-20261110-a01' if context is None else context.job_prefix
     pin = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
-    packet = build_evidence(pin)
-    packet['evidence'].pop('E005')
-    packet.pop('evidence_sha256')
-    packet.update(scope='authorized stock source implementation; no author final, sealed or other directions',
-        capabilities=dict(source_option=True, startup_tuning=False, new_files=False, arbitrary_shell=False,
-            gpu_submission_allowed=False, allowed_source_prefix='python/sglang/srt/', option_default=False),
-        infrastructure_preflight=dict(source='trusted fresh two-GPU stock preflight', uuid=proof['uuid'],
-            result_sha256=file_sha(root / 'preflight-result.json')))
+    if context is None:
+        packet = build_evidence(pin)
+        packet['evidence'].pop('E005')
+        packet.pop('evidence_sha256')
+        packet.update(scope='authorized stock source implementation; no author final, sealed or other directions',
+            capabilities=dict(source_option=True, startup_tuning=False, new_files=False, arbitrary_shell=False,
+                gpu_submission_allowed=False, allowed_source_prefix='python/sglang/srt/', option_default=False),
+            infrastructure_preflight=dict(source='trusted fresh two-GPU stock preflight', uuid=proof['uuid'],
+                result_sha256=file_sha(root / 'preflight-result.json')))
+    else:
+        packet = context.packet
     packet['evidence_sha256'] = object_sha(packet)
     save(root / 'evidence.json', packet)
-    roles.COMMON = COMMON
+    roles.COMMON = COMMON if context is None else context.rules
     roles.ACTION_LIMIT = 512
     roles.RUN_LIMITS = dict(model_turns=64, cpu_runs=64, gpu_attempts=16, usage_updates=1024)
     counters = dict(actions=0, cpu_runs=0, gpu_attempts=0, model_turns=0, usage_updates=0)
+    if context is not None:
+        counters.update(getattr(context,'prior_counters',{}))
     opened = []
     feedbacks = []
     result = dict(status='running', controller_accepted=False, candidate_promoted=False,
         source_experiment_completed=False, full_phase1_completed=False, real_engine_rsi_completed=False)
     save(root / 'result.json', result)
     try:
-        master = roles.session(root / 'master', 'Master', packet, 96, 8)
+        master = session(root / 'master', 'Master', packet, 96, 8)
         opened.append(master)
-        decision = ask(master, '''读inputs/evidence.json，按stock瓶颈证据自主选一个有界源码研究方向。
+        if context is not None and getattr(context,'prior_decision',None) is not None:
+            decision=context.prior_decision
+        else:
+            decision = choose(master, '''读inputs/evidence.json，按stock瓶颈证据自主选一个有界源码研究方向。
 输出{"decision":"explore","direction":"方向","brief":"问题/授权证据/范围，不代做direction实现或实验设计","allocation":{"actions":正整数,"cpu_runs":非负整数,"gpu_attempts":非负整数}}；也可stop并说明能力或科学原因。
-阶段最多512动作/64CPU/16GPU请求/64模型回合，GPU实际还受16GPU小时/12小时/并发2卡约束。没有必须产生正收益的要求。
-''', counters, root)
+阶段最多512动作/64CPU/16GPU请求/64模型回合，资源以inputs中的本阶段新上限为准。没有必须产生正收益的要求。
+''' + ('' if context is None else context.master_brief), counters, root)
         for number in range(1, 9):
             save(root / f'master-decision-{number:02d}.json', decision)
             if decision.get('decision') == 'stop':
@@ -135,11 +178,12 @@ def run(root):
                 break
             if decision.get('decision') == 'controller':
                 from exp.source_dev_gate import request_gate
-                feedback = request_gate(root, decision, feedbacks, budget, pin, freeze)
+                feedback = request_gate(root, decision, feedbacks, budget, pin, freezer,
+                    executor=executor, job_prefix=job_prefix)
                 feedbacks.append(feedback)
                 save(root / 'feedback.json', feedbacks)
                 result['controller_accepted'] = feedback.get('controller_accepted', False)
-                decision = ask(master, json.dumps(feedback, ensure_ascii=False) +
+                decision = choose(master, json.dumps(feedback, ensure_ascii=False) +
                     '\n独立controller反馈。自主stop或explore，不能放宽规则或假称sealed/晋升。', counters, root)
                 continue
             if decision.get('decision') != 'explore':
@@ -149,12 +193,14 @@ def run(root):
             if (set(allocation) != set(remaining) or allocation['actions'] < 1 or
                     any(type(value) is not int or not 0 <= value <= remaining[key] for key, value in allocation.items())):
                 raise ValueError('Master allocation exceeds stage remainder')
-            direction = roles.session(root / f'direction-{number:02d}', 'direction', dict(packet, assignment=decision),
+            direction = session(root / f'direction-{number:02d}', 'direction', dict(packet, assignment=decision),
                 allocation['actions'], allocation['cpu_runs'])
             opened.append(direction)
             local_attempts = 0
             direction_feedbacks = []
             prompt = '读自身inputs/evidence.json。自主选实验与实现，先写自检和实现，再经工具执行。请求run_source、request_budget或finish；不要只提计划，不绕过边界。'
+            if context is not None and getattr(context,'prior_decision',None) is not None:
+                prompt+='这是同一逻辑方向的工程续接；自己的scratch已按原生写入回执恢复。先核对自己的旧请求和当前文件，重新run_python，然后重交完整run_source JSON。不要重做全部源码阅读或换掉自己的研究方案。'
             while True:
                 if time.time() >= budget.read()['started'] + budget.read()['wall_seconds']:
                     raise RuntimeError('stage wall deadline reached')
@@ -173,7 +219,7 @@ def run(root):
                     counters['actions'] += 1
                     local_attempts += 1
                     direction['actions'] -= 1
-                    directory = root / f'sp-source-20261110-a01-{counters["gpu_attempts"]:02d}'
+                    directory = root / f'{job_prefix}-{counters["gpu_attempts"]:02d}'
                     directory.mkdir(mode=0o700)
                     (directory / 'patch.json').write_bytes((work / action['patch']).read_bytes())
                     (directory / 'self-check.py').write_bytes((work / action['self_check']).read_bytes())
@@ -184,7 +230,7 @@ def run(root):
                         self_check_sha256=file_sha(directory / 'self-check.py'),
                         role_thread=direction['thread']['thread']['id'], role_turn=direction['number'],
                         role_response_sha256=file_sha(direction['directory'] / f'turn-{direction["number"]:02d}-response.json')))
-                    feedback = execute(directory, freeze(directory), budget)
+                    feedback = executor(directory, freezer(directory), budget)
                     feedback['request_directory'] = str(directory)
                 except (ValueError, SyntaxError) as error:
                     feedback = dict(status='rejected', reason=str(error), controller_accepted=False)
@@ -195,7 +241,7 @@ def run(root):
                 save(Path(direction['manifest']['work']) / name, feedback)
                 prompt = f'原始真实反馈在{name}，请自主读取、分析、修复/迭代或停止。剩余actions={direction["actions"]}, CPU={direction["runs"]}, GPU请求={allocation["gpu_attempts"]-local_attempts}。诊断不是正确性验收。'
             save(root / f'direction-conclusion-{number:02d}.json', response)
-            decision = ask(master, json.dumps(dict(direction=decision['direction'], conclusion=response,
+            decision = choose(master, json.dumps(dict(direction=decision['direction'], conclusion=response,
                 actual_feedbacks=direction_feedbacks, resource_state=budget.read(), counters=counters), ensure_ascii=False) +
                 '\n自主stop或explore（完整allocation，复用须注明来源）；有实测源码候选时可请求'
                 '{"decision":"controller","request_directory":"该已完成诊断的request_directory","reason":"为何验收"}。'

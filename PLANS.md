@@ -9,6 +9,16 @@
 
 # 当前执行计划
 
+## H100最新接续：真实树适配（2026-11-12）
+
+- [x] Master评估最小真实范围，Direction自主实现双叶、CPU自检、真实失败修复与差分诊断。
+- [x] 4任务全部终止、累计8100 GPU秒；原进程中断后保留原始结果，Master零工具管理评议defer。
+- [ ] 正确性目标未完成：已执行版本10/10输出不一致；最新独立conv窗口修复仅CPU通过，尚未提交GPU。
+- [ ] 下一阶段另批资源后先复核修复身份并运行既定最小诊断；通过后才由Master考虑独立controller。
+
+唯一资源账本`logs/tree-adapter-20261112-a01/resource-state.json`不重置；本阶段不再提交新任务。
+详见`docs/experiments/tree-adapter-20261112.md`；未进入sealed/晋升/真实RSI，不把旧待办当授权。
+
 H100/Codex与Ascend/DSH是独立轨道。下面先保留Ascend既有计划，H100结果与下一步见后半；本次H100会话不接管Ascend进程、计费或validation。
 
 日期：2026-11-09。入口为[HANDOFF](HANDOFF.md)，长期规则为[AGENTS](AGENTS.md)。

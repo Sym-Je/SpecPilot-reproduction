@@ -9,7 +9,7 @@ from harness.engine_research import save
 from harness.source_candidate import file_sha
 
 
-def request_gate(root, decision, feedbacks, budget, pin, freeze):
+def request_gate(root, decision, feedbacks, budget, pin, freeze, *, executor=execute, job_prefix='sp-source-20261110-a01'):
     name = decision.get('request_directory')
     if not isinstance(name, str):
         raise ValueError('Master must identify a completed source experiment')
@@ -17,7 +17,7 @@ def request_gate(root, decision, feedbacks, budget, pin, freeze):
     eligible = [row for row in feedbacks if row.get('status') == 'completed' and
         row.get('protocol') == 'source-option-research-v1' and not row.get('preflight') and
         row.get('request_directory') == str(original)]
-    if len(eligible) != 1 or original.parent != root or not re.fullmatch('sp-source-20261110-a01-[0-9]{2}', original.name):
+    if len(eligible) != 1 or original.parent != root or not re.fullmatch(re.escape(job_prefix)+'-[0-9]{2}', original.name):
         raise ValueError('controller review must reference this stage actual measured source candidate')
     request = json.loads((original / 'request.json').read_text())
     if request['patch_sha256'] != file_sha(original / 'patch.json'):
@@ -31,4 +31,7 @@ def request_gate(root, decision, feedbacks, budget, pin, freeze):
         action=dict(request['action'], per_suite=6, max_new_tokens=2048),
         diagnostic_request=str(original), diagnostic_feedback_sha256=file_sha(original / 'feedback.json'))
     save(gate / 'request.json', request)
-    return execute(gate, freeze(gate), budget)
+    if job_prefix.startswith('sp-treeadapter-'):
+        from exp.tree_adapter import submit_gate
+        executor=submit_gate
+    return executor(gate, freeze(gate), budget)
