@@ -1,5 +1,13 @@
 # SpecPilot 复现工程
 
+## H100最新：原生Master完成方案评估（2026-11-12）
+
+- **已完成**：505份历史stock证据与摘要来源复核、10个BBuf脚本SHA核对；新Master不继承旧对话，不提供旧agent方案或作者final实现。
+- **当前结果**：Master自主源码/文献/BBuf/CPU取证后给出六项排序候选，首选小M BF16 MLP投影专化、树方案次之；六份分析输出独立重放一致。
+- **接下来**：另审资源后交Direction/Kernel做完整算子对最小证伪，再看step与controller；本阶段0GPU，尚无已实现优化或实测提速。
+
+见[本阶段计划](docs/experiments/master-native-study-20261112.md)。
+
 ## H100最新：Master改用原生同等权限（2026-11-12）
 
 - **已完成**：按用户授权接通继承主助手工具/权限的原生Master，不再使用其专用research-only文件白名单；两类禁区改为prompt约束。

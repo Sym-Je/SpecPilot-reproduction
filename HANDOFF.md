@@ -1,5 +1,19 @@
 # HANDOFF — 交接给新 session
 
+## 最新收口：原生Master独立方案评估（2026-11-12）
+
+用户批准新Master独立比较四维优化机会，先取得有证据、可执行的提案，不直接实现候选或启动GPU。
+唯一目录`logs/master-native-study-20261112-a01/`，原生角色身份见native-agent.json，不继承旧对话、不提供旧agent方案/作者final实现。
+505份历史stock文件及接受量/匹配计时摘要复核、BBuf10脚本SHA核对已完成；实际授权输入见inputs/packet.json。
+Master自行获取知识、选择分析工具和写CPU取证；主助手仅交付资料、独立复核和公开收尾，不代做研究。
+本阶段0GPU、不派Direction、不恢复链长轮/旧预算、不接管Ascend；两类禁区仍prompt约束，后做文件比较，不保证未读取。
+Master实际完成四维比较、六项候选及条件成本评估；首选K1小M BF16 MLP gate/up专化，T1预算树次选，尚未实现或测得收益。
+实际BBuf profiler/compute、10trace/5290有效路径和150个Bellman穷举检查完成；自主修复失败，未由维护者提供科学答案。
+维护者副本重放六份分析输出一致，另核对聚合/成本/首trace区间；首次跨Python末位浮点差异及原始失败保留，同原解释器重放通过。
+controller/账本/指定规则事后摘要未变；角色已关闭，原始research冻结，独立review和归档/发布身份以阶段回执为准。
+下一步另审资源后由研究角色做完整算子对最小证伪，不直接修改整套server，不把30.31%累计kernel work当可省墙钟。
+详见`docs/experiments/master-native-study-20261112.md`；本阶段达成提案目标，不是GPU优化或完整RSI。
+
 ## 最新授权：Master原生同等权限（2026-11-12）
 
 用户明确要求Master继承主助手权限；controller/验收规则/账本不修改，sealed/凭据/本轮禁用的作者final不读取，仅prompt约束、任务后检查。
