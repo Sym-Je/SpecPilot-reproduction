@@ -1,5 +1,15 @@
 # HANDOFF — 交接给新 session
 
+## 最新授权：Master原生同等权限（2026-11-12）
+
+用户明确要求Master继承主助手权限；controller/验收规则/账本不修改，sealed/凭据/本轮禁用的作者final不读取，仅prompt约束、任务后检查。
+新入口为宿主原生spawn_agent、fork_context=false、模型继承；角色约定`agents/master_native.md`，平台沙箱和审批不变，不是无限宿主权限。
+本阶段`logs/master-native-access-20261112-a01/`已完成0GPU原生stock阅读/写入/CPU及公开网络探针；469项指定联合回归通过，不扩展其他角色/Ascend权限。
+网络首次308失败后角色自主跟随公开重定向取得200；旧失败保留。任务后controller/账本/指定规则摘要未变，不把这当成未读取的证明。
+旧链长轮已停止：两任务终态共3090GPU秒；首次CLI登记超时、精确查重接管及原needs_attention均保留。
+链长恢复Master已正常stop，无完整候选配对、无controller正确性/收益；完整旧阶段工程审计与归档尚待收尾，不宣称已完成。
+新研究应使用原生入口；旧CLI入口仍保留旧约束，未伪称热更新。发布身份见本目录publication回执。见`docs/experiments/master-native-access-20261112.md`。
+
 ## H100最新收口：Master决策审查（CPU，2026-11-12）
 
 用户批准落实四项研究决策要求，本阶段仅维护者代码与CPU验收，0GPU/0真实模型角色，不结转旧预算。

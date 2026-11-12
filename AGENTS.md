@@ -35,7 +35,11 @@ Speculative Decoding*。任何 agent（人或模型）在此工作都必须遵�
 - 本地Ascend阶段按当前用户授权使用DSH＋Claude 5.5；H100阶段保留Codex入口和独立资源协议。文档不替代程序执行、内核权限、资源检查或独立验收。
 - Master 自主选方向、分配预算、复核反馈并决定继续/停止；direction 自主设计、编写、执行和迭代实验。
   主助手维护通用工具与证据链，不持续代做 direction 的研究，也不预设必须优化 VERIFY 或产生正结果。
-- 研究角色只用经验证的受限入口及可信 broker；允许授权 stock 阅读、scratch 读写和隔离 CPU 实验。
+- 2026-11-12用户明确授权H100 Master使用原生子agent、继承主助手权限，不再走角色专用只读research入口。
+  该Master对controller/规则/账本禁止修改，对sealed/凭据/本轮禁止参考的作者final禁止读取，仅在prompt约束，任务后复核。
+  使用`agents/master_native.md`；原生入口不覆盖模型，默认不继承旧对话。平台沙箱/审批仍有效，不承诺强制隔离或证明从未读取。
+  GPU资源授权仍独立；这不自动改变其他角色、Ascend或历史入口的限制。说明及验收见`docs/experiments/master-native-access-20261112.md`。
+- 除上述Master明确例外外，研究角色只用经验证的受限入口及可信 broker；允许授权 stock 阅读、scratch 读写和隔离 CPU 实验。
   Ascend入口见 `docs/experiments/ascend-ctrip-dsh-20261109.md`；Codex入口见 `docs/experiments/codex-boundary-20261109.md`。旧聊天 `spawn_agent` 入口未获同等隔离保证。
 - 独立 controller 负责正确性、正式性能验收和账本；研究角色不得修改规则或直接写入结果。
   H100已验证direction自主修复、CPU自检、合成算子微实验，以及受控startup option的真实引擎研究与独立dev验收。
