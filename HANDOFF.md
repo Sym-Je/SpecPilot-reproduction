@@ -1,5 +1,16 @@
 # HANDOFF — 交接给新 session
 
+## H100最新收口：Master决策审查（CPU，2026-11-12）
+
+用户批准落实四项研究决策要求，本阶段仅维护者代码与CPU验收，0GPU/0真实模型角色，不结转旧预算。
+新入口`exp/master_open.py`在Master最终决策前验证`research_review`，绑定自身工具回执和可信交付的执行反馈。
+方向卡须有来源、条件收益/新增成本/未知项；关键否定结论主动查反例；失败分类；缺信息给最小取证，能力/预算不足可停止。
+受理/拒绝与原始答复SHA均保存，最多3次修订，不提供科学答案；不改controller/规则/账本，不读sealed/final，不接管Ascend。
+离线复核`python -B -m harness.master_review --directory logs/master-review-20261112-a01/cpu-fixture`。
+该案例为合成工具帧/模型回包，真实调用了新决策入口，不是原生Master或GPU实验；来源核验不证明推理语义正确。
+旧实验正常重放，旧入口/Ascend不自动纳入新检查。结果/归档/发布身份以本目录closeout/publication回执为准。
+下一阶段先审真实研究和新资源，不恢复链16、旧停止会话或旧任务；原47份dirty保留。
+
 ## H100最新收口：开放研究权限的Master（2026-11-12）
 
 用户新批16GPU小时/12小时/并发4卡，镜像/WeaverDev/qiji/只读挂载/priority=3均确认，旧余额不结转。

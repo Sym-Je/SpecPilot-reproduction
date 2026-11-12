@@ -1,6 +1,7 @@
 """Autonomous diagnosis and broad source research, with independent trusted admission."""
 
 import argparse
+import copy
 import hashlib
 import io
 import json
@@ -22,6 +23,7 @@ from harness.decision_evidence import prepare as prepare_evidence,verify as veri
 from harness.engine_research import save
 from harness.headroom_evidence import freeze_inputs
 from harness.master_decisions import AXES
+from harness.master_review import RULES as REVIEW_RULES,collect_evidence,reference as review_reference,validate_decision_review
 from harness.open_research import OpenAccess
 from harness.source_candidate import file_sha
 
@@ -52,10 +54,11 @@ Master分享补丁/反馈需注明复用，不算独立发现。没有可信收�
 本阶段新上限16 H100 GPU小时/12小时/并发4卡，含失败、排队、冷启动；所有角色共享，不结转旧余额。
 最后输出一个完整JSON对象。direction/integration/kernel可用{"action":{"kind":"finish"},"candidate":false,"conclusion":"证据及限制"}；需追加额度可request_budget交Master。
 '''
+RULES+=REVIEW_RULES
 
 
 def validate_open_plan(value):
-    if not isinstance(value,dict) or set(value)!={'assessment','directions'}:
+    if not isinstance(value,dict) or set(value) not in ({'assessment','directions'},{'assessment','directions','research_review'}):
         raise ValueError('Master must provide its diagnosis, opportunity comparison and directions')
     assessment=value['assessment']
     if not isinstance(assessment,dict) or set(assessment)!={'axes','opportunities','decision_basis'}:
@@ -98,6 +101,35 @@ def validate_open_plan(value):
 
 
 class OpenCampaign(ProfileCampaign):
+    def model_response(self,role,prompt,*,action_required=False):
+        if role['manifest']['role']!='Master':
+            return super().model_response(role,prompt,action_required=action_required)
+        original=prompt
+        for attempt in range(3):
+            feedbacks=copy.deepcopy(self.feedback)
+            catalog=collect_evidence(role,feedbacks,authorized_root=self.root) if (role['directory']/'wire.jsonl').exists() else {}
+            delivered={label:dict(scope=row['scope'],usable=row['usable'],
+                **({'outcome':row['answer']} if label.startswith('feedback:') else {})) for label,row in catalog.items()}
+            response=super().model_response(role,prompt+REVIEW_RULES+'\n当前已交付证据ID（本回合新工具回执也可引用）：'+
+                json.dumps(delivered,ensure_ascii=False),action_required=action_required)
+            evidence=collect_evidence(role,feedbacks,authorized_root=self.root)
+            directory=self.root/'master-reviews';directory.mkdir(exist_ok=True)
+            source=review_reference(role['directory']/f'turn-{role["number"]:02d}-response.json')
+            record=dict(role=dict(directory=str(role['directory']),number=role['number'],
+                manifest=role['manifest'],thread=role['thread']),authorized_root=str(self.root),
+                feedbacks=feedbacks,evidence=evidence,decision=response,decision_source=source)
+            try:
+                verification=validate_decision_review(response,evidence)
+                save(directory/f'turn-{role["number"]:02d}-accepted.json',
+                    dict(record,verification=verification))
+                return response
+            except (ValueError,KeyError,TypeError) as error:
+                save(directory/f'turn-{role["number"]:02d}-rejected.json',dict(record,error=str(error)))
+                prompt=original+'\n研究决策证据未通过：'+str(error)+'''。
+保留原始失败，不虚构引用或收益；可以主动读取源码/文献、查反例、修正假设并重交完整JSON。
+没有能力或预算可明确停止并给信息缺口/最小取证建议。不要求正结果，也不由维护者给研究答案。'''
+        raise ValueError('Master research review remained unsupported after bounded repair')
+
     def __init__(self,root):
         root=Path(root).resolve()
         skill_rsi.Campaign.__init__(self,root,root/'inputs/stock-profile.json',root/'inputs/tools.json',
@@ -242,7 +274,7 @@ def main():
     root=parser.parse_args().stage.resolve()
     if (root/'master').exists() or (root/'pipeline-result.json').exists():raise ValueError('never silently restart a research campaign')
     campaign=OpenCampaign(root)
-    sources=('exp/master_open.py','harness/open_research.py','harness/source_candidate.py','exp/skill_rsi.py',
+    sources=('exp/master_open.py','harness/master_review.py','harness/open_research.py','harness/source_candidate.py','exp/skill_rsi.py',
         'exp/profile_autonomy.py','exp/profile_resource.py','harness/experiment_executor.py','harness/experiment_worker.py')
     for name in sources:
         destination=root/'runtime-source'/name;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,destination)

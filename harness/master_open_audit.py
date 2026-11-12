@@ -217,13 +217,17 @@ def audit(root):
     closure=load(root/'process-closure.json');record=closure['shutdown_registry']
     registry=trusted_metadata(record,Path(record['path']).stat().st_uid)
     processes=validate_shutdown(registry,broker_uid=Path(record['path']).stat().st_uid,opened_unix=time.time())
+    policy={}
+    if 'harness/master_review.py' in manifest['launch_sources']:
+        from harness.master_review import verify_campaign_reviews
+        policy['master_research_reviews']=verify_campaign_reviews(root)
     return dict(engineering_evidence_verified=True,normal_native_campaign_completed=True,
         master_comparison_delivered=True,opportunities=len(plan['assessment']['opportunities']),
         chosen_directions=[row['id'] for row in plan['directions']],roles=roles,counters=expected,
         evidence_tools_replayed=tools_replayed,jobs=jobs,gpu_seconds=charged,active_gpu_jobs=0,
         process_exits_verified=processes,post_launch_source_changes=sorted(modified),
         controller_gate_jobs=expected['controller_jobs'],sealed_used=False,candidate_promoted=False,
-        complete_paper_rsi=False,paper_numbers_reproduced=False)
+        complete_paper_rsi=False,paper_numbers_reproduced=False,**policy)
 
 
 if __name__=='__main__':
