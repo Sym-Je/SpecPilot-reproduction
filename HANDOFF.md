@@ -1,5 +1,20 @@
 # HANDOFF — 交接给新 session
 
+## 最新收口：Master自主交付详细方案（2026-11-12）
+
+用户澄清并批准：当前隔离Master自己给出详细、合理、可交Direction实施的方案，不是自动执行完整闭环，也不由用户逐项引导。
+唯一目录`logs/master-native-design-20261112-a01/`；新原生线程重放同一逻辑Master自己的238份材料，原线程已关闭，不冒称原生恢复或新发现。
+只提供目标、约束和统一交付标准；核心算法/参数/收益依据由Master自己确定，主助手只核对缺口，不提供解法。
+本阶段0GPU、不派Direction、不启动server、不改引擎或裁判、不读sealed/凭据/作者final、不操作Ascend。
+实际角色见native-agent.json；自身材料/来源见own-context-replay.json。输出应为research/implementation-plan.md、design.json和self-review.md。
+Master自主选定`K1-paired-split2-v1.1`：配对gate/up Split-K2 producer＋保留BF16中间边界的CUDA归约SwiGLU，target-only、down stock。
+固定tile/launch/分段/布局，限定两额外资源校准点，明确context/graph独立variant/workspace/fallback；不是把核心tactic留给Direction挑选。
+Master自行修复decoder类、graph路由、mutation witness、成本及层数口径；10类CPU检查/135假设情景通过，维护者独立重放逐值一致、30来源哈希核对。
+初次维护者X加载复核公式重复计数已留失败并修正，仅修改复核代码，研究产物/科学规则未变；自有238份材料未变。
+详细设计目标达成、原生角色关闭；保护文件检查/归档/发布以阶段回执为准，不证明未读禁区。
+后续另审资源与controller入口，再由Direction实施固定首版和最小pair证伪；没有GPU实现/正式数值或性能验收，不把此阶段当完整RSI。
+完整摘要见`docs/experiments/master-native-design-20261112.md`；新阶段不自动结转旧GPU余额。
+
 ## 最新收口：原生Master独立方案评估（2026-11-12）
 
 用户批准新Master独立比较四维优化机会，先取得有证据、可执行的提案，不直接实现候选或启动GPU。

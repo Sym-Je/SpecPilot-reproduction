@@ -1,5 +1,13 @@
 # SpecPilot 复现工程
 
+## H100最新：Master自主交付可实施首版（2026-11-12）
+
+- **已完成**：恢复同一逻辑Master自己的238份研究/输入材料，保留来源与复用标记；只给统一交付标准，不指定科学方案。
+- **当前结果**：自主选定配对gate/up Split-K2＋保留BF16边界的归约SwiGLU，补齐参数/接入/graph/fallback/成本/验证并自审修订；10类CPU检查独立重放一致。
+- **接下来**：另审资源与独立验收入口后交Direction实施并先做完整算子对证伪。本阶段0GPU/不派Direction；归约差异仍可能被controller拒绝，未证明提速或lossless。
+
+见[本阶段计划](docs/experiments/master-native-design-20261112.md)。
+
 ## H100最新：原生Master完成方案评估（2026-11-12）
 
 - **已完成**：505份历史stock证据与摘要来源复核、10个BBuf脚本SHA核对；新Master不继承旧对话，不提供旧agent方案或作者final实现。
