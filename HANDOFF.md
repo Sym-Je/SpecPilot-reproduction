@@ -1,5 +1,20 @@
 # HANDOFF — 交接给新 session
 
+## 最新收口：Master自主复核实施优先级（2026-11-12）
+
+用户批准先补收益依据并比较其他方向，证据不足降级，不直接实施上轮K1详细首版。
+唯一目录`logs/master-priority-20261112-a01/`；基准c168460，62份旧dirty已保存，290份同逻辑Master自有材料SHA核对重放。
+原生Master Sartre身份见native-agent.json，fork_context=false、无模型覆盖；继承父权限，禁区仍prompt约束。
+本轮0GPU/NPU、0NorthJob/模型server、不派Direction、不改引擎/controller/规则/账本，不读sealed/凭据/作者final，不接管Ascend。
+原始stock开发证据复查与CPU分析已落盘；发生工具传输中断，同一线程send_input恢复，错误及旧产物保留。
+assessment.md/json及self-review已交付并关闭角色；13项CPU检查、维护者独立重放、68条来源/64个路径SHA及首份原始trace复核通过。
+结论是无候选值得直接整引擎实施，K1降级为有界完整pair证伪；先E0同路径成本/暴露桥接，再K1/T1/L1最小判别，非实测收益排名。
+实际target调用170496、draft13320；另有640个多余target调用不计可省墙钟，完整资格/因果暴露仍unknown。
+1/3/5%墙钟下降的5.385/13.031/20.677µs局部门槛仅在64次调用/完全暴露/100µs额外成本假设下成立，不是收益预测或controller阈值。
+研究产物已冻结，旧工作/保护文件未变，归档/发布身份以阶段回执为准；事后摘要不能证明未读禁区。
+主助手只维护通用审计/复核与发布，不代替Master设计科学方案。后续以本阶段结果覆盖上轮直接实施建议。
+详见`docs/experiments/master-priority-20261112.md`；下一阶段另审资源，再由Direction自主实施最小取证，不自动启动GPU或接管旧阶段。
+
 ## 最新收口：Master自主交付详细方案（2026-11-12）
 
 用户澄清并批准：当前隔离Master自己给出详细、合理、可交Direction实施的方案，不是自动执行完整闭环，也不由用户逐项引导。
