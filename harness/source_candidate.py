@@ -18,28 +18,33 @@ def file_sha(path):
 
 def read_patch(path):
     path = Path(path)
-    if path.is_symlink() or not path.is_file() or path.stat().st_size > 131072:
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > 4194304:
         raise ValueError('bounded regular source-option JSON required')
     patch = json.loads(path.read_text())
+    if patch.get('schema') == 'source-option-v1' and path.stat().st_size > 131072:
+        raise ValueError('legacy source-option JSON exceeds its original limit')
     return validate_patch(patch)
 
 
 def validate_patch(patch):
     if (not isinstance(patch, dict) or set(patch) != {'schema', 'option_id', 'edits'} or
-            patch['schema'] != 'source-option-v1' or not isinstance(patch['option_id'], str) or
+            patch['schema'] not in ('source-option-v1','source-option-v2') or not isinstance(patch['option_id'], str) or
             not re.fullmatch('[a-z][a-z0-9-]{0,63}', patch['option_id'])):
         raise ValueError('invalid source option manifest')
-    if not isinstance(patch['edits'], list) or not 1 <= len(patch['edits']) <= 8:
-        raise ValueError('one to eight exact source edits required')
+    extended = patch['schema'] == 'source-option-v2'
+    if not isinstance(patch['edits'], list) or not 1 <= len(patch['edits']) <= (128 if extended else 8):
+        raise ValueError('source edit count exceeds this option protocol')
     for edit in patch['edits']:
         if not isinstance(edit, dict) or set(edit) != {'path', 'base_sha256', 'find', 'replace'}:
             raise ValueError('unexpected source edit fields')
         name = edit['path']
+        suffixes = ('.py','.cu','.cuh','.cpp','.cc','.c','.h','.hpp') if extended else ('.py',)
+        creating = extended and edit['base_sha256'] is None
         if (not isinstance(name, str) or not name.startswith(('python/sglang/srt/', 'python/sglang/kernels/')) or
-                not name.endswith('.py') or any(part in ('', '.', '..') for part in name.split('/')) or
-                not re.fullmatch('[0-9a-f]{64}', str(edit['base_sha256']))):
-            raise ValueError('only existing authorized stock runtime Python files can be edited')
-        if (not isinstance(edit['find'], str) or not edit['find'] or
+                not name.endswith(suffixes) or any(part in ('', '.', '..') or part.startswith('.') for part in name.split('/')) or
+                (not creating and not re.fullmatch('[0-9a-f]{64}', str(edit['base_sha256'])))):
+            raise ValueError('only declared stock runtime or kernel source files can be edited')
+        if (not isinstance(edit['find'], str) or (edit['find'] != '' if creating else not edit['find']) or
                 not isinstance(edit['replace'], str) or edit['find'] == edit['replace'] or
                 len(edit['find'].encode()) + len(edit['replace'].encode()) > 32768):
             raise ValueError('bounded non-noop exact replacement required')
@@ -84,6 +89,12 @@ def apply_edits(stock, patch):
     for edit in patch['edits']:
         name = edit['path']
         source = local_path(stock, name)
+        if patch['schema'] == 'source-option-v2' and edit['base_sha256'] is None:
+            if source.exists() or name in outputs:
+                raise ValueError('new source file must not overwrite an existing or previously created file')
+            outputs[name] = edit['replace']
+            originals[name] = None
+            continue
         if not source.is_file() or source.stat().st_size > 1048576:
             raise ValueError('bounded existing stock file required')
         original = source.read_text()
@@ -97,7 +108,8 @@ def apply_edits(stock, patch):
     if any(outputs[name] == originals[name] for name in outputs):
         raise ValueError('source edits cancel to a no-op')
     for name, content in outputs.items():
-        ast.parse(content, filename=name)
+        if name.endswith('.py'):
+            ast.parse(content, filename=name)
     return outputs
 
 
@@ -115,6 +127,7 @@ def build_bundle(base, patch_path, directory):
     shutil.copytree(base['stock_engine'], engine, symlinks=True,
         ignore=shutil.ignore_patterns(*SKIP_DIRS, '*.pyc', '*.pyo'))
     for name, content in outputs.items():
+        (engine / name).parent.mkdir(parents=True, exist_ok=True)
         (engine / name).write_text(content)
     checksum = tree_sha(engine)
     (engine / 'TREE_SHA').write_text(checksum + '\n')
@@ -147,12 +160,15 @@ def load_bundle(directory):
         path.name != 'TREE_SHA' and not any(part in SKIP_DIRS for part in path.parts) and path.suffix not in ('.pyc', '.pyo')}
     actual_files = {path.relative_to(directory / 'engine').as_posix() for path in (directory / 'engine').rglob('*')
         if path.is_file() and path.name != 'TREE_SHA' and not any(part in SKIP_DIRS for part in path.parts) and path.suffix not in ('.pyc', '.pyo')}
-    if actual_files != set(stock_files):
+    if actual_files != set(stock_files) | set(outputs):
         raise ValueError('source bundle adds or removes unauthorized files')
     for name, source in stock_files.items():
         expected = manifest['changed_files'].get(name, file_sha(source))
         if file_sha(directory / 'engine' / name) != expected:
             raise ValueError('source bundle differs outside the declared edits')
+    for name, expected in manifest['changed_files'].items():
+        if file_sha(directory / 'engine' / name) != expected:
+            raise ValueError('declared source file content changed')
     return manifest
 
 

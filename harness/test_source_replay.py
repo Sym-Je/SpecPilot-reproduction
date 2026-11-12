@@ -53,3 +53,19 @@ class SourceReplayTests(unittest.TestCase):
         second=own_replay(next_role,self.root/'second-work')
         self.assertEqual(verify_replay(second,'direction'),verify_replay(first,'direction'))
         self.assertEqual((self.root/'second-work/scratch/check.py').read_text(),self.content)
+
+    def test_chunked_source_recovery_preserves_all_native_appends(self):
+        record=self.directory/'tools-01/action-002';record.mkdir()
+        chunk='print("appended own code")\n'
+        expected=hashlib.sha256(self.content.encode()).hexdigest()
+        digest=hashlib.sha256((self.content+chunk).encode()).hexdigest()
+        request=dict(threadId='own-thread',turnId='own-turn',callId='append-call',tool='research',namespace=None,
+            arguments={'action':dict(kind='append_file',path='scratch/check.py',expected_sha256=expected,content=chunk)})
+        response=dict(success=True,contentItems=[dict(type='inputText',text=json.dumps(dict(status='completed',sha256=digest)))])
+        (record/'request.json').write_text(json.dumps(request));(record/'response.json').write_text(json.dumps(response))
+        with (self.directory/'wire.jsonl').open('a') as destination:
+            for row in [dict(direction='server',message=dict(id=2,method='item/tool/call',params=request)),
+                    dict(direction='client',message=dict(id=2,result=response))]:destination.write(json.dumps(row)+'\n')
+        replay=own_replay(self.directory,self.root/'chunk-work')
+        self.assertEqual((self.root/'chunk-work/scratch/check.py').read_text(),self.content+chunk)
+        self.assertEqual(verify_replay(replay,'direction')['scratch/check.py'],digest)

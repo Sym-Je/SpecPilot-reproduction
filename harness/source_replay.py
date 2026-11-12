@@ -10,6 +10,30 @@ from exp.phase4_run import reference
 def load(path):return json.loads(Path(path).read_text())
 
 
+def replay_text(name,row,fallback_wire):
+    from harness.open_research import record_authored_text
+    operations=row.get('operations',[dict(source=row['source'],response=row['response'],wire=row.get('wire',fallback_wire))])
+    contents={}
+    for operation in operations:
+        for key in ('source','response','wire'):
+            if reference(operation[key]['path'])!=operation[key]:raise ValueError('own replay operation changed')
+        request=load(operation['source']['path']);response=load(operation['response']['path'])
+        action=request['arguments']['action'];relative=Path(action['path'])
+        if (action.get('kind') not in ('write_file','append_file') or action['path']!=name or
+                relative.is_absolute() or '..' in relative.parts or relative.parts[0]!='scratch' or response.get('success') is not True):
+            raise ValueError('replay only restores native-authored private scratch')
+        wire=[json.loads(line)['message'] for line in Path(operation['wire']['path']).read_text().splitlines()]
+        calls=[item for item in wire if item.get('method')=='item/tool/call' and item.get('params')==request]
+        if len(calls)!=1 or sum(item.get('id')==calls[0]['id'] and item.get('result')==response for item in wire)!=1:
+            raise ValueError('own replay operation lacks unique native authorship')
+        answer=json.loads(response['contentItems'][0]['text'])
+        record_authored_text(action,answer,contents)
+    content=contents.get(name)
+    if content is None or hashlib.sha256(content.encode()).hexdigest()!=row['sha256']:
+        raise ValueError('own replay final content differs')
+    return content
+
+
 def own_replay(directory,work):
     directory=Path(directory).resolve();work=Path(work).resolve()
     wire=[json.loads(line)['message'] for line in (directory/'wire.jsonl').read_text().splitlines()]
@@ -18,19 +42,26 @@ def own_replay(directory,work):
     if 'own_replay' in manifest:
         seed=manifest['own_replay'];verify_replay(seed,manifest['role'])
         for name,row in seed['files'].items():
-            action=load(row['source']['path'])['arguments']['action']
-            files[name]=dict(row,content=action['content'],wire=row.get('wire',seed['source_wire']))
+            files[name]=dict(row,content=replay_text(name,row,seed['source_wire']),wire=row.get('wire',seed['source_wire']))
     for path in sorted(directory.glob('tools-*/action-*/request.json')):
         request=load(path);response=load(path.parent/'response.json');action=request['arguments']['action']
-        if action.get('kind')!='write_file' or response.get('success') is not True:continue
+        if action.get('kind') not in ('write_file','append_file') or response.get('success') is not True:continue
         calls=[row for row in wire if row.get('method')=='item/tool/call' and row.get('params')==request]
         if len(calls)!=1 or sum(row.get('id')==calls[0]['id'] and row.get('result')==response for row in wire)!=1:
             raise ValueError('replayed write lacks a unique native call and feedback')
-        name=Path(action['path']);content=action['content'].encode()
+        name=Path(action['path']);content=action['content'].encode();operations=[]
+        if action['kind']=='append_file':
+            previous=files.get(name.as_posix())
+            if previous is None or previous['sha256']!=action['expected_sha256']:
+                raise ValueError('replayed append has no matching original source')
+            content=previous['content'].encode()+content
+            operations=list(previous.get('operations',[dict(source=previous['source'],response=previous['response'],wire=previous['wire'])]))
         answer=json.loads(response['contentItems'][0]['text']);digest=hashlib.sha256(content).hexdigest()
         if (name.is_absolute() or '..' in name.parts or name.parts[0]!='scratch' or
                 answer.get('sha256')!=digest):raise ValueError('only native-authored scratch data may be replayed')
-        files[name.as_posix()]=dict(content=action['content'],sha256=digest,source=reference(path),response=reference(path.parent/'response.json'),wire=reference(directory/'wire.jsonl'))
+        operation=dict(source=reference(path),response=reference(path.parent/'response.json'),wire=reference(directory/'wire.jsonl'))
+        files[name.as_posix()]=dict(content=content.decode(),sha256=digest,**operation,
+            operations=operations+[operation])
     for name,row in files.items():
         target=work/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(row['content'])
     return dict(source_role=reference(directory/'manifest.json'),source_wire=reference(directory/'wire.jsonl'),
@@ -47,17 +78,6 @@ def verify_replay(replay,kind):
     wire=[json.loads(line)['message'] for line in Path(replay['source_wire']['path']).read_text().splitlines()]
     authored={}
     for name,row in replay['files'].items():
-        if reference(row['source']['path'])!=row['source'] or reference(row['response']['path'])!=row['response']:
-            raise ValueError('own replay source receipt changed')
-        request=load(row['source']['path']);response=load(row['response']['path']);action=request['arguments']['action']
-        file_wire=wire
-        if row.get('wire') is not None:
-            if reference(row['wire']['path'])!=row['wire']:raise ValueError('replayed file source wire changed')
-            file_wire=[json.loads(line)['message'] for line in Path(row['wire']['path']).read_text().splitlines()]
-        calls=[item for item in file_wire if item.get('method')=='item/tool/call' and item.get('params')==request]
-        if (action.get('kind')!='write_file' or action.get('path')!=name or response.get('success') is not True or
-                hashlib.sha256(action['content'].encode()).hexdigest()!=row['sha256'] or len(calls)!=1 or
-                sum(item.get('id')==calls[0]['id'] and item.get('result')==response for item in file_wire)!=1):
-            raise ValueError('own replay authorship differs from native evidence')
+        replay_text(name,row,replay['source_wire'])
         authored[name]=row['sha256']
     return authored

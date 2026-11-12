@@ -24,7 +24,12 @@ def local_path(root,name):
     return path
 
 
-def execute_python(work,name,record):
+def execute_python(work,name,record,*,limits=None):
+    limits=dict(wall_seconds=6,cpu_seconds=3,memory_bytes=768*1024**2) if limits is None else dict(limits)
+    if (set(limits)!={'wall_seconds','cpu_seconds','memory_bytes'} or any(type(value) is not int for value in limits.values()) or
+            not 1<=limits['cpu_seconds']<=60 or not limits['cpu_seconds']<=limits['wall_seconds']<=120 or
+            not 128*1024**2<=limits['memory_bytes']<=4*1024**3):
+        raise ValueError('trusted CPU execution limits outside supported envelope')
     work=Path(work).resolve()
     program=local_path(work,name)
     if program.suffix!='.py' or not program.is_file():raise ValueError('existing Python experiment required')
@@ -39,7 +44,7 @@ def execute_python(work,name,record):
         process=subprocess.Popen([sys.executable,'-I','-B','-S',str(worker)],stdin=subprocess.PIPE,
             stdout=stdout,stderr=stderr,cwd=work,env=environment,close_fds=True,start_new_session=True)
         try:
-            process.communicate(json.dumps(dict(work=str(work),program=str(program))).encode(),timeout=6)
+            process.communicate(json.dumps(dict(work=str(work),program=str(program),limits=limits)).encode(),timeout=limits['wall_seconds'])
         except subprocess.TimeoutExpired:
             timed_out=True
             os.killpg(process.pid,signal.SIGKILL)

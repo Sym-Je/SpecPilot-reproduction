@@ -142,7 +142,7 @@ class Campaign:
             with self.lock:
                 for name in self.counters:
                     self.counters[name] += role['counters'].get(name, 0) - before.get(name, 0)
-                if self.counters['actions'] > 900 or self.counters['model_turns'] > 96:
+                if self.counters['actions'] > getattr(self,'action_limit',900) or self.counters['model_turns'] > getattr(self,'model_turn_limit',96):
                     raise RuntimeError('stage action/model allocation exhausted')
                 save(self.root / 'counters.json', self.counters)
 
@@ -169,6 +169,9 @@ class Campaign:
 
     def freeze_sources(self, directory):
         return freeze(directory)
+
+    def execute_source(self, directory, source):
+        return execute(directory, source, self.budget)
 
     def experiment(self, role, action, stage):
         validate_action(action)
@@ -200,14 +203,18 @@ class Campaign:
             request.update(comparison_base_sha256=file_sha(directory / 'comparison-base.json'),
                 comparison_source=str(comparison))
         save(directory / 'request.json', request)
-        value = execute(directory, self.freeze_sources(directory), self.budget)
+        value = self.execute_source(directory, self.freeze_sources(directory))
         value.update(request_directory=str(directory), scientific_stage=stage, role_label=stage,
             owner=role['manifest']['role'])
+        value=self.deliver_experiment_feedback(role,directory,value)
         with self.lock:
             self.feedback.append(value)
             if value['status'] == 'completed':
                 self.completed.append(directory)
             save(self.root / 'feedback.json', self.feedback)
+        return value
+
+    def deliver_experiment_feedback(self,role,directory,value):
         return value
 
     def explore(self, label, kind, packet, allocation, prompt, comparison_base=None):
@@ -250,7 +257,7 @@ class Campaign:
             action=dict(request['action'], per_suite=6, max_new_tokens=2048))
         save(gate / 'request.json', request)
         try:
-            result = execute(gate, self.freeze_sources(gate), self.budget)
+            result = self.execute_source(gate, self.freeze_sources(gate))
         finally:
             with self.lock:
                 self.counters['controller_jobs'] = len(self.reserved_jobs('source-controller'))
@@ -324,9 +331,7 @@ class Campaign:
         if (self.root / 'pipeline-result.json').exists():
             self.authorize_restart()
         self.validate_preflight()
-        roles.COMMON = COMMON
-        roles.ACTION_LIMIT = 900
-        roles.RUN_LIMITS = dict(model_turns=96, cpu_runs=192, gpu_attempts=16, usage_updates=3072)
+        self.configure_roles()
         result = dict(status='running', stages={}, sealed_completed=False, promoted=False,
             real_engine_rsi_completed=False, formal_ceiling=None)
         save(self.root / 'pipeline-result.json', result)
@@ -419,6 +424,11 @@ class Campaign:
                 role_processes_closed=all(role['client'].process.poll() is not None for role in self.opened))
             save(self.root / 'pipeline-result.json', result)
         return result
+
+    def configure_roles(self):
+        roles.COMMON = COMMON
+        roles.ACTION_LIMIT = 900
+        roles.RUN_LIMITS = dict(model_turns=96, cpu_runs=192, gpu_attempts=16, usage_updates=3072)
 
 
 def main():

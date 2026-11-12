@@ -102,12 +102,13 @@ def ask(role, prompt, counters, root):
         save(root / 'counters.json', counters)
 
 
-def choose(master,prompt,counters,root):
+def choose(master,prompt,counters,root,*,limits=None):
+    limits=dict(actions=512,cpu_runs=64,gpu_attempts=16) if limits is None else limits
     for attempt in range(3):
         value=ask(master,prompt,counters,root)
         if value.get('decision')=='explore':
             allocation=value.get('allocation')
-            remaining=dict(actions=512-counters['actions'],cpu_runs=64-counters['cpu_runs'],gpu_attempts=16-counters['gpu_attempts'])
+            remaining={key:limits[key]-counters[key] for key in ('actions','cpu_runs','gpu_attempts')}
             valid=isinstance(allocation,dict) and set(allocation)==set(remaining)
             valid=valid and all(type(amount) is int and 0<=amount<=remaining[key] for key,amount in allocation.items())
             valid=valid and allocation['actions']>0
@@ -151,8 +152,10 @@ def run(root, *, context=None):
     packet['evidence_sha256'] = object_sha(packet)
     save(root / 'evidence.json', packet)
     roles.COMMON = COMMON if context is None else context.rules
-    roles.ACTION_LIMIT = 512
-    roles.RUN_LIMITS = dict(model_turns=64, cpu_runs=64, gpu_attempts=16, usage_updates=1024)
+    limits=dict(actions=512,model_turns=64,cpu_runs=64,gpu_attempts=16,usage_updates=1024)
+    if context is not None:limits.update(getattr(context,'research_limits',{}))
+    roles.ACTION_LIMIT = limits['actions']
+    roles.RUN_LIMITS = {key:limits[key] for key in ('model_turns','cpu_runs','gpu_attempts','usage_updates')}
     counters = dict(actions=0, cpu_runs=0, gpu_attempts=0, model_turns=0, usage_updates=0)
     if context is not None:
         counters.update(getattr(context,'prior_counters',{}))
@@ -169,8 +172,8 @@ def run(root, *, context=None):
         else:
             decision = choose(master, '''读inputs/evidence.json，按stock瓶颈证据自主选一个有界源码研究方向。
 输出{"decision":"explore","direction":"方向","brief":"问题/授权证据/范围，不代做direction实现或实验设计","allocation":{"actions":正整数,"cpu_runs":非负整数,"gpu_attempts":非负整数}}；也可stop并说明能力或科学原因。
-阶段最多512动作/64CPU/16GPU请求/64模型回合，资源以inputs中的本阶段新上限为准。没有必须产生正收益的要求。
-''' + ('' if context is None else context.master_brief), counters, root)
+调用上限以本阶段实际剩余额度为准，不重置历史使用。没有必须产生正收益的要求。
+'''+'\n本阶段研究调用上限：'+json.dumps(limits)+('' if context is None else context.master_brief), counters, root,limits=limits)
         for number in range(1, 9):
             save(root / f'master-decision-{number:02d}.json', decision)
             if decision.get('decision') == 'stop':
@@ -184,12 +187,12 @@ def run(root, *, context=None):
                 save(root / 'feedback.json', feedbacks)
                 result['controller_accepted'] = feedback.get('controller_accepted', False)
                 decision = choose(master, json.dumps(feedback, ensure_ascii=False) +
-                    '\n独立controller反馈。自主stop或explore，不能放宽规则或假称sealed/晋升。', counters, root)
+                    '\n独立controller反馈。自主stop或explore，不能放宽规则或假称sealed/晋升。', counters, root,limits=limits)
                 continue
             if decision.get('decision') != 'explore':
                 raise ValueError('Master must choose explore/controller/stop')
             allocation = decision['allocation']
-            remaining = dict(actions=512-counters['actions'], cpu_runs=64-counters['cpu_runs'], gpu_attempts=16-counters['gpu_attempts'])
+            remaining = {key:limits[key]-counters[key] for key in ('actions','cpu_runs','gpu_attempts')}
             if (set(allocation) != set(remaining) or allocation['actions'] < 1 or
                     any(type(value) is not int or not 0 <= value <= remaining[key] for key, value in allocation.items())):
                 raise ValueError('Master allocation exceeds stage remainder')
@@ -210,7 +213,7 @@ def run(root, *, context=None):
                     break
                 try:
                     validate_action(action)
-                    if direction['actions'] < 1 or local_attempts >= allocation['gpu_attempts'] or counters['gpu_attempts'] >= 16:
+                    if direction['actions'] < 1 or local_attempts >= allocation['gpu_attempts'] or counters['gpu_attempts'] >= limits['gpu_attempts']:
                         raise ValueError('direction GPU/action allocation exhausted; request_budget or finish')
                     work = Path(direction['manifest']['work'])
                     receipt = cpu_receipt(work, direction['directory'], action)
@@ -239,13 +242,20 @@ def run(root, *, context=None):
                 save(root / 'feedback.json', feedbacks)
                 name = f'inputs/source-feedback-{len(direction_feedbacks):02d}.json'
                 save(Path(direction['manifest']['work']) / name, feedback)
+                if context is not None and hasattr(context,'deliver_feedback'):
+                    delivered=context.deliver_feedback(direction,Path(direction['manifest']['work'])/name)
+                    if delivered is not None:
+                        if any(delivered.get(key)!=value for key,value in feedback.items()):
+                            raise ValueError('runtime evidence delivery changed original scientific feedback')
+                        feedback.update(delivered)
+                        save(root/'feedback.json',feedbacks)
                 prompt = f'原始真实反馈在{name}，请自主读取、分析、修复/迭代或停止。剩余actions={direction["actions"]}, CPU={direction["runs"]}, GPU请求={allocation["gpu_attempts"]-local_attempts}。诊断不是正确性验收。'
             save(root / f'direction-conclusion-{number:02d}.json', response)
             decision = choose(master, json.dumps(dict(direction=decision['direction'], conclusion=response,
                 actual_feedbacks=direction_feedbacks, resource_state=budget.read(), counters=counters), ensure_ascii=False) +
                 '\n自主stop或explore（完整allocation，复用须注明来源）；有实测源码候选时可请求'
                 '{"decision":"controller","request_directory":"该已完成诊断的request_directory","reason":"为何验收"}。'
-                '独立gate固定30题/2048/前后null/两轮换卡/FP32-head正确性。诊断CI不是正式验收。', counters, root)
+                '独立gate固定30题/2048/前后null/两轮换卡/FP32-head正确性。诊断CI不是正式验收。', counters, root,limits=limits)
         else:
             raise RuntimeError('Master decision safety ceiling reached without explicit stop')
     except BaseException as error:

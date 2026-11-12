@@ -60,11 +60,13 @@ def command(request, source, output, name, deadline):
     return cli
 
 
-def check_budget(budget, directory):
+def check_budget(budget, directory, *, limits=None):
     if not isinstance(budget, Budget) or Path(directory).absolute().parent != budget.path.parent.absolute():
         raise ValueError('profile unit must share the existing stage budget directory')
     state = budget.read()
-    if any(state[key] != value for key, value in LIMITS.items()):
+    limits=LIMITS if limits is None else limits
+    if (set(limits)!=set(LIMITS) or any(type(value) is not int or value<1 for value in limits.values()) or
+            any(state[key] != value for key, value in limits.items())):
         raise ValueError('profile stage limits differ from the new authorization')
     return state
 
@@ -82,19 +84,20 @@ def archive(directory):
     return output
 
 
-def prepare(directory, capture, budget, *, role_binding=None):
+def prepare(directory, capture, budget, *, role_binding=None, authorized_limits=None, archive_factory=None):
     from exp.profile_capture import validate_request
     directory = Path(directory).absolute()
-    check_budget(budget, directory)
+    check_budget(budget, directory, limits=authorized_limits)
     capture = dict(capture, source_archive=dict(path=str(directory / 'source.tar'), sha256='0' * 64))
     validate_request(capture)
     directory.mkdir(mode=0o700)
-    source = archive(directory)
+    source = (archive if archive_factory is None else archive_factory)(directory)
     capture['source_archive'] = reference(source)
     validate_request(capture)
     save(directory / 'request.json', dict(protocol=PROTOCOL, mode='stock-profile',
         action=capture['action'], capture=capture, budget_path=str(budget.path.absolute()),
-        role_binding=role_binding, deadline=DEADLINE, gpus=1))
+        role_binding=role_binding, deadline=DEADLINE, gpus=1,
+        **({'resource_limits':dict(authorized_limits)} if authorized_limits is not None else {})))
     cli = command(directory / 'request.json', source, directory / 'remote', directory.name, DEADLINE)
     save(directory / 'plan.json', dict(command=cli, shell_command=shlex.join(cli),
         request=reference(directory / 'request.json'), source=reference(source), total_gpus=1,
@@ -164,8 +167,8 @@ def cpu_replay(output):
 
 def execute(directory, budget, *, resume_only=False):
     directory = Path(directory).absolute()
-    check_budget(budget, directory)
     record = json.loads((directory / 'request.json').read_text())
+    check_budget(budget, directory, limits=record.get('resource_limits'))
     plan = json.loads((directory / 'plan.json').read_text())
     source = directory / 'source.tar'
     if (record['protocol'] != PROTOCOL or record['mode'] != 'stock-profile' or record['gpus'] != 1 or

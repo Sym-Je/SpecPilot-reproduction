@@ -12,9 +12,10 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from controller.landlock import Policy,READ,READ_FILE
 
 
-def restrict(work):
-    resource.setrlimit(resource.RLIMIT_CPU,(3,3))
-    resource.setrlimit(resource.RLIMIT_AS,(768*1024**2,768*1024**2))
+def restrict(work,limits=None):
+    limits=dict(cpu_seconds=3,memory_bytes=768*1024**2) if limits is None else limits
+    resource.setrlimit(resource.RLIMIT_CPU,(limits['cpu_seconds'],limits['cpu_seconds']))
+    resource.setrlimit(resource.RLIMIT_AS,(limits['memory_bytes'],limits['memory_bytes']))
     resource.setrlimit(resource.RLIMIT_FSIZE,(65536,65536))
     resource.setrlimit(resource.RLIMIT_NOFILE,(32,32))
     resource.setrlimit(resource.RLIMIT_CORE,(0,0))
@@ -63,7 +64,7 @@ if __name__=='__main__':
     program=Path(payload['program'])
     code=program.read_text()
     os.chdir(work)
-    restrict(work)
+    restrict(work,payload.get('limits'))
     os.write(2,b'SP_ISOLATION_READY\n')
     sys.argv=[str(program)]
     namespace=dict(__name__='__main__',__file__=str(program))

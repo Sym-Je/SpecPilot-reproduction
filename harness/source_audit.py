@@ -104,6 +104,10 @@ def audit(root, *, limits=None, resource_state=None, prior_counters=None, histor
             raise ValueError('native source turn or tool inventory is incomplete')
         usage_updates += sum(row['message'].get('method') == 'thread/tokenUsage/updated' for row in wire)
         authored = verify_replay(manifest['own_replay'],manifest['role']) if 'own_replay' in manifest else {}
+        from harness.source_replay import replay_text
+        restored=manifest.get('own_replay',{})
+        authored_text={name:replay_text(name,entry,restored['source_wire'])
+            for name,entry in restored.get('files',{}).items()}
         for request_path in sorted(role.glob('tools-*/action-*/request.json')):
             request = load(request_path)
             calls = [row['message'] for row in wire if row['message'].get('method') == 'item/tool/call' and
@@ -115,8 +119,10 @@ def audit(root, *, limits=None, resource_state=None, prior_counters=None, histor
                     row['message'].get('result') == response for row in wire):
                 raise ValueError('source tool feedback differs from the native stream')
             action = request['arguments']['action']
-            if action['kind'] == 'write_file' and response['success']:
-                authored[action['path']] = hashlib.sha256(action['content'].encode()).hexdigest()
+            if action['kind'] in ('write_file','append_file') and response['success']:
+                from harness.open_research import record_authored_text
+                answer=json.loads(response['contentItems'][0]['text'])
+                authored[action['path']]=record_authored_text(action,answer,authored_text)
             execution = request_path.parent / 'execution'
             if action['kind'] == 'run_python' and (execution / 'result.json').exists():
                 record = load(execution / 'result.json')

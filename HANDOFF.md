@@ -1,5 +1,20 @@
 # HANDOFF — 交接给新 session
 
+## H100最新收口：开放研究权限的Master（2026-11-12）
+
+用户新批16GPU小时/12小时/并发4卡，镜像/WeaverDev/qiji/只读挂载/priority=3均确认，旧余额不结转。
+唯一目录`logs/master-open-20261112-a01/`，执行器`exp/master_open.py`，方案`docs/experiments/master-open-20261112.md`。
+真实Master自主比较四维并派d1固定链长8/16、d2小M BF16 GEMM；树暂缓。两方向实际自主实现并执行GPU诊断。
+允许授权stock C++/CUDA等文本阅读、新runtime/kernel文件及128-edit v2 option，默认关闭仍stock；不宣称编译/正确性已过。
+4任务均终态，6511GPU秒、0活动GPU；原pipeline正常research_complete，无独立dev gate或候选晋升。
+d1自加checkpoint block_size>=16检查拒绝实际8，不是证明引擎无法运行16；d2诊断0.9660407× [0.9253397,1.0136212]未见收益。
+Kernel自主stock profile仍缺模块/关键路径认证，Integration无正确性已验收补丁，均stop。
+完整执行日志交付已修复；observability-continuation的Master实际读完整日志后仍自主stop，0新增GPU。
+首个接续入口因JSON转义匹配失败，trace原样留observability-start-failed-01；不是模型/GPU实验失败。
+原研究及接续的原生来源、日志副本SHA、资源与退出须用harness.master_open_audit --include-observability-stop复核。
+controller/sealed/凭据/账本仍保护；不重启研究、不自动结转额度。后续先审核新方向/证据和资源。
+公开副本回归、双次审计与归档/发布身份以本目录最终closeout/publication回执为准，不把工程收口当完整RSI。
+
 ## H100最新接续：真实树正确性尚未通过（2026-11-12）
 
 本阶段见`docs/experiments/tree-adapter-20261112.md`，证据`logs/tree-adapter-20261112-a01/`至`a03/`。

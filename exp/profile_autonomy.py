@@ -168,7 +168,7 @@ class ProfileCampaign(Campaign):
         binding = dict(role=label, thread=role['thread']['thread']['id'], turn=role['number'],
             response=reference(role['directory'] / f'turn-{role["number"]:02d}-response.json'))
         request = dict(self.capture_template, action=action)
-        prepare(directory, request, self.budget, role_binding=binding)
+        self.prepare_profile(directory, request, binding)
         self.counters['actions'] += 1
         role['actions'] -= 1
         entry = dict(directory=str(directory), role_binding=binding, action=action)
@@ -201,6 +201,9 @@ class ProfileCampaign(Campaign):
         entry['result'] = answer
         save(self.root / 'profile-requests.json', self.profile_requests)
         return answer
+
+    def prepare_profile(self, directory, request, binding):
+        return prepare(directory, request, self.budget, role_binding=binding)
 
     def model_response(self, role, prompt, *, action_required=False):
         original = prompt

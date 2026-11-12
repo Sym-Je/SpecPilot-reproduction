@@ -192,6 +192,7 @@ def audit_role(root, directory, *, allow_format_retries=False, action_limits=Non
                      usage_updates=sum(message.get('method') == 'thread/tokenUsage/updated'
                                                             for message in messages))
     authored, seen_calls = {}, set()
+    authored_text={}
     requests = sorted(directory.glob('tools-*/action-*/request.json'))
     calls = [row for row in wire if row['direction'] == 'server' and row['message'].get('method') == 'item/tool/call']
     if action_limits is not None:
@@ -221,9 +222,9 @@ def audit_role(root, directory, *, allow_format_retries=False, action_limits=Non
         counts['actions'] += 1
         if action['kind'] in CPU_ACTIONS and answer.get('reason') != 'CPU run budget exhausted':
             counts['cpu_runs'] += 1
-        if action['kind'] == 'write_file' and returned['success']:
-            authored[action['path']] = hashlib.sha256(action['content'].encode()).hexdigest()
-            require(answer['sha256'] == authored[action['path']], 'native write-file SHA differs')
+        if action['kind'] in ('write_file','append_file') and returned['success']:
+            from harness.open_research import record_authored_text
+            authored[action['path']]=record_authored_text(action,answer,authored_text)
         if action['kind'] == 'run_python' and (execution / 'result.json').exists():
             record = load(execution / 'result.json')
             require(record['code_sha256'] == authored.get(action['path']), 'CPU script lacks native authorship')
