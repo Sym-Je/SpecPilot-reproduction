@@ -1,5 +1,18 @@
 # HANDOFF — 交接给新 session
 
+## H100最新收口：Master重新评估与提案（2026-11-13）
+
+用户批准先让Master基于新知识重新生成/论证，不直接执行旧chain12建议。唯一目录`logs/master-replan-20261113-a01/`，基准9b65771，旧62份工作/三个共享文件原文/保护文件快照已保存，先写ACCEPTANCE.md，4项入口检查通过。
+82份输入/通用工具按SHA冻结复用，40项来源入口/9张卡与原始stock/历史dev/profile/接受量可按需读取；没有把旧Master完整设计或分析脚本当待执行答案。进度文档可能暴露旧推荐，不宣称双盲或无先验。
+原生Master Kepler按TASK.md执行，fork_context=false、无模型覆盖、继承父工具/平台审批，研究只写本阶段research；已完成交付并关闭，禁区prompt约束，事后摘要不证明未读。
+实际核对23来源，比较长度/候选选择/kernel/端到端四维五机制；自主选G-joint-projection的有界完整pair取证，明确首版算法/参数/调用点/状态/shape/default-stock/alias/graph/完整成本及停止条件，不支持直接整引擎实施。
+机制借鉴stock已有权重行拼接；先确认当前路径是否已融合，不把适配当独立发明。首trace同名BA区间约99.95%与QKVZ重叠，不能将BA累计时长当墙钟节省；独立Decimal端点扫描复核一致，但不是完整模块配对/critical path/因果收益。
+7项CPU检查/1944合成状态组合通过，维护者独立副本重放analyze/test_contracts的stdout/stderr字节一致；4项入口与8项审计回归通过、54交付文件身份核对。CPU不是BF16/真实GDN/全状态/forcing/lossless验收，端到端净收益仍unknown。
+本阶段0GPU/NPU/NorthJob/server、不派Direction、不改引擎/controller/规则/账本、不读sealed/凭据/作者final实现，不接管Ascend或复活旧预算。父助手只维护通用工具和独立复核，不给科研答案。
+来源/CPU独立重放与语义复核接受的是研究交付，不是controller候选晋升。旧62份工作、82输入和指定保护文件未变；归档与精确公开提交推送身份以archive-receipt/publication为准。
+下一阶段须另批资源/可信入口后由Direction自主做E0当前路线和E1完整投影pair，没可靠正值或有未解数值/alias问题即停；不自动启动GPU、不续chain12、不进入sealed。BBuf本轮只读Skill作为分析口径，未运行模拟器，不声称各角色均使用。
+具体方案/复核/关闭以本阶段research/deliverables、research-review、independent-replay、native-master-closure为准；摘要见`docs/experiments/master-replan-20261113.md`。
+
 ## H100最新收口：研究知识包与Master方案（2026-11-13）
 
 用户批准补研究先验→Master自主比较与交付首版→独立CPU/来源复核；本阶段不实施引擎、不派Direction、0GPU/NPU/NorthJob/server，不复活上一轮停止任务或预算。
