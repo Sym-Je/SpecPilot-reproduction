@@ -1,5 +1,28 @@
 # HANDOFF — 交接给新 session
 
+## H100最新收口：单叉投机机制真实研究（2026-11-13）
+
+用户批准执行：Master自主选机制，Direction受限入口自主实现/实验/修复；D/N/候选组织是变量，改变长度不是终点，不预定树或正收益。
+唯一目录`logs/spec-mechanism-20261113-a01/`，基准39017ae；原62份dirty已保存，原研究谱系397份材料按来源重放，参考论文标记外部先验。
+用户新批8GPU小时/8小时/并发2卡、已验证镜像digest/WeaverDev/qiji/toleration/只读模型PVC/priority3全部沿用，不结转旧余额。
+原生Master Pasteur身份见native-agent.json，已交spine-fork12-v1：draft8保留主链、target容量12补短侧链；5290步条件回放独立重放一致，不是实测加速。
+主助手前两次角色名/超时字段启动错误均零科学回合/零GPU，修复保留；真正Direction在direction-d1-r03做128动作/5CPU后触及单轮32模型步数上限，无GPU。
+Master已复核自身Direction代码/CPU并决定continue；原始资料经own_replay核验，attempt04新受限线程direction-d1-r04恢复同逻辑自身代码/回执，不改权限或重置预算。
+Master新窗口96动作/12CPU/3GPU替代旧未用额度，累计上限224动作/17CPU/3GPU；不是160+96或重算原GPU预算。
+TTY驱动会话68626已正常exit0，日志campaign-04.log，pipeline-result为stopped_by_master；不要重启campaign、已停止角色或复交任务。
+可信执行复用source-option-v2、OpenAccess、既有source-research/source-controller；阶段驱动campaign.py通过文件交接向同一原生Master请求决策。
+预先ACCEPTANCE.md已固定；提交仍须查重、展示完整命令/资源、一次create、核对code200/UUID/实际priority，不能把参数接受当路径生效。
+实际4任务：stock/stock预检通过2172 GPU秒；候选首次prefill graph OOM972秒，Direction修target12容量估算；第二次在途输出额度断言1334秒，Direction修stock fallback；第三次Completed2388秒。
+第三次5请求/256 token/双卡两轮fresh换卡，10pair诊断candidate/stock吞吐0.399651×，95%CI[0.379664,0.425345]，既有controller统计函数独立重算一致。
+自然侧链、父槽/terminal/KV路径有真实执行见证；3请求两轮输出分歧、另2请求完整同输出但仍慢。不以SHA直接判lossless失败，不把不同轨迹接受量算因果收益，不外推2048。
+Master复核全部反馈后自主stop当前eager实现，未请求controller；科学结论在native-master/research/management-scientific-conclusion-02.md/json。主助手未代写科学补丁。
+累计255动作/18CPU/3候选GPU尝试，另有预检；总6866 GPU秒、0活动GPU，原8GPU小时/8小时/2卡上限未变、旧余额不结转。4次均code200/UUID，实际job级higher-priority-job；实际queue为proj-31，不冒称qiji。
+原生Master已关闭、Direction/驱动正常退出，62份旧工作保留、23份Master检查点与裁判/账本/指定规则未变；65项指定入口/执行器/阶段回归通过，不代表全仓全绿。
+本轮完成自主实现/失败修复/真实诊断/管理停止的研究链路，未获得可晋升优化：lossless、2048完整成本、integration/kernel/sealed和完整RSI仍未完成。
+下次若重新立项，先同前缀target margin及serial/root-only/branch状态差分，再谈性能；这只是未完成问题，不自动授权GPU。归档/发布身份见本阶段archive-receipt/publication回执。
+不改controller/规则/账本、不读sealed/凭据/作者final的研究禁区不变；维护者只按skill安全使用本人凭据，不向角色开放。
+详见`docs/experiments/spec-mechanism-20261113.md`；不得重复启动campaign.py、重置预算或接管Ascend/旧链长轮。
+
 ## 最新收口：Master自主复核实施优先级（2026-11-12）
 
 用户批准先补收益依据并比较其他方向，证据不足降级，不直接实施上轮K1详细首版。
