@@ -1,5 +1,23 @@
 # HANDOFF — 交接给新 session
 
+## H100最新收口：研究知识包与Master方案（2026-11-13）
+
+用户批准补研究先验→Master自主比较与交付首版→独立CPU/来源复核；本阶段不实施引擎、不派Direction、0GPU/NPU/NorthJob/server，不复活上一轮停止任务或预算。
+唯一目录`logs/knowledge-master-20261113-a01/`，基准e83754e，62份旧dirty/三个共享文件原文/裁判账本规则快照已保存，先写ACCEPTANCE.md，4项Master入口回归通过。
+四类机制知识覆盖长度/动态预算、候选选择/树、混合递归状态正确性、kernel/端到端成本；外部先验与本地已验收memory分层，不写memory/entries。
+论文附带PDF与公开缓存需绑定身份/定位，初始化memory来源及“一轮”未公开部分不能猜；不得读取作者final实现、sealed、凭据或通过Git历史绕过。
+原生Master继承父权限、fork_context=false、无模型覆盖，只在本阶段research写研究产物，禁区prompt约束、事后文件比较不证明未读。
+本地stock/历史诊断和上一轮候选证据是明确共享复用；主助手未代写科研方案，不预定树或正收益。原生Master Volta身份见native-agent.json，已完成交付并关闭。
+最终9张机制卡、40项来源；公开22项外部来源与脱敏卡，私有保留本地stock/诊断身份。研究入口docs/knowledge/speculative-decoding/README.md，已接入agents/master_native.md按需检索，不把全包塞入上下文。
+Master实际查资料/stock并比较四方向：固定长链、置信前缀预算、16节点树、kernel；选择chain12有界诊断，16仅后续有条件点，不支持直接整引擎实施。默认off/状态/bonus/成本/forcing/2048协议和停止条件已确定，runtime option尚未实现。
+论文PDF原文和作者公开README已核对：140为报告时累计memory，不证明初始化预置答案；H100首轮26changes/4promotions/11.7h/28.3GPU-h。初始memory逐项快照及调用级轨迹在所读材料中未找到，不声称不存在。
+BBuf实际CPU计算纠正默认TP/EP=8与无context，单卡1/1/1、context2048的FLOPs仍非延迟；37个接受位置的状态toy及两种错误注入只验证测试oracle。
+来源抽查纠正EAGLE论文浅层tie策略与所读代码保证的混写，Master自主补证/修卡；抽象反例不冒充真实EAGLE故障。原始版本和失败均保留。
+维护者独立重放frontier/BBuf/tie三脚本字节一致、40源身份和关键原文/源码抽查通过；4入口+12来源审计回归通过，旧62份工作/裁判账本规则未变，事后检查不证明未读禁区。
+本阶段0GPU/NPU/NorthJob/server、不派Direction、不改引擎，不自动续旧实验；U12/C12、真实完整状态/forcing、2048收益及知识注入因果效果均未验证。
+下次另审Direction最小取证，不把知识包或详细诊断当优化晋升。归档/公开增量/提交推送身份以本阶段archive-receipt/publication回执为准。
+计划见`docs/experiments/knowledge-master-20261113.md`；不要把知识包、CPU方案或提案质量当已测收益、全论文或因果能力提升。
+
 ## H100最新收口：单叉投机机制真实研究（2026-11-13）
 
 用户批准执行：Master自主选机制，Direction受限入口自主实现/实验/修复；D/N/候选组织是变量，改变长度不是终点，不预定树或正收益。

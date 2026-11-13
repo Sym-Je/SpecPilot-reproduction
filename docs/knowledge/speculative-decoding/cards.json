@@ -1,0 +1,229 @@
+[
+  {
+    "id": "L1-fixed-lookahead",
+    "category": "length_budget",
+    "title": "固定更长链：以实测进度/全步成本选择 lookahead",
+    "source_ids": [
+      "dynamic-paper",
+      "dynamic-blog-fixed",
+      "paper-html"
+    ],
+    "mechanism": "将一个请求生命周期的 anchor+draft verify block 固定为 B；先比较小幅延长和原长度，不引入分支或逐步 host 决策。长度不等于最终接受量，anchor 占一行。",
+    "applicability": "并行 drafter 可按解析后的 B 组织位置和卷积分组；checkpoint 对长块的提议质量、target 中间状态容量与图 bucket 必须另测。源码 setter 可改 B 不证明真实运行可行。",
+    "benefit_basis": "若每步 target 固定成本占比高且新增位置仍有接受概率，进度增长可能大于成本增长；收益 unknown。论文长块或其他模型结果只作参考。",
+    "added_cost": "更大 draft/selector/LM-head 行数、verify logits、GDN/conv 中间缓存、图捕获内存和尾部浪费；并行 draft 不是零增量成本。",
+    "correctness_risks": "anchor/bonus 错位、卷积分组未同步、状态缓存步数不足、EOS/cap 未裁剪、不同 kernel 舍入轨迹；不得把更长块默认视作 lossless。",
+    "minimal_test": "先执行源码契约与尺寸审计；未来从固定 B 的串行同路径层输出、完整状态和 FP32 token forcing 开始，之后再配对2048端到端。",
+    "tags": [
+      "lookahead",
+      "static",
+      "anchor",
+      "long-chain",
+      "draft-width-not-cap"
+    ],
+    "local_validation": "not_validated",
+    "provenance": "Reference/adaptation of cited public work and explicitly shared stock; not claimed as independent invention."
+  },
+  {
+    "id": "L2-confidence-stop",
+    "category": "length_budget",
+    "title": "置信度停止：区分串行 draft 节省和并行 draft 沉没成本",
+    "source_ids": [
+      "hf-candidates-fixed",
+      "hf-stopping-fixed",
+      "dynamic-blog-fixed",
+      "dynamic-paper",
+      "cuda-graphs-detail"
+    ],
+    "mechanism": "HF 每产生一个 assistant token 后用 softmax 置信度阈值停止；DISCO 论文则训练 token compatibility classifier。两者不能当同一个算法。",
+    "applicability": "逐 token assistant 可避免后续 draft forward；一次生成整块的 DFlash 则主要可能少做后续 verify，已经付出的 draft forward 不能回收；需本模型校准。",
+    "benefit_basis": "低置信位置之后的条件接受概率低，只有省下的边际成本超过丢失进度才获益；HF 示例阈值0.4不是 DFlash 校准值。",
+    "added_cost": "置信计算、校准数据、可变形状或 padding、图 bucket 切换；HF ConfidenceCriteria 的 .item() 会产生 host 依赖，不应原样搬入 CUDA Graph。",
+    "correctness_risks": "不允许以置信阈值绕过 target 验证或强制接受；必须保留 target bonus 和 reject 正确分布，贪心方法不能直接扩展为随机采样。",
+    "minimal_test": "同一已冻结前缀记录全概率/接受标签并评估 calibration；统计不同阈值的预测进度损失和全部成本，不用未来 target 作为在线信号。",
+    "tags": [
+      "confidence",
+      "DISCO",
+      "calibration",
+      "parallel-draft",
+      "host-sync"
+    ],
+    "local_validation": "not_validated",
+    "provenance": "Reference/adaptation of cited public work and explicitly shared stock; not claimed as independent invention."
+  },
+  {
+    "id": "L3-feedback-budget",
+    "category": "length_budget",
+    "title": "接受反馈预算：简单增减规则也须计入成本与分布漂移",
+    "source_ids": [
+      "hf-candidates-fixed",
+      "sequoia-paper"
+    ],
+    "mechanism": "HF heuristic 在全部 assistant token 命中时将预算加2，否则减1、下限1；这是反馈策略，不是 oracle。可将目标改成已测 U(B)/C(B) 的有限预算选择。",
+    "applicability": "仅在稳定可用的预算/图形状集合及一致 sampling、batch 语义下使用；不同宽度的接受反馈并非可直接合并的无偏估计。",
+    "benefit_basis": "上下文接受率变化时固定长度可能非最优；最大化 tau 并不必然最大化 tau/step_cost。",
+    "added_cost": "状态估计、冷启动探索、跨请求状态隔离、图切换/重捕获、tail 行为；反馈观察本身可能受预算截断。",
+    "correctness_risks": "更改预算不能更改 target accept/bonus 契约；混批 shape/accounting、请求结束清理与 RNG 状态必须同步。",
+    "minimal_test": "用可控合成高/低接受段验证反馈不越界，再以真实成本表而非只看接受量比较固定与反馈；初版不实施在线切换。",
+    "tags": [
+      "feedback",
+      "heuristic",
+      "cost-aware",
+      "nonstationarity"
+    ],
+    "local_validation": "not_validated",
+    "provenance": "Reference/adaptation of cited public work and explicitly shared stock; not claimed as independent invention."
+  },
+  {
+    "id": "T1-context-tree",
+    "category": "candidate_tree",
+    "title": "EAGLE-2：上下文路径评分与前缀闭合候选树",
+    "source_ids": [
+      "eagle2-paper",
+      "eagle-cnets",
+      "eagle-utils",
+      "eagle-license",
+      "torch-topk-doc"
+    ],
+    "mechanism": "论文EAGLE-2 v1 §4.2明确提出同值优先浅节点以保持连通；但本轮所读cnets.py固定commit的L760–779只见topk→index sort→searchsorted parent，没有显式depth tie-break或启用的parent-membership修复。两者分列，不能把论文设计主张当作该实现已保证。其共同方法是累计父条件路径分数、候选重排与祖先mask；本地实现仍须额外closure guard。",
+    "applicability": "EAGLE 的 autoregressive feature drafter 实现不能原封不动变成 DFlash 的 selector lattice；DFlash 深层 parent-conditioned 分数和校准须从自身接口取得。",
+    "benefit_basis": "相同节点预算可偏向高概率上下文分支，降低首次 greedy miss 的浪费；在 EAGLE 的 calibration 实验不证明本地 selector 概率已校准。",
+    "added_cost": "候选扩展、topk/rerank、祖先 mask、位置/父索引、cache gather，以及 hybrid 每分支 recurrent/conv 状态处理。",
+    "correctness_risks": "错误祖先关系、跨兄弟mask、展平索引/连续cache切片；同分topk不保证选父再选子，随后index排序不能补缺失父节点，searchsorted插入位置不证明membership。实际EAGLE运行是否可达这种失败仍unknown，本轮没有复现完整EAGLE运行bug；随机采样仍需合法校正。",
+    "minimal_test": "本地设计须额外确定性(-score, depth, stable_id)排序及显式祖先membership检查/修复（是所需guard，不是引用实现事实）；用同分child入选但parent缺失的CPU抽象反例检查closure，再对每个root-path做真实全层状态/输出和cache gather对照。",
+    "tags": [
+      "EAGLE-2",
+      "prefix-closed",
+      "parent-conditioned",
+      "tree-mask",
+      "cache-gather"
+    ],
+    "local_validation": "not_validated",
+    "provenance": "Reference/adaptation of cited public work and explicitly shared stock; not claimed as independent invention."
+  },
+  {
+    "id": "T2-hardware-tree",
+    "category": "candidate_tree",
+    "title": "Sequoia：带假设的树 DP 与硬件成本选形",
+    "source_ids": [
+      "sequoia-paper",
+      "sequoia-search",
+      "sequoia-readme"
+    ],
+    "mechanism": "用 child-rank 接受向量做大小/深度约束的树 DP，再实测 target t(n) 与 draft c，选最大 G(n,d)/(t(n)+d*c)，不是最大 G 的树。",
+    "applicability": "DP 最优性依赖 position/child-rank 的接受模型；上下文差异、并行 draft 而非逐深度 draft、hybrid 状态成本要求重新建模。",
+    "benefit_basis": "在假设下比手工独立序列更有效使用预算，并显式权衡额外节点与验证时间；论文特定 GPU/Llama 收益不可迁移为本机测量。",
+    "added_cost": "接受向量采集/版本、DP 离线成本、实际树布局、不同硬件/batch 的时间表，完整状态验证成本不包含在抽象 G 中。",
+    "correctness_risks": "候选树数学可达性不证明 runtime mask/state/cache 正确；旧实现 torch.load 输入不应对不可信文件执行，未确定许可不直接移植代码。",
+    "minimal_test": "小预算穷举检查 DP 目标，再在独立 calibration/test 上比较 predicted 与实际 progress/time；本轮只读源码，不执行外部 torch.load。",
+    "tags": [
+      "Sequoia",
+      "dynamic-programming",
+      "hardware-aware",
+      "finite-budget",
+      "cost-frontier"
+    ],
+    "local_validation": "not_validated",
+    "provenance": "Reference/adaptation of cited public work and explicitly shared stock; not claimed as independent invention."
+  },
+  {
+    "id": "R1-complete-state",
+    "category": "recurrent_state",
+    "title": "混合目标的完整分支状态：SSM + 因果卷积 + KV",
+    "source_ids": [
+      "fla-naive"
+    ],
+    "mechanism": "每个树节点只从自己的父节点状态前进；提交的是已处理输入前缀的 SSM、conv window 和 KV。仅设置 attention mask 不能隔离线性递归或卷积状态。",
+    "applicability": "GDN/Linear Attention 与 full attention 混合模型；stock 核心已有可选 parent-state cache 路径，但端到端 DFlash 接入仍须独立验证。",
+    "benefit_basis": "保存/重用父状态可避免重复 root-path 计算；完整快照内存随层数、HV、K、V、节点数线性增长，不能只算 attention KV。",
+    "added_cost": "FP32 SSM 快照读写、conv 原始精度窗口、路径 gather、slot 生命周期与 commit；不允许据默认池大小断言所有实现无空间。",
+    "correctness_risks": "只 rollback SSM 而保留兄弟 conv window；bonus 已输出但未作为 target 输入处理却被错误入 state；接受分支和层缓存索引不一致。",
+    "minimal_test": "故意注入 flatten-sibling 与 SSM-only rollback，两者必须被拒绝；真实模型逐层同路径比对、reject 任意位置、slot复用、EOS/tail 后再 token forcing。",
+    "tags": [
+      "GatedDeltaNet",
+      "Linear-Attention",
+      "conv-window",
+      "rollback",
+      "bonus",
+      "state-completeness"
+    ],
+    "local_validation": "not_validated",
+    "provenance": "Reference/adaptation of cited public work and explicitly shared stock; not claimed as independent invention."
+  },
+  {
+    "id": "R2-chunk-affine",
+    "category": "recurrent_state",
+    "title": "GatedDelta 分块/仿射组合：并行化必须保留路径顺序",
+    "source_ids": [
+      "fla-naive",
+      "fla-chunk",
+      "fla-recurrent",
+      "fla-license"
+    ],
+    "mechanism": "GatedDelta 的衰减和 rank-one 更新按有序路径组合；FLA chunk 参考构造三角修正、累计 decay 和块间状态传播，将部分标量序列依赖改为矩阵计算。",
+    "applicability": "普通 chain 的 chunk 算法不自动支持分叉树；需按祖先路径组织组合并独立处理 causal conv。库的当前 commit 与本机 stock kernel 不是同一版本。",
+    "benefit_basis": "足够大块时矩阵化可能利用高吞吐硬件，减少串行 state 更新；短块额外准备可能反而慢，收益 unknown。",
+    "added_cost": "块内三角求解/中间矩阵、额外 scratch、重计算、padding、FP32/BF16 变换和最终接受路径状态提交。",
+    "correctness_risks": "实数代数等价不代表浮点逐位等价；重关联、decay次序、分支 ancestry、dtype 改变可能触发 near-tie 分歧。玩具有理数测试不是模型 lossless。",
+    "minimal_test": "链长度1/8/12/16及病态g/beta/非零初态对逐 token FP32 reference；再核验真实 target logits、SSM/conv/KV 与 controller forcing。MIT许可引用保留。",
+    "tags": [
+      "chunk",
+      "affine-composition",
+      "WY",
+      "floating-point",
+      "path-order"
+    ],
+    "local_validation": "not_validated",
+    "provenance": "Reference/adaptation of cited public work and explicitly shared stock; not claimed as independent invention."
+  },
+  {
+    "id": "K1-shape-stable-graphs",
+    "category": "kernel_e2e",
+    "title": "固定形状/地址 CUDA Graph：把动态决策成本纳入设计",
+    "source_ids": [
+      "cuda-graphs",
+      "cuda-graphs-detail",
+      "hf-stopping-fixed",
+      "sequoia-paper"
+    ],
+    "mechanism": "Graph 重放固定 kernel 参数和虚拟地址，用静态 buffer 填新数据；有限 shape buckets 可替代逐步 eager 重建，不能把 Python 动态分支自动视作 captured。",
+    "applicability": "启动时固定宽度的链/树较容易保持稳定图；动态逻辑可能通过 device-resident 元数据支持，不因此断言动态机制不可运行。",
+    "benefit_basis": "减少 host dispatch/launch 固定成本；更大的 padding 或多图内存可抵消节省，必须测完整 step 与 request wall。",
+    "added_cost": "warmup/capture、持久 buffers、多个图池、padding、bucket调度；.item()/host sync 不能在捕获里照搬。",
+    "correctness_risks": "静态 buffer 覆盖、跨 stream 同步、输出 lifetime、RNG、旧形状 strides；图可重放不等于真实结果正确。",
+    "minimal_test": "同形状新数据与 eager 对照，重复请求/slot复用、混合 EOS，再分列 capture time、steady state、完整端到端时间。",
+    "tags": [
+      "CUDA-Graph",
+      "static-buffer",
+      "shape-bucket",
+      "launch-overhead"
+    ],
+    "local_validation": "not_validated",
+    "provenance": "Reference/adaptation of cited public work and explicitly shared stock; not claimed as independent invention."
+  },
+  {
+    "id": "K2-full-cost",
+    "category": "kernel_e2e",
+    "title": "从 kernel work 到端到端：byte/FLOP 算术不是测量",
+    "source_ids": [
+      "bbuf-compute-skill",
+      "sequoia-paper"
+    ],
+    "mechanism": "区分每步 weight bytes、随行数增加的 compute/state工作和 exposed critical path；使用 U/C 全步目标及同请求完整2048 wall-time，不以 kernel duration 总和替代延迟。",
+    "applicability": "需正确模型结构、TP/DP/EP、context、dtype 和真实 step定义；BBuf模板对 hybrid scalar work是估计，未知 overlap/critical-path 不得补0。",
+    "benefit_basis": "可否决明显成本大于进度的设计并选择最小取证；FLOPs随宽度增长仅证明算术工作变多，不证明延迟同比增长或更多verify行免费。",
+    "added_cost": "profiler扰动、映射/归因、tail/prefill/HTTP固定成本、图与 selector开销；计时和profile需分开。",
+    "correctness_risks": "跨cohort合并分母、把不同输出tau比较当因果、把有限 lattice oracle当全球上界、错误默认TP、用接受token数替代计算行数。",
+    "minimal_test": "先核对TP=DP=EP=1及实际row/context/全token logits；保存源码SHA与解析假设。未来相同请求双卡互换，未profile计时独立于成本归因。",
+    "tags": [
+      "BBuf",
+      "FLOPs",
+      "bytes",
+      "critical-path",
+      "end-to-end",
+      "cohort"
+    ],
+    "local_validation": "not_validated",
+    "provenance": "Reference/adaptation of cited public work and explicitly shared stock; not claimed as independent invention."
+  }
+]
